@@ -36,6 +36,30 @@ DA <-
   set_names(c("GeoUID", "dwellings", "geometry")) %>% 
   st_set_agr("constant")
 
+# Vancouver local areas
+
+LA_raw <-
+  read_sf("data-vancouver/shapefiles/local-area-boundary.shp") %>% 
+  select(area = name) %>% 
+  st_set_agr("constant") %>%
+  st_as_sf() %>% 
+  st_transform(32610) 
+
+LA <- 
+  LA_raw %>% 
+  st_intersection(province)
+
+LA <- 
+  DA %>% 
+  select(dwellings) %>% 
+  st_interpolate_aw(LA, extensive = TRUE) %>% 
+  st_drop_geometry() %>% 
+  select(dwellings) %>% 
+  cbind(LA, .) %>% 
+  as_tibble() %>% 
+  st_as_sf() %>% 
+  arrange(area)
+
 
 # Vancouver CSD -----------------------------------------------------------
 
@@ -87,5 +111,5 @@ streets <-
 
 # Save output -------------------------------------------------------------
 
-save(province, DA, city, streets, #streets_downtown, 
+save(province, DA, city, streets, LA, #streets_downtown, 
      file = "output/geometry.Rdata")
