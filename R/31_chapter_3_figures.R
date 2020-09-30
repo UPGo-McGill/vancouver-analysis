@@ -225,13 +225,13 @@ figure_3_3_left <- make_housing_map(housing_loss_area)
 
 figure_3_3_right <- 
   make_housing_map(housing_loss_DA) +
-  geom_rect(xmin = 483600, ymin = 5449000, xmax = 498000, ymax = 5465000,
+  geom_rect(xmin = 490000, ymin = 5457200, xmax = 493000, ymax = 5460500,
             fill = NA, colour = "black", size = 0.3)
 
 fig_zoom <- 
   figure_3_3_right +
   geom_sf(data = streets_downtown, size = 0.3, colour = "white") +
-  coord_sf(xlim = c(607000, 614000), ylim = c(5038000, 5045000),
+  coord_sf(xlim = c(490000, 493000), ylim = c(5457200, 5460500),
            expand = FALSE) +
   theme(legend.position = "none",
         panel.border = element_rect(fill = NA, colour = "black", size = 0.6))
@@ -243,7 +243,7 @@ layout <- c(
 )
 
 figure_3_3 <- 
-  figure_3_3_left + figure_3_3_right + plot_layout(design = layout) + #+ fig_zoom
+  figure_3_3_left + figure_3_3_right + fig_zoom + plot_layout(design = layout) + 
   plot_layout(guides = 'collect') & theme(legend.position = "bottom")
 
 ggsave("output/figures/figure_3_3.pdf", plot = figure_3_3, width = 8, 
