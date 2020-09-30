@@ -59,8 +59,9 @@ GH_area <-
 #' hostels. In total, therefore, short-term rentals removed 2,560 [3] housing 
 #' units from Vancouver’s long-term market last year (Figure 3.1). Notably, while 
 #' the number of active daily listings declined by 3.0% over 2019, the number of 
-#' housing units which STRs took off of Montreal’s housing market increased by 
-#' 16.6% [4] in that same time period, from 4,730 [5] to 5,520.
+#' housing units which STRs took off of Vancouver’s housing market increased by 
+#' 41.2% [4] in that same time period, from 1,810 [5] to 2,560. The peak in housing loss
+#' remains in 2017, with 2720 units of housing lost due to STR in October 2017.
 
 #' [1] FREH in 2019-1
 FREH %>% filter(date == "2019-12-01") %>% pull(FREH_3) %>% round(digit = -1)
@@ -88,6 +89,13 @@ GH %>% filter(date == LTM_end_date) %>% pull(housing_units) %>% sum() %>%
   {GH %>% filter(date == LTM_end_date - years(1)) %>% pull(housing_units) %>% 
       sum()}} %>% 
   round(digit = -1)
+
+#' [6] Peak in housing loss
+housing_loss %>% 
+  group_by(date) %>% 
+  summarize(units = round(sum(`Housing units`), -1)) %>% 
+  arrange(desc(units)) %>% 
+  slice(1:5)
 
 #' At the end of 2019 close to two thirds (65.9% [1]) of entire-home listings 
 #' and more than four out of ten (42.0% [1]) private-room listings were taking housing off 
