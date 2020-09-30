@@ -10,7 +10,7 @@
 #' - None
 #' 
 #' External dependencies:
-#' - None
+#' - `local-area-boundary.shp`: Shapefile of Vancouver's local areas
 
 source("R/01_startup.R")
 library(cancensus)
@@ -39,7 +39,7 @@ DA <-
 # Vancouver local areas
 
 LA_raw <-
-  read_sf("data-vancouver/shapefiles/local-area-boundary.shp") %>% 
+  read_sf("data/shapefiles/local-area-boundary.shp") %>% 
   select(area = name) %>% 
   st_set_agr("constant") %>%
   st_as_sf() %>% 
