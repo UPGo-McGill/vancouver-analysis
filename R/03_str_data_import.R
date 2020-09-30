@@ -164,6 +164,18 @@ host <-
   host %>% 
   filter(host_ID %in% property$host_ID)
 
+# Add area to property file
+property <-
+  property %>%
+  st_join(select(LA, -dwellings))
+
+# Add area to daily file
+daily <-
+  property %>%
+  st_drop_geometry() %>%
+  select(property_ID, area) %>%
+  left_join(daily, ., by = "property_ID")
+
 
 # Save output -------------------------------------------------------------
 
