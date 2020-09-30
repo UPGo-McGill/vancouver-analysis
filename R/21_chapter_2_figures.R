@@ -50,14 +50,14 @@ figure_2_1 <-
   active_listings %>% 
   ggplot(aes(date, n, colour = listing_type, size = listing_type)) +
   annotate("segment", x = key_date_covid, xend = key_date_covid,
-           y = 0, yend = Inf, alpha = 0.3) +
+           y = -Inf, yend = Inf, alpha = 0.3) +
   annotate("curve", x = as.Date("2019-08-01"), xend = key_date_covid - days(10),
            y = 5000, yend = 4700, curvature = -.2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
   annotate("text", x = as.Date("2019-05-01"), y = 5000,
            label = "COVID-19 \nAirbnb's response", family = "Futura Condensed") +
   annotate("segment", x = key_date_regulations, xend = key_date_regulations,
-           y = 0, yend = Inf, alpha = 0.3) +
+           y = -Inf, yend = Inf, alpha = 0.3) +
   annotate("curve", x = as.Date("2018-06-01"), xend = key_date_regulations - days(10),
            y = 5200, yend = 5100, curvature = -.2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
@@ -123,16 +123,16 @@ extrafont::embed_fonts("output/figures/figure_2_2.pdf")
 
 # Figure 2.3 Active listings as a share of dwellings ----------------------
 
-active_borough <-
+active_area <-
   daily %>%
   filter(housing, status != "B", date >= LTM_start_date, 
          date <= LTM_end_date) %>%
-  count(borough, date) %>% 
-  group_by(borough) %>% 
+  count(area, date) %>% 
+  group_by(area) %>% 
   summarize(n = mean(n, na.rm = TRUE)) %>%
-  left_join(boroughs, .) %>% 
+  left_join(LA, .) %>% 
   mutate(percentage = n / dwellings, n = round(n, digit = -1)) %>% 
-  select(borough, n, dwellings, percentage)
+  select(area, n, dwellings, percentage)
 
 active_DA <-
   daily %>%
@@ -158,29 +158,29 @@ make_listing_map <- function(df) {
     guides(fill = guide_colourbar(title = "STRs/\ndwelling",
                                   title.vjust = 1)) + 
     gg_bbox(df) +
-    theme_void() +
-    theme(text = element_text(family = "Futura", face = "plain"),
-          legend.title = element_text(family = "Futura", face = "bold",
-                                      size = 7),
-          legend.title.align = 0.9,
-          legend.text = element_text(family = "Futura", size = 5),
-          panel.border = element_rect(colour = "white", size = 2))
+    theme_void() #+
+    # theme(text = element_text(family = "Futura", face = "plain"),
+    #       legend.title = element_text(family = "Futura", face = "bold",
+    #                                   size = 7),
+    #       legend.title.align = 0.9,
+    #       legend.text = element_text(family = "Futura", size = 5),
+    #       panel.border = element_rect(colour = "white", size = 2))
 }
 
-figure_2_3_left <- make_listing_map(active_borough)
+figure_2_3_left <- make_listing_map(active_area)
 
 figure_2_3_right <- 
   make_listing_map(active_DA) +
   geom_rect(xmin = 607000, ymin = 5038000, xmax = 614000, ymax = 5045000,
             fill = NA, colour = "black", size = 0.3)
 
-fig_2_3_zoom <- 
-  figure_2_3_right +
-  geom_sf(data = streets_downtown, size = 0.3, colour = "white") +
-  coord_sf(xlim = c(607000, 614000), ylim = c(5038000, 5045000),
-           expand = FALSE) +
-  theme(legend.position = "none",
-        panel.border = element_rect(fill = NA, colour = "black", size = 0.6))
+# fig_2_3_zoom <- 
+#   figure_2_3_right +
+#   geom_sf(data = streets_downtown, size = 0.3, colour = "white") +
+#   coord_sf(xlim = c(607000, 614000), ylim = c(5038000, 5045000),
+#            expand = FALSE) +
+#   theme(legend.position = "none",
+#         panel.border = element_rect(fill = NA, colour = "black", size = 0.6))
 
 layout <- c(
   area(1, 1, 42, 40),
@@ -189,9 +189,9 @@ layout <- c(
 )
 
 figure_2_3 <- 
-  figure_2_3_left + figure_2_3_right + fig_2_3_zoom + 
+  figure_2_3_left + figure_2_3_right + #fig_2_3_zoom + 
   plot_layout(design = layout) + plot_layout(guides = 'collect') & 
-  theme(legend.position = "bottom")
+  theme(legend.position = "bottom", legend.key.width = unit(1.8, "lines"))
 
 ggsave("output/figures/figure_2_3.pdf", plot = figure_2_3, width = 8, 
        height = 4.2, units = "in", useDingbats = FALSE)
@@ -201,18 +201,18 @@ extrafont::embed_fonts("output/figures/figure_2_3.pdf")
 
 # Figure 2.4 Percentage of listings in condos -----------------------------
 
-active_condos_borough <- 
+active_condos_area <- 
   daily %>% 
   filter(housing, date >= LTM_start_date, 
          date <= LTM_end_date, status != "B") %>% 
   left_join(listing_probabilities_2019) %>% 
-  group_by(date, borough) %>% 
+  group_by(date, area) %>% 
   summarize(n_listings = n(),
             n_condo = sum(condo, na.rm = TRUE)) %>% 
-  group_by(borough) %>% 
+  group_by(area) %>% 
   summarize(n_listings_2019 = mean(n_listings),
             n_condo_listings_2019 = mean(n_condo)) %>% 
-  left_join(boroughs, .) %>% 
+  left_join(LA, .) %>% 
   mutate(p_condo = n_condo_listings_2019 / n_listings_2019)
 
 make_condo_map <- function(df) {
@@ -235,7 +235,7 @@ make_condo_map <- function(df) {
           panel.border = element_rect(colour = "white", size = 2))
 }
 
-figure_2_4_left <- make_condo_map(active_condos_borough)
+figure_2_4_left <- make_condo_map(active_condos_area)
 
 figure_2_4_right <- 
   make_condo_map(DA_probabilities_2019) +
@@ -273,27 +273,27 @@ condo_scatter <-
   DA_probabilities_2019 %>% 
   mutate(str_pct = n_listings / dwellings) %>% 
   select(GeoUID, dwellings, p_condo, str_pct, geometry) %>% 
-  left_join(select(st_drop_geometry(st_join(st_centroid(DA), boroughs)), 
+  left_join(select(st_drop_geometry(st_join(st_centroid(DA), LA)), 
                    -dwellings.x, -dwellings.y)) %>% 
-  mutate(borough = case_when(
-    borough == "Ville-Marie" ~ "Ville-Marie",
-    borough == "Le Plateau-Mont-Royal" ~ "Le Plateau-Mont-Royal",
+  mutate(area = case_when(
+    area == "Ville-Marie" ~ "Ville-Marie",
+    area == "Le Plateau-Mont-Royal" ~ "Le Plateau-Mont-Royal",
     TRUE ~ "Other")) %>% 
-  mutate(borough = factor(borough, levels = c("Other", "Le Plateau-Mont-Royal",
+  mutate(area = factor(area, levels = c("Other", "Le Plateau-Mont-Royal",
                                               "Ville-Marie")))
 
 figure_2_5 <- 
   condo_scatter %>% 
-  ggplot(aes(p_condo, str_pct, colour = borough)) +
+  ggplot(aes(p_condo, str_pct, colour = area)) +
   geom_point() + 
-  geom_point(data = filter(condo_scatter, borough == "Other"),
+  geom_point(data = filter(condo_scatter, area == "Other"),
              colour = "grey") +
-  geom_point(data = filter(condo_scatter, borough == "Le Plateau-Mont-Royal"),
+  geom_point(data = filter(condo_scatter, area == "Le Plateau-Mont-Royal"),
              colour = col_palette[5]) +
-  geom_point(data = filter(condo_scatter, borough == "Ville-Marie"),
+  geom_point(data = filter(condo_scatter, area == "Ville-Marie"),
              colour = col_palette[1]) +
   geom_smooth(method = lm, se = FALSE) +
-  scale_colour_manual(name = "Borough", 
+  scale_colour_manual(name = "area", 
                       values = c("grey", col_palette[c(5, 1)])) +
   scale_x_continuous(name = "% condominiums",
                      labels = scales::percent) +
@@ -414,11 +414,13 @@ ML <-
 
 figure_2_7 <- 
   ML %>% 
+  filter(date >= "2017-01-01") %>% 
   ggplot() +
   geom_line(aes(date, value, colour = `Multilisting percentage`), lwd = 1) +
-  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"), 
-           ymin = -Inf, ymax = Inf, alpha = .2) +
-  scale_x_date(name = NULL, limits = c(as.Date("2017-06-01"), NA)) +
+  annotate("segment", x = key_date_covid, xend = key_date_covid,
+           y = -Inf, yend = Inf, alpha = 0.3) +
+  annotate("segment", x = key_date_regulations, xend = key_date_regulations,
+           y = -Inf, yend = Inf, alpha = 0.3) +
   scale_y_continuous(name = NULL, 
                      label = scales::percent_format(accuracy = 1)) +
   scale_colour_manual(values = col_palette[c(5, 1)]) +
@@ -450,8 +452,10 @@ figure_2_8 <-
   commercial_listings %>% 
   ggplot() +
   geom_line(aes(date, n, color = commercial), lwd = 1) +
-  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"), 
-           ymin = -Inf, ymax = Inf, alpha = .2) +
+  annotate("segment", x = key_date_covid, xend = key_date_covid,
+           y = -Inf, yend = Inf, alpha = 0.3) +
+  annotate("segment", x = key_date_regulations, xend = key_date_regulations,
+           y = -Inf, yend = Inf, alpha = 0.3) +
   scale_x_date(name = NULL, limits = c(as.Date("2016-01-01"), NA)) +
   scale_y_continuous(name = NULL) +
   scale_colour_manual(name = "Listing type",
@@ -472,8 +476,8 @@ extrafont::embed_fonts("output/figures/figure_2_8.pdf")
 
 # Clean up ----------------------------------------------------------------
 
-rm(active_borough, active_condos_borough, active_DA, active_listings,
-   boroughs, boroughs_raw, city, commercial_listings, condo_scatter, DA,
+rm(active_area, active_condos_area, active_DA, active_listings,
+   LA, LA_raw, city, commercial_listings, condo_scatter, DA,
    DA_probabilities_2017, DA_probabilities_2019, daily_variation, fig_2_3_zoom,
    fig_2_4_zoom, figure_2_1, figure_2_2, figure_2_3, figure_2_3_left,
    figure_2_3_right, figure_2_4, figure_2_4_left, figure_2_4_right,
