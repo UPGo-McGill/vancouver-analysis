@@ -62,24 +62,33 @@ housing_loss <-
 figure_3_1 <- 
   housing_loss %>% 
   ggplot(aes(date, `Housing units`, fill = `Listing type`)) +
-  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
-           ymin = 0, ymax = Inf, alpha = .2) +
   geom_col(lwd = 0) +
-  annotate("curve", x = as.Date("2019-04-05"), xend = as.Date("2020-05-01"),
-           y = 5500, yend = 5800, curvature = -.2, lwd = 0.25,
+  annotate("segment", x = key_date_covid, xend = key_date_covid,
+           y = 0, yend = Inf, alpha = 0.3) +
+  annotate("curve", x = as.Date("2019-08-01"), xend = key_date_covid - days(10),
+           y = 3000, yend = 2700, curvature = -.2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
-  annotate("text", x = as.Date(LTM_start_date), y = 5500,
-           label = "STRs banned \nby Province", family = "Futura Condensed") +
+  annotate("text", x = as.Date("2019-05-01"), y = 3000,
+           label = "COVID-19 \nAirbnb's response") + #, family = "Futura Condensed"
+  annotate("segment", x = key_date_regulations, xend = key_date_regulations,
+           y = 0, yend = Inf, alpha = 0.3) +
+  annotate("curve", x = as.Date("2018-06-01"), xend = key_date_regulations - days(10),
+           y = 3200, yend = 3100, curvature = -.2, lwd = 0.25,
+           arrow = arrow(length = unit(0.05, "inches"))) +
+  annotate("text", x = as.Date("2018-02-01"), y = 3200,
+           label = "Regulations")+ #, family = "Futura Condensed"
   scale_fill_manual(values = col_palette[c(1, 5)]) +
   scale_x_date(name = NULL, limits = c(as.Date("2016-10-01"), NA)) +
   scale_y_continuous(name = NULL, label = scales::comma) +
   theme_minimal() +
   theme(legend.position = "bottom", 
         panel.grid.minor.x = element_blank(),
-        text = element_text(face = "plain", family = "Futura"),
-        legend.title = element_text(face = "bold", family = "Futura", 
+        text = element_text(face = "plain", #family = "Futura"
+                            ),
+        legend.title = element_text(face = "bold", #family = "Futura", 
                                     size = 10),
-        legend.text = element_text( size = 10, family = "Futura"))
+        legend.text = element_text( size = 10, #family = "Futura"
+                                    ))
 
 ggsave("output/figures/figure_3_1.pdf", plot = figure_3_1, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
@@ -107,16 +116,31 @@ figure_3_2 <-
   housing_loss_share %>% 
   ggplot(aes(date, housing_loss_pct, colour = `Listing type`)) +
   geom_line(lwd = 1) +
-  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
-           ymin = 0, ymax = Inf, alpha = .2) +
+  annotate("segment", x = key_date_covid, xend = key_date_covid,
+           y = 0, yend = Inf, alpha = 0.3) +
+  annotate("curve", x = as.Date("2019-08-01"), xend = key_date_covid - days(10),
+           y = 1, yend = 0.8, curvature = -.2, lwd = 0.25,
+           arrow = arrow(length = unit(0.05, "inches"))) +
+  annotate("text", x = as.Date("2019-05-01"), y = 1,
+           label = "COVID-19 \nAirbnb's response") + #, family = "Futura Condensed"
+  annotate("segment", x = key_date_regulations, xend = key_date_regulations,
+           y = 0, yend = Inf, alpha = 0.3) +
+  annotate("curve", x = as.Date("2018-06-01"), xend = key_date_regulations - days(10),
+           y = 1, yend = 0.8, curvature = -.2, lwd = 0.25,
+           arrow = arrow(length = unit(0.05, "inches"))) +
+  annotate("text", x = as.Date("2018-02-01"), y = 1,
+           label = "Regulations")+ #, family = "Futura Condensed"
   scale_y_continuous(name = NULL, labels = scales::percent) +
   scale_colour_manual(values = col_palette[c(5, 1)]) +
   theme_minimal() +
   theme(legend.position = "bottom",
         panel.grid.minor.x = element_blank(),
-        text = element_text(family = "Futura", face = "plain"),
-        legend.title = element_text(family = "Futura", face = "bold"),
-        legend.text = element_text(family = "Futura"))
+        text = element_text(#family = "Futura", 
+          face = "plain"),
+        legend.title = element_text(#family = "Futura", 
+          face = "bold"),
+        #legend.text = element_text(family = "Futura")
+        )
 
 ggsave("output/figures/figure_3_2.pdf", plot = figure_3_2, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
@@ -124,12 +148,12 @@ ggsave("output/figures/figure_3_2.pdf", plot = figure_3_2, width = 8,
 extrafont::embed_fonts("output/figures/figure_3_2.pdf")
 
 
-# Figure 3.3 Housing loss by borough --------------------------------------
+# Figure 3.3 Housing loss by area --------------------------------------
 
-FREH_borough <- 
+FREH_area <- 
   daily %>% 
   filter(date == "2019-12-01") %>% 
-  group_by(borough) %>% 
+  group_by(area) %>% 
   summarize(FREH = sum(FREH_3))
 
 FREH_DA <- 
@@ -139,13 +163,13 @@ FREH_DA <-
   group_by(GeoUID) %>% 
   summarize(FREH = sum(FREH_3))
 
-GH_borough <- 
+GH_area <- 
   GH %>% 
   filter(date == LTM_end_date) %>% 
   mutate(geometry = st_centroid(geometry)) %>% 
-  st_join(boroughs) %>% 
+  st_join(LA) %>% 
   st_drop_geometry() %>% 
-  group_by(borough) %>% 
+  group_by(area) %>% 
   summarize(GH = sum(housing_units, na.rm = TRUE)) %>% 
   as_tibble()
 
@@ -159,10 +183,10 @@ GH_DA <-
   summarize(GH = sum(housing_units, na.rm = TRUE)) %>% 
   as_tibble()
 
-housing_loss_borough <- 
-  boroughs %>% 
-  left_join(FREH_borough) %>% 
-  left_join(GH_borough) %>% 
+housing_loss_area <- 
+  LA %>% 
+  left_join(FREH_area) %>% 
+  left_join(GH_area) %>% 
   mutate(GH = if_else(is.na(GH), 0L, GH),
          housing_loss_pct = (FREH + GH) / dwellings)
 
@@ -180,25 +204,28 @@ make_housing_map <- function(df) {
             colour = if (nrow(df) == 19) "white" else "transparent") +
     scale_fill_gradientn(colors = col_palette[c(3, 4, 1, 2)], 
                          na.value = "grey80",
-                         limits = c(0, 0.10), oob = scales::squish, 
+                         limits = c(0, 0.06), oob = scales::squish, 
                          labels = scales::percent)  +
     guides(fill = guide_colourbar(title = "% housing\nlost to STR",
                                   title.vjust = 1)) + 
     gg_bbox(df) +
     theme_void() +
-    theme(text = element_text(family = "Futura", face = "plain"),
-          legend.title = element_text(family = "Futura", face = "bold",
+    theme(text = element_text(#family = "Futura", 
+      face = "plain"),
+          legend.title = element_text(#family = "Futura", 
+            face = "bold",
                                       size = 7),
           legend.title.align = 0.9,
-          legend.text = element_text(family = "Futura", size = 5),
+          legend.text = element_text(#family = "Futura", 
+            size = 5),
           panel.border = element_rect(colour = "white", size = 2))
 }
 
-figure_3_3_left <- make_housing_map(housing_loss_borough)
+figure_3_3_left <- make_housing_map(housing_loss_area)
 
 figure_3_3_right <- 
   make_housing_map(housing_loss_DA) +
-  geom_rect(xmin = 607000, ymin = 5038000, xmax = 614000, ymax = 5045000,
+  geom_rect(xmin = 483600, ymin = 5449000, xmax = 498000, ymax = 5465000,
             fill = NA, colour = "black", size = 0.3)
 
 fig_zoom <- 
@@ -216,7 +243,7 @@ layout <- c(
 )
 
 figure_3_3 <- 
-  figure_3_3_left + figure_3_3_right + fig_zoom + plot_layout(design = layout) + 
+  figure_3_3_left + figure_3_3_right + plot_layout(design = layout) + #+ fig_zoom
   plot_layout(guides = 'collect') & theme(legend.position = "bottom")
 
 ggsave("output/figures/figure_3_3.pdf", plot = figure_3_3, width = 8, 
@@ -423,12 +450,12 @@ extrafont::embed_fonts("output/figures/figure_3_6.pdf")
 
 # Clean up ----------------------------------------------------------------
 
-rm(annual_avg_rent, annual_units, annual_vacancy, boroughs, boroughs_raw,
+rm(annual_avg_rent, annual_units, annual_vacancy, LA, LA_raw,
    city, city_avg_rent, city_units, city_vacancy, cmhc, DA,
    DA_probabilities_2017, DA_probabilities_2019, daily_cmhc, fig_zoom,
    figure_3_1, figure_3_2, figure_3_3, figure_3_3_left, figure_3_3_right,
-   figure_3_4, figure_3_5, figure_3_6, FREH_borough, FREH_DA, FREH_total,
-   GH_borough, GH_DA, GH_total, housing_loss, housing_loss_borough,
+   figure_3_4, figure_3_5, figure_3_6, FREH_area, FREH_DA, FREH_total,
+   GH_area, GH_DA, GH_total, housing_loss, housing_loss_area,
    housing_loss_DA, housing_loss_share, layout, listing_probabilities_2017,
    listing_probabilities_2019, province, rent_increase, rent_increase_for_map,
    rent_increase_zone, renter_zone, streets, streets_downtown, strs_by_zone,
