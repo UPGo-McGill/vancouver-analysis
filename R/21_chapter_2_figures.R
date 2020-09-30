@@ -46,15 +46,15 @@ active_listings <-
   bind_rows(active_listings) %>% 
   arrange(date, listing_type)
 
-figure_2_1 <- 
+figure_2_1 <-
   active_listings %>% 
   ggplot(aes(date, n, colour = listing_type, size = listing_type)) +
   annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
            ymin = 0, ymax = Inf, alpha = .2) +
   annotate("curve", x = as.Date("2019-08-01"), xend = as.Date("2020-05-01"),
-           y = 12000, yend = 10500, curvature = -.2, lwd = 0.25,
+           y = 5000, yend = 4500, curvature = -.2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
-  annotate("text", x = as.Date("2019-05-01"), y = 11700,
+  annotate("text", x = as.Date("2019-05-01"), y = 5000,
            label = "STRs banned \nby Province", family = "Futura Condensed") +
   geom_line() +
   scale_y_continuous(name = NULL, label = scales::comma) +
