@@ -49,13 +49,20 @@ active_listings <-
 figure_2_1 <-
   active_listings %>% 
   ggplot(aes(date, n, colour = listing_type, size = listing_type)) +
-  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
-           ymin = 0, ymax = Inf, alpha = .2) +
-  annotate("curve", x = as.Date("2019-08-01"), xend = as.Date("2020-05-01"),
-           y = 5000, yend = 4500, curvature = -.2, lwd = 0.25,
+  annotate("segment", x = key_date_covid, xend = key_date_covid,
+           y = 0, yend = Inf, alpha = 0.3) +
+  annotate("curve", x = as.Date("2019-08-01"), xend = key_date_covid - days(10),
+           y = 5000, yend = 4700, curvature = -.2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
   annotate("text", x = as.Date("2019-05-01"), y = 5000,
-           label = "STRs banned \nby Province", family = "Futura Condensed") +
+           label = "COVID-19 \nAirbnb's response", family = "Futura Condensed") +
+  annotate("segment", x = key_date_regulations, xend = key_date_regulations,
+           y = 0, yend = Inf, alpha = 0.3) +
+  annotate("curve", x = as.Date("2018-06-01"), xend = key_date_regulations - days(10),
+           y = 5200, yend = 5100, curvature = -.2, lwd = 0.25,
+           arrow = arrow(length = unit(0.05, "inches"))) +
+  annotate("text", x = as.Date("2018-02-01"), y = 5200,
+           label = "Regulations", family = "Futura Condensed")+
   geom_line() +
   scale_y_continuous(name = NULL, label = scales::comma) +
   scale_x_date(name = NULL, limits = c(as.Date("2016-01-01"), NA)) +
@@ -95,8 +102,10 @@ figure_2_2 <-
   daily_variation %>% 
   ggplot(aes(date, value, colour = var)) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
-  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
-           ymin = -Inf, ymax = Inf, alpha = .2) +
+  annotate("segment", x = key_date_covid, xend = key_date_covid,
+           y = -Inf, yend = Inf, alpha = 0.3) +
+  annotate("segment", x = key_date_regulations, xend = key_date_regulations,
+           y = -Inf, yend = Inf, alpha = 0.3) +
   geom_line(lwd = 1) +
   scale_x_date(name = NULL) +
   scale_y_continuous(name = NULL, limits = c(-1, NA), 
