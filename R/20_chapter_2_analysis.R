@@ -273,15 +273,15 @@ national_comparison %>%
 
 # Location of STR listings and revenue ------------------------------------
 
-boroughs_breakdown <- 
+LA_breakdown <- 
   daily %>% 
   filter(housing, status != "B", date >= LTM_start_date - years(1), 
          date <= LTM_end_date) %>% 
-  group_by(date, borough) %>% 
+  group_by(date, area) %>% 
   summarize(n = n(),
             revenue = sum(price[status == "R"])) %>% 
-  left_join(st_drop_geometry(boroughs)) %>% 
-  group_by(borough, dwellings) %>% 
+  left_join(st_drop_geometry(LA)) %>% 
+  group_by(area, dwellings) %>% 
   summarize(active_listings = mean(n[date >= LTM_start_date]),
             active_2018 = mean(n[date < LTM_start_date]),
             active_growth = (active_listings - active_2018) / active_2018,
@@ -292,35 +292,42 @@ boroughs_breakdown <-
   mutate(listings_pct = active_listings / sum(active_listings),
          listings_pct_dwellings = active_listings / dwellings,
          rev_pct = annual_rev / sum(annual_rev)) %>% 
-  select(borough, active_listings, active_growth, listings_pct,
+  select(area, active_listings, active_growth, listings_pct,
          listings_pct_dwellings, annual_rev, rev_pct, rev_growth)
 
-#' STR activity in Vancouver is highly concentrated in the central-city boroughs 
-#' of Ville-Marie and Le Plateau-Mont-Royal (Table 2.2). These two boroughs 
-#' accounted for 32.6% [1] and 25.9% [1] of all listings in 2019 respectively, 
-#' and even higher shares of host revenue (41.2% [1] and 29.6% [1]). The borough 
-#' with the next highest percentage of average number of daily active listings 
-#' is Rosemont-La-Petite-Patrie (8.0% [2]), followed by Le Sud-Ouest (6.9% [2]). 
-#' Each accounts for around 6% [2] of annual STR revenue in the city.
+LA_breakdown %>% 
+  arrange(desc(active_listings)) %>% 
+  ggplot()+
+  geom_line(aes(active_listings, active_growth))
+
+#' STR activity in Vancouver is mostly concentrated in the area of Downtown (Table 2.2). 
+#' This area accounts for 25.1% [1] of all listings in 2019, and even higher shares of 
+#' host revenue (32.7% [1]). The area with the next highest percentage of average number 
+#' of daily active listings is Kitsilano (7.8% [2]), followed by West End (6.7% [2]). The 
+#' former accounts for 8.8% [2] of annual STR revenue in the city and the latter 7.7% [2].
 #' 
-#' Ville-Marie and Le Plateau-Mont-Royal have by far the most STR activity when 
-#' measured in per-capita terms. In Ville-Marie, active STR listings account for 
-#' 4.8% [1] of all the borough’s housing units, while the equivalent figure for 
-#' Le Plateau-Mont-Royal is 3.7% [1] of total dwellings (Figure 2.2).
+#' When measured in per-capita terms, areas are fairly distributed. Downtown is 
+#' showing the highest figure of active STR listings on total housing units at 
+#' 2.5% [1]. At second place, active STR listings account for 2.4% [3] of 
+#' Riley park’s housing units, while all the other area’s figures are under 2%.
 
-#' [1] Figures for VM and LPMR
-boroughs_breakdown %>% 
-  slice(c(7, 18))
+#' [1] Figures for Downtown
+LA_breakdown %>% 
+  slice(c(2))
 
-#' [2] Figures for RLPP and LSO
-boroughs_breakdown %>% 
-  slice(c(8, 14))
+#' [2] Figures for Kitsilano and West End
+LA_breakdown %>% 
+  slice(c(10, 21))
+
+#' [3] Figures for Kitsilano and West End
+LA_breakdown %>% 
+  slice(c(15))
 
 #' Table 2.2
-boroughs_breakdown %>% 
-  select(borough, active_listings, active_growth, listings_pct_dwellings,
+LA_breakdown %>% 
+  select(area, active_listings, active_growth, listings_pct_dwellings,
          annual_rev, rev_growth) %>% 
-  set_names(c("Borough",
+  set_names(c("area",
               "Daily active listings (average)",
               "Active listing year-over-year growth rate",
               "Active listings as % of dwellings",
@@ -336,8 +343,8 @@ boroughs_breakdown %>%
                   str_sub(`Annual revenue (CAD)`, -6, -6), " million")) %>%
   gt() %>% 
   tab_header(
-    title = "Borough breakdown",
-    subtitle = "Boroughs with more than 100 daily active listings average, 2019"
+    title = "area breakdown",
+    subtitle = "LA with more than 100 daily active listings average, 2019"
   ) %>%
   opt_row_striping() %>% 
   fmt_percent(columns = c(3:4, 6), decimals = 1) %>% 
@@ -351,7 +358,7 @@ daily %>%
   count(date) %>% 
   summarize(active_listings = round(mean(n), digit = -1)) %>% 
   pull(active_listings) %>% 
-  {. / sum(boroughs$dwellings)}
+  {. / sum(LA$dwellings)}
 
 
 # Listing types and sizes -------------------------------------------------
@@ -378,13 +385,14 @@ listing_type_breakdown <-
   mutate(pct_listing_growth = (active_listings - active_2018) / active_2018) %>% 
   select(-active_2018)
 
-#' The vast majority of STRs in Vancouver are entire homes, a category which 
+#' The majority of STRs in Vancouver are entire homes, a category which 
 #' includes single-family homes, townhouses, apartments and condominiums. 
-#' Nearly half of these (43.6% [1]) were one-bedroom housing units, with the 
-#' remainder relatively evenly split between studio apartments (12.6% [1]), 
-#' two-bedroom units (27.7% [1]), and three-or-more-bedroom units (16.0% [1]). 
-#' In 2019 entire-home listings accounted for 75.6% [2] of all daily active 
-#' listings, and 91.1% [2] of total host revenue. Private rooms accounted for 
+#' 41.9% [1] of these were one-bedroom housing units, and a third (33.4% [1]) were 
+#' two-bedrooms units. Almost a fifth of these listings (18.1% [1]) were 3 or 
+#' more bedrooms housing units, and 6.5% [1] were studios. 
+
+#' In 2019 entire-home listings accounted for 69.4% [2] of all daily active 
+#' listings, and 86.2% [2] of total host revenue. Private rooms accounted for 
 #' nearly all of the remainder.
 
 #' [1] Bedroom counts
@@ -431,11 +439,11 @@ active_tenure_2017 <-
   daily %>% 
   filter(housing, date >= "2017-01-01", date <= "2017-12-31", status != "B") %>% 
   left_join(listing_probabilities_2017) %>% 
-  group_by(date, borough) %>% 
+  group_by(date, area) %>% 
   summarize(n_listings_2017 = n(),
             n_condo_2017 = as.numeric(sum(condo, na.rm = TRUE)),
             n_renter_2017 = sum(p_renter, na.rm = TRUE)) %>% 
-  group_by(borough) %>% 
+  group_by(area) %>% 
   summarize(across(where(is.numeric), mean))
 
 active_tenure_2019 <- 
@@ -443,32 +451,32 @@ active_tenure_2019 <-
   filter(housing, date >= LTM_start_date, 
          date <= LTM_end_date, status != "B") %>% 
   left_join(listing_probabilities_2019) %>% 
-  group_by(date, borough) %>% 
+  group_by(date, area) %>% 
   summarize(n_listings_2019 = n(),
             n_condo_2019 = as.numeric(sum(condo, na.rm = TRUE)),
             n_renter_2019 = sum(p_renter, na.rm = TRUE)) %>% 
-  group_by(borough) %>% 
+  group_by(area) %>% 
   summarize(across(where(is.numeric), mean))
 
-borough_tenure <- 
+area_tenure <- 
   DA_probabilities_2019 %>% 
   mutate(across(c(p_condo, p_renter), ~{.x * dwellings})) %>% 
   mutate(across(where(is.numeric), ~if_else(is.na(.x), 0, as.numeric(.x)))) %>% 
   select(p_condo, p_renter, geometry) %>% 
-  st_interpolate_aw(boroughs, extensive = TRUE) %>% 
+  st_interpolate_aw(LA, extensive = TRUE) %>% 
   st_drop_geometry() %>% 
   select(-Group.1) %>% 
   rename(n_condo = p_condo, n_renter = p_renter) %>% 
-  cbind(boroughs, .) %>% 
+  cbind(LA, .) %>% 
   as_tibble() %>% 
   st_as_sf()
 
 tenure_breakdown <-
-  borough_tenure %>% 
+  area_tenure %>% 
   left_join(active_tenure_2017) %>% 
   left_join(active_tenure_2019) %>% 
   relocate(geometry, .after = last_col()) %>%
-  transmute(borough, n_condo_2017, n_renter_2017, n_condo_2019, n_renter_2019,
+  transmute(area, n_condo_2017, n_renter_2017, n_condo_2019, n_renter_2019,
             condo_pct_2017 = n_condo_2017 / n_listings_2017,
             condo_pct_2019 = n_condo_2019 / n_listings_2019,
             renter_pct_2017 = n_renter_2017 / n_listings_2017,
@@ -478,9 +486,9 @@ tenure_breakdown <-
 #' condominiums in this way, making condominiums the second most common 
 #' property type in Vancouver. The overwhelming majority (73.5% [1]) were 
 #' identified as “Apartment”, and most of the rest were either “House” 
-#' (5.5% [1]) or “Loft” (4.6% [1]).... There are 12 [2] dissemination areas in 
+#' (5.5% [1]) or “Loft” (4.6% [1]).... There are 12 [2] dissemination LA in 
 #' Vancouver in which condominiums are more than 95% of the housing stock. 
-#' These 12 areas contain 114 [3] active STR listings, which by definition must 
+#' These 12 LA contain 114 [3] active STR listings, which by definition must 
 #' be nearly entirely condominiums. And yet only 44.7% [4] of these listings are 
 #' described as condominiums by their hosts; 39.5% [4] are described as 
 #' apartments and 6.1% [4] are described as lofts. In fact, the correlation 
@@ -533,7 +541,7 @@ tenure_breakdown %>%
   mutate(listings_2017 = n_condo_2017 / condo_pct_2017,
          listings_2019 = n_condo_2019 / condo_pct_2019) %>% 
   summarize(
-    borough = "City of Vancouver",
+    area = "City of Vancouver",
     n_condo_2017 = sum(n_condo_2017),
     n_renter_2017 = sum(n_renter_2017),
     n_condo_2019 = sum(n_condo_2019),
@@ -552,7 +560,7 @@ tenure_breakdown %>%
          `% change in % of STRs in rental units (2017 to 2019)` =
            (renter_pct_2019 - renter_pct_2017) / renter_pct_2017) %>% 
   select(-c(n_condo_2017:renter_pct_2019)) %>% 
-  rename(Borough = borough) %>% 
+  rename(area = area) %>% 
   arrange(desc(`Number of STRs in condos`)) %>%
   slice(1:12) %>% 
   mutate(`Number of STRs in condos` = round(`Number of STRs in condos`, 
@@ -561,7 +569,7 @@ tenure_breakdown %>%
            round(`Number of STRs in rental units`, digit = -1)) %>%
   gt() %>% 
   tab_header(title = "Tenure breakdown",
-             subtitle = "STRs in condominiums and rental units by borough") %>%
+             subtitle = "STRs in condominiums and rental units by area") %>%
   opt_row_striping() %>% 
   fmt_percent(columns = c(3:4, 6:7), decimals = 1) %>% 
   fmt_number(columns = c(2, 5), decimals = 0)
@@ -577,11 +585,11 @@ host_rev <-
   summarize(rev = sum(price))
   
 #' Among all the STR hosts who earned revenue in the City of Vancouver last year, 
-#' the median revenue was $4,300 [1], while the top host (in this case a network 
-#' of numerous host accounts which we discuss below) earned $12.9 million [2] 
-#' (Table 2.5). Throughout the City of Vancouver, there were 38 hosts [3] that 
-#' earned more than $500,000 in 2019. Figure 2.6 shows the percentage of the 
-#' total $224.4 million [4] in STR revenue which accrued to each decile of 
+#' the median revenue was $15,400 [1], while the top host (in this case a network 
+#' of numerous host accounts which we discuss below) earned $0.7 million [2] 
+#' (Table 2.5). Throughout the City of Vancouver, there were 19 hosts [3] that 
+#' earned more than $250,000 in 2019. Figure 2.6 shows the percentage of the 
+#' total $151.8 million [4] in STR revenue which accrued to each decile of 
 #' hosts. The most successful 10% of hosts earned more than two-thirds 
 #' (68.8% [5]) of all STR revenue. The revenue concentration is even steeper 
 #' among the top 10%: the top 5% earned 58.9% [6] of revenue, while the top 1% 
@@ -593,9 +601,9 @@ median(host_rev$rev) %>% round(-2)
 #' [2] Top earner
 max(host_rev$rev) %>% round(-5)
 
-#' [3] Hosts above $500,000
+#' [3] Hosts above $250,000
 host_rev %>% 
-  filter(rev >= 500000) %>% 
+  filter(rev >= 250000) %>% 
   nrow()
 
 #' [4] Total annual revenue
@@ -640,7 +648,7 @@ commercial_listings <-
   ungroup()
 
 
-#' Since 94.7% [1] of entire-home listings have three or fewer bedrooms...
+#' Since 93.6% [1] of entire-home listings have three or fewer bedrooms...
 
 #' [1] Bedrooms
 property %>% 
@@ -649,12 +657,12 @@ property %>%
   st_drop_geometry() %>% 
   summarize(bedrooms_3_or_fewer = mean(bedrooms <= 3))
 
-#' In 2019, 52.5% [1] of active listings in Vancouver were multilistings, earning 
-#' 65.7% [2] of total host revenue. Multilistings have been a steadily growing 
+#' In 2019, 40.7% [1] of active listings in Vancouver were multilistings, earning 
+#' 37.1% [2] of total host revenue. Multilistings have been a steadily growing 
 #' share of both listings and revenue in Vancouver since 2017 (Figure 2.7), and 
 #' amidst generally declining STR activity during the COVID-19 pandemic,
-#' multilistings briefly earned nearly 3 out of every 4 dollars [3] on STR 
-#' platforms in Vancouver.
+#' multilistings briefly earned a bit more than 1 out of every 3 [3] dollars 
+#' on STR platforms in Vancouver.
 
 #' [1] 2019 ML listings
 daily %>% 
@@ -678,30 +686,28 @@ daily %>%
   tally(price) %>% 
   summarize(multi_rev = n[2] / sum(n))
 
-#' On January 1, 2017, there were 5,310 [1] non-commercial listings and 
-#' 4,190 [1] commercial listings active in Vancouver. By January 1, 2020, three 
-#' years later, these numbers had flipped; while the total number of active 
-#' listings was roughly the same (9,660 in 2020 and 9,500 in 2017 [2]) the 
-#' number of commercial listings had increased by more than 50% to 6,720 [1], 
-#' while the number of non-commercial listings had nearly halved to 2,950 [1].
+#' The pinnacle in the number of commercial listings in 2018 was 3,270 [1] in 
+#' August, and this figure was close to being reached exactly one year 
+#' later at 3,190 [2.
 
-#' [1] Commercial and non-commercial listings
+#' [1] Peak of commercial listings in 2018
 commercial_listings %>% 
-  filter(date == "2017-01-01" | date == "2020-01-01") %>% 
+  filter(date >= "2018-01-01", date <= "2018-12-31", commercial) %>% 
+  arrange(desc(n)) %>% 
+  slice(c(1)) %>% 
   mutate(n = round(n, -1))
 
-#' [2] Total listings
+#' [2] Peak of commercial listings in 2019
 commercial_listings %>% 
-  filter(date == "2017-01-01" | date == "2020-01-01") %>% 
-  group_by(date) %>% 
-  summarize(n = sum(n)) %>% 
+  filter(date >= "2019-01-01", date <= "2019-10-01", commercial) %>% 
+  arrange(desc(n)) %>% 
+  slice(c(1)) %>%
   mutate(n = round(n, -1))
-
 
 # Clean up ----------------------------------------------------------------
 
-rm(active_tenure_2017, active_tenure_2019, borough_tenure, boroughs,
-   boroughs_breakdown, boroughs_raw, city, commercial_listings, DA,
+rm(active_tenure_2017, active_tenure_2019, area_tenure, LA,
+   LA_breakdown, LA_raw, city, commercial_listings, DA,
    DA_probabilities_2017, DA_probabilities_2019, host_rev, 
    listing_probabilities_2017, listing_probabilities_2019, 
    listing_type_breakdown, national_comparison, province, revenue_2019,
