@@ -143,18 +143,16 @@ daily %>%
 # STR growth rates --------------------------------------------------------
 
 #' Overall, the year-over-year change in average active listings from 2016 to 
-#' 2017 (12 months) was 18.5% [1], the year-over-year change from 2017 to 2018 
-#' was 0.8% [2], and the year-over-year change from 2018 to 2019 was -5.6% [3]. 
-#' In the first half of 2020, active listings fell much faster thanks to the 
+#' 2017 (12 months) was 19.4% [1], the year-over-year change from 2017 to 2018 
+#' was -6.2% [2], and the year-over-year change from 2018 to 2019 was -3.0% [3]. 
+#' In the first half of 2020, active listings fell faster thanks to the 
 #' COVID-19 pandemic. The year-over-year change in active daily listings for 
-#' 2020 so far (January to July) is -25.1% [4].
+#' 2020 so far (January to July) is -9.5% [4].
 #' 
 #' Despite there being fewer active listings in 2019 than in 2018, the number of 
-#' reserved nights increased by 12.1% [5], from 1.7 million [6] reserved nights 
-#' to 1.9 million [6] reserved nights, while revenue increased 14.9% [7]. In 
-#' fact, with a few brief exceptions, revenue maintained a positive 
-#' year-over-year growth rate consistently until the COVID-19 pandemic began. 
-#' (Revenue from January to July 2020 is down 55.8% [8] compared to the same 
+#' reserved nights increased by 4.5% [5], from 0.88 million [6] reserved nights 
+#' to 0.92 million [6] reserved nights, while revenue increased 1.5% [7]. Revenue 
+#' from January to July 2020 is down 50.1% [8] compared to the same 
 #' time last year).
 
 #' [1] YOY listing growth, 2016-2017
