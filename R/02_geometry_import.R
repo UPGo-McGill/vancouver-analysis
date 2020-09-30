@@ -95,18 +95,18 @@ streets <-
   filter(highway %in% c("primary", "secondary")) %>% 
   select(osm_id, name, highway, geometry)
 
-# downtown_poly <- 
-#   st_polygon(list(matrix(c(607000, 5038000,
-#                            614000, 5038000,
-#                            614000, 5045000,
-#                            607000, 5045000,
-#                            607000, 5038000), 
-#                          ncol = 2, byrow = TRUE))) %>% 
-#   st_sfc(crs = 32618)
-# 
-# streets_downtown <- 
-#   streets %>% 
-#   st_intersection(downtown_poly)
+downtown_poly <- 
+  st_polygon(list(matrix(c(490000, 5457200,
+                           493000, 5457200,
+                           493000, 5460500,
+                           490000, 5460500,
+                           490000, 5457200), 
+                          ncol = 2, byrow = TRUE))) %>% 
+  st_sfc(crs = 32610)
+ 
+streets_downtown <- 
+  streets %>% 
+  st_intersection(downtown_poly)
 
 
 # Save output -------------------------------------------------------------
