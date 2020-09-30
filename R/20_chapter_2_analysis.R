@@ -17,7 +17,7 @@
 source("R/01_startup.R")
 
 load("output/str_processed.Rdata")
-# load("output/national_comparison.Rdata")
+load("output/national_comparison.Rdata")
 load("output/geometry.Rdata")
 # load("output/condo_analysis.Rdata")
 
@@ -226,12 +226,12 @@ daily %>%
 # Vancouver in comparison with other major Canadian cities -----------------
 
 #' In 2019, Vancouver had the second largest STR market in the country by both 
-#' active listing numbers (9,010 [1]) and host revenue ($224.4 million [2]), 
-#' falling in both cases behind Toronto (Table 2.2). However, in relative terms 
-#' Vancouver stands considerably ahead of both Vancouver and Toronto. Vancouver 
+#' active listing numbers (3,970 [1]) and host revenue ($151.8 million [2]), 
+#' falling in both cases behind Toronto and Montreal (Table 2.2). However, in relative terms 
+#' Vancouver stands considerably ahead of both Montreal and Toronto. Vancouver 
 #' had the most active listings per 1000 households (12.3 [3] compared to 
-#' 10.7 [3] in Vancouver) and the most revenue per listing ($38,500 [4] compared 
-#' to $24,700 [4] in Vancouver).
+#' 10.7 [3] in Montreal) and the most revenue per listing ($38,300 [4] compared 
+#' to $27,200 [4] in Toronto).
 
 #' [1] Daily active listings
 daily %>% 
@@ -243,14 +243,14 @@ daily %>%
 #' [2] Annual host revenue
 prettyNum(round(sum(revenue_2019$revenue_LTM), digit = -5), ",")
 
-#' [3] Vancouver and Vancouver listings per 1000 households
+#' [3] Vancouver and Montreal listings per 1000 households
 national_comparison %>% 
-  filter(city %in% c("Vancouver", "Vancouver")) %>% 
+  filter(city %in% c("Vancouver", "Montreal")) %>% 
   select(city, listings_per_1000)
 
-#' [4] Vancouver and Vancouver revenue per listing
+#' [4] Vancouver and Toronto revenue per listing
 national_comparison %>% 
-  filter(city == "Vancouver") %>% 
+  filter(city %in% c("Vancouver", "Toronto")) %>% 
   select(city, revenue_per_listing)
 
 (sum(revenue_2019$revenue_LTM) /
