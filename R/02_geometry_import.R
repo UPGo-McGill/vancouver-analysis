@@ -25,6 +25,14 @@ province <-
   select(geometry)
 
 
+# Vancouver CMA -----------------------------------------------------------
+
+CMA <- 
+  get_census("CA16", regions = list(CMA = "59933"), geo_format = "sf") %>% 
+  st_transform(32610) %>% 
+  select(geometry)
+
+  
 # Vancouver DAs -----------------------------------------------------------
 
 DA <-
