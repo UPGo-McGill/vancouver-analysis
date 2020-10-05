@@ -327,7 +327,7 @@ LA_breakdown %>%
 LA_breakdown %>% 
   select(area, active_listings, active_growth, listings_pct_dwellings,
          annual_rev, rev_growth) %>% 
-  set_names(c("area",
+  set_names(c("Area",
               "Daily active listings (average)",
               "Active listing year-over-year growth rate",
               "Active listings as % of dwellings",
@@ -343,8 +343,8 @@ LA_breakdown %>%
                   str_sub(`Annual revenue (CAD)`, -6, -6), " million")) %>%
   gt() %>% 
   tab_header(
-    title = "area breakdown",
-    subtitle = "LA with more than 100 daily active listings average, 2019"
+    title = "Area breakdown",
+    subtitle = "Areas with more than 100 daily active listings average, 2019"
   ) %>%
   opt_row_striping() %>% 
   fmt_percent(columns = c(3:4, 6), decimals = 1) %>% 
