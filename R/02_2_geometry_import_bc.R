@@ -48,6 +48,27 @@ CMA_CSDs <-
   set_names(c("CSD", "dwellings", "geometry")) %>% 
   st_set_agr("constant")
 
+# Creation of buffer around the City of Vancouver ---------------------
+
+city <-
+  get_census(
+    dataset = "CA16", regions = list(CSD = "5915022"), geo_format = "sf") %>% 
+  st_transform(32610) %>% 
+  select(GeoUID, Dwellings) %>% 
+  set_names(c("GeoUID", "dwellings", "geometry")) %>% 
+  st_set_agr("constant")
+
+# Import of skytrain shapefile ----------------------------------------
+skytrain <- 
+  read_sf("data/shapefiles/RW_STN_point.shp") %>% 
+  filter(STTN_SR1_M == "Translink Skytrain") %>% 
+  select(station = STTN_NGLSM) %>% 
+  group_by(station) %>% 
+  mutate(id = row_number()) %>% 
+  filter(id == 1) %>% 
+  select(-id)
+
+
 # Save output -------------------------------------------------------------
 
 save(province, DA_CMA, CMA_CSDs, 
