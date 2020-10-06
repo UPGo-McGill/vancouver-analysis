@@ -165,7 +165,7 @@ active_listings_indexed <-
 
 
 active_listings_indexed %>% 
-  ggplot(aes(date, n, colour = group)) +
+  ggplot(aes(date, index, colour = group)) +
   annotate("segment", x = key_date_covid, xend = key_date_covid,
            y = -Inf, yend = Inf, alpha = 0.3) +
   annotate("curve", x = as.Date("2020-07-01"), xend = key_date_covid + days(10),
@@ -180,46 +180,71 @@ active_listings_indexed %>%
            arrow = arrow(length = unit(0.05, "inches"))) +
   annotate("text", x = as.Date("2018-12-01"), y = 127,
            label = "Regulations", family = "Futura Condensed")+
-  geom_line()
+  geom_line()+
+  ggtitle("Daily active listings variation")
+
+
+
+# number of reservations
+active_listings <- 
+  daily_buffer %>% 
+  filter(housing, status == "A") %>% 
+  count(date, group) %>% 
+  group_by(group) %>% 
+  mutate(n = slide_dbl(n, mean, .before = 6, .complete = TRUE)) %>% 
+  ungroup()
+
+active_listings_indexed <- 
+  active_listings %>%
+  filter(date >= key_date_regulations) %>%
+  group_by(group) %>% 
+  mutate(index = 100*n/n[date == key_date_regulations])
+
+active_listings_indexed %>% 
+  ggplot(aes(date, index, colour = group)) +
+  annotate("segment", x = key_date_covid, xend = key_date_covid,
+           y = -Inf, yend = Inf, alpha = 0.3) +
+  annotate("curve", x = as.Date("2020-07-01"), xend = key_date_covid + days(10),
+           y = 135, yend = 150, curvature = .2, lwd = 0.25,
+           arrow = arrow(length = unit(0.05, "inches"))) +
+  annotate("text", x = as.Date("2020-06-16"), y = 130,
+           label = "COVID-19 \nAirbnb's response", family = "Futura Condensed") +
+  annotate("segment", x = key_date_regulations, xend = key_date_regulations,
+           y = -Inf, yend = Inf, alpha = 0.3) +
+  annotate("curve", x = as.Date("2018-12-01"), xend = key_date_regulations + days(10),
+           y = 130, yend = 150, curvature = .2, lwd = 0.25,
+           arrow = arrow(length = unit(0.05, "inches"))) +
+  annotate("text", x = as.Date("2018-12-01"), y = 127,
+           label = "Regulations", family = "Futura Condensed")+
+  geom_line()+
+  ggtitle("Reservations")
 
 # Revenue for CoV and CMA
 
 revenue <-
-  daily %>%
+  daily_buffer %>%
   filter(housing, status == "R") %>%
-  group_by(date) %>% 
-  summarize(revenue = sum(price))
-
-revenue_bc <-
-  daily_bc %>%
-  filter(housing, status == "R") %>%
-  group_by(date) %>% 
-  summarize(revenue = sum(price))
+  group_by(date, group) %>% 
+  summarize(revenue = sum(price)) %>% 
+  group_by(group) %>% 
+  mutate(revenue = slide_dbl(revenue, mean, .before = 6, .complete = TRUE))
 
 revenue_indexed <- 
   revenue %>%
-  mutate(revenue = slide_dbl(revenue, mean, .before = 6, .complete = TRUE)) %>% 
   filter(date >= key_date_regulations) %>%
-  mutate(index = 100*revenue/revenue[date == key_date_regulations]) %>% 
-  mutate(group = "CoV")
+  group_by(group) %>% 
+  mutate(index = 100*revenue/revenue[date == key_date_regulations])
 
-revenue_bc_indexed <- 
-  revenue_bc %>%
-  mutate(revenue = slide_dbl(revenue, mean, .before = 6, .complete = TRUE)) %>% 
-  filter(date >= key_date_regulations) %>%
-  mutate(index = 100*revenue/revenue[date == key_date_regulations]) %>% 
-  mutate(group = "CMA")
 
-revenue_both <- 
-  rbind(revenue_indexed, revenue_bc_indexed)
 
-revenue_both %>% 
+revenue_indexed %>% 
   ggplot(aes(date, index, colour = group)) +
   annotate("segment", x = key_date_covid, xend = key_date_covid,
            y = -Inf, yend = Inf, alpha = 0.3) +
   annotate("segment", x = key_date_regulations, xend = key_date_regulations,
            y = -Inf, yend = Inf, alpha = 0.3) +
-  geom_line()
+  geom_line() +
+  ggtitle("Revenue")
 
 
 
@@ -259,14 +284,100 @@ skytrain %>%
   select(-distance, -dwellings)
   
 stations_city <- 
-rbind(near_burnaby, near_richmond) %>% ggplot()+geom_sf(data = city)+geom_sf()
+rbind(near_burnaby, near_richmond)
 
-### Closest st
+# Get the properties inside 500m of the metro stations closest to CoV boundaries
+stations_buffer <- 
+  stations_city %>% 
+  select(-GeoUID) %>% 
+  rbind(stations_CMA) %>% 
+  mutate(in_city = ifelse(station %in% st_intersection(skytrain, city)$station, T, F)) %>% 
+  st_buffer(., 500)
+
 
 property_buffer <- 
-  rbind(stations_city %>% select(-GeoUID), stations_CMA) %>% 
-  st_buffer(., 500) %>% 
-  st_intersection(., rbind(property %>% select(-active), property_bc %>% rename(area=CSD))) 
+st_intersection(stations_buffer, rbind(select(property, property_ID), select(property_bc, property_ID)))
 
-  
 
+stations_buffer %>%
+  st_join(property) %>% 
+  count(in_city) %>% 
+  ggplot()+geom_sf(data= city)+geom_sf(aes(color=in_city))
+
+# Active listings for BC and Vancou
+
+daily_buffer <- 
+  rbind(select(daily,
+               property_ID, date, status, price, listing_type, housing), 
+        select(daily_bc,
+               property_ID, date, status, price, listing_type, housing)) %>% 
+  inner_join(st_drop_geometry(property_buffer))
+
+
+
+stations_buffer %>%
+  st_join(property) %>% 
+  count(in_city) %>% 
+  ggplot()+geom_sf()active_listings <- 
+  daily_buffer %>% 
+  filter(housing, status != "B") %>% 
+  count(date, in_city) %>% 
+  group_by(in_city) %>% 
+  mutate(n = slide_dbl(n, mean, .before = 6, .complete = TRUE)) %>% 
+  ungroup()
+
+active_listings_indexed <- 
+  active_listings %>%
+  filter(date >= key_date_regulations) %>%
+  group_by(in_city) %>% 
+  mutate(index = 100*n/n[date == key_date_regulations])
+
+
+active_listings_indexed %>% 
+  ggplot(aes(date, index, colour = in_city)) +
+  annotate("segment", x = key_date_covid, xend = key_date_covid,
+           y = -Inf, yend = Inf, alpha = 0.3) +
+  annotate("curve", x = as.Date("2020-07-01"), xend = key_date_covid + days(10),
+           y = 135, yend = 150, curvature = .2, lwd = 0.25,
+           arrow = arrow(length = unit(0.05, "inches"))) +
+  annotate("text", x = as.Date("2020-06-16"), y = 130,
+           label = "COVID-19 \nAirbnb's response", family = "Futura Condensed") +
+  annotate("segment", x = key_date_regulations, xend = key_date_regulations,
+           y = -Inf, yend = Inf, alpha = 0.3) +
+  annotate("curve", x = as.Date("2018-12-01"), xend = key_date_regulations + days(10),
+           y = 130, yend = 150, curvature = .2, lwd = 0.25,
+           arrow = arrow(length = unit(0.05, "inches"))) +
+  annotate("text", x = as.Date("2018-12-01"), y = 127,
+           label = "Regulations", family = "Futura Condensed")+
+  geom_line()+
+  ggtitle("Daily active listings variation")
+
+# Revenue for CoV and CMA
+
+revenue <-
+  daily_buffer %>%
+  filter(housing, status == "R") %>%
+  group_by(date, in_city) %>% 
+  summarize(revenue = sum(price)) %>% 
+  group_by(in_city) %>% 
+  mutate(revenue = slide_dbl(revenue, mean, .before = 6, .complete = TRUE))
+
+revenue_indexed <- 
+  revenue %>%
+  filter(date >= key_date_regulations) %>%
+  group_by(in_city) %>% 
+  mutate(index = 100*revenue/revenue[date == key_date_regulations])
+
+
+revenue_indexed %>% 
+  ggplot(aes(date, index, colour = in_city)) +
+  annotate("segment", x = key_date_covid, xend = key_date_covid,
+           y = -Inf, yend = Inf, alpha = 0.3) +
+  annotate("segment", x = key_date_regulations, xend = key_date_regulations,
+           y = -Inf, yend = Inf, alpha = 0.3) +
+  geom_line() +
+  ggtitle("Revenue")
+
+
+
+                
