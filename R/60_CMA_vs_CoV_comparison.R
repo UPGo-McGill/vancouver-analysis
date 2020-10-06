@@ -6,7 +6,7 @@ load("output/geometry_bc.Rdata")
 load("output/geometry.Rdata")
 
 
-# Active listings for BC and Vancou
+### Active listings for BC and Vancou ##############################
 
 active_listings <- 
   daily %>% 
@@ -116,7 +116,12 @@ revenue_both %>%
   geom_line()
 
 
-## Same but both sides of CoV ############################
+
+
+
+
+
+### Same but both sides of CoV ################################################
 
 buffer_all_CoV <- st_buffer(st_cast(city,"MULTILINESTRING"),
                     1000, joinStyle = "MITRE", mitreLimit = 3)
@@ -215,3 +220,33 @@ revenue_both %>%
   annotate("segment", x = key_date_regulations, xend = key_date_regulations,
            y = -Inf, yend = Inf, alpha = 0.3) +
   geom_line()
+
+
+
+
+
+
+
+
+
+
+### closest station to tne boundaries of Vancouver City ####################
+
+stations_CMA <- 
+skytrain  %>% 
+  # mutate(in_city = ifelse(station %in% st_intersection(skytrain, city)$station, T, F)) %>% 
+  st_intersection(CMA_CSDs) %>% 
+  mutate(distance = st_distance(geometry, st_cast(city, "MULTILINESTRING"))) %>%
+  # group_by(in_city) %>% 
+  arrange(distance) %>%
+  slice(1:8)
+
+skytrain %>% 
+  st_intersection(city) %>% 
+  mutate(distance = st_distance(geometry, stations_CMA)) %>% 
+  arrange(distance) %>% 
+  slice(1:8) %>% 
+  ggplot()+
+  geom_sf(data = city)+
+  geom_sf()
+  
