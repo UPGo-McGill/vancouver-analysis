@@ -66,8 +66,8 @@ skytrain <-
   group_by(station) %>% 
   mutate(id = row_number()) %>% 
   filter(id == 1) %>% 
-  select(-id)
-
+  select(-id) %>% 
+  st_transform(32610)
 
 # Save output -------------------------------------------------------------
 
