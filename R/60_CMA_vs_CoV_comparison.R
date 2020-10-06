@@ -263,3 +263,10 @@ rbind(near_burnaby, near_richmond) %>% ggplot()+geom_sf(data = city)+geom_sf()
 
 ### Closest st
 
+property_buffer <- 
+  rbind(stations_city %>% select(-GeoUID), stations_CMA) %>% 
+  st_buffer(., 500) %>% 
+  st_intersection(., rbind(property %>% select(-active), property_bc %>% rename(area=CSD))) 
+
+  
+
