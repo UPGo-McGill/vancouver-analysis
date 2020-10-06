@@ -230,7 +230,7 @@ revenue_both %>%
 
 
 
-### closest station to tne boundaries of Vancouver City ####################
+### closest station to the boundaries of Vancouver City ####################
 
 stations_CMA <- 
 skytrain  %>% 
@@ -239,14 +239,27 @@ skytrain  %>%
   mutate(distance = st_distance(geometry, st_cast(city, "MULTILINESTRING"))) %>%
   # group_by(in_city) %>% 
   arrange(distance) %>%
-  slice(1:8)
+  slice(1:8) %>% 
+  select(-distance, -CSD, -dwellings)
 
+near_burnaby <- 
 skytrain %>% 
   st_intersection(city) %>% 
-  mutate(distance = st_distance(geometry, stations_CMA)) %>% 
-  arrange(distance) %>% 
-  slice(1:8) %>% 
-  ggplot()+
-  geom_sf(data = city)+
-  geom_sf()
+  mutate(distance = st_distance(geometry, st_cast(filter(CMA_CSDs, CSD == "Burnaby (CY)"), "MULTILINESTRING"))) %>%
+  arrange(distance) %>%
+  slice(1:4) %>% 
+  select(-distance, -dwellings)
+
+near_richmond <- 
+skytrain %>% 
+  st_intersection(city) %>% 
+  mutate(distance = st_distance(geometry, st_cast(filter(CMA_CSDs, CSD == "Richmond (CY)"), "MULTILINESTRING"))) %>%
+  arrange(distance) %>%
+  slice(1:4) %>% 
+  select(-distance, -dwellings)
   
+stations_city <- 
+rbind(near_burnaby, near_richmond) %>% ggplot()+geom_sf(data = city)+geom_sf()
+
+### Closest st
+
