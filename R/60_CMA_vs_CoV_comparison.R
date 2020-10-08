@@ -44,13 +44,13 @@ active_listings_bc <-
 
 active_listings_indexed <- 
   active_listings %>%
-  filter(date >= key_date_regulations) %>%
+  filter(date >= key_date_regulations - years(1)) %>%
   mutate(index = 100*n/n[date == key_date_regulations]) %>% 
   mutate(group = "CoV")
 
 active_listings_bc_indexed <- 
   active_listings_bc %>%
-  filter(date >= key_date_regulations) %>%
+  filter(date >= key_date_regulations - years(1)) %>%
   mutate(index = 100*n/n[date == key_date_regulations]) %>% 
   mutate(group = "CMA")
 
@@ -93,14 +93,14 @@ revenue_bc <-
 revenue_indexed <- 
   revenue %>%
   mutate(revenue = slide_dbl(revenue, mean, .before = 6, .complete = TRUE)) %>% 
-  filter(date >= key_date_regulations) %>%
+  filter(date >= key_date_regulations - years(1)) %>%
   mutate(index = 100*revenue/revenue[date == key_date_regulations]) %>% 
   mutate(group = "CoV")
 
 revenue_bc_indexed <- 
   revenue_bc %>%
   mutate(revenue = slide_dbl(revenue, mean, .before = 6, .complete = TRUE)) %>% 
-  filter(date >= key_date_regulations) %>%
+  filter(date >= key_date_regulations - years(1)) %>%
   mutate(index = 100*revenue/revenue[date == key_date_regulations]) %>% 
   mutate(group = "CMA")
 
@@ -159,7 +159,7 @@ active_listings <-
 
 active_listings_indexed <- 
   active_listings %>%
-  filter(date >= key_date_regulations) %>%
+  filter(date >= key_date_regulations - years(1)) %>%
   group_by(group) %>% 
   mutate(index = 100*n/n[date == key_date_regulations])
 
@@ -181,23 +181,23 @@ active_listings_indexed %>%
   annotate("text", x = as.Date("2018-12-01"), y = 127,
            label = "Regulations", family = "Futura Condensed")+
   geom_line()+
-  ggtitle("Daily active listings variation")
+  ggtitle("Daily active listings variation (7 days rolling window)")
 
 
 
-# number of reservations
+# number of A and B facet_wrap
 active_listings <- 
   daily_buffer %>% 
-  filter(housing, status == "A") %>% 
-  count(date, group) %>% 
-  group_by(group) %>% 
-  mutate(n = slide_dbl(n, mean, .before = 6, .complete = TRUE)) %>% 
+  filter(housing, status != "B") %>% 
+  count(date, group, status) %>% 
+  group_by(group, status) %>% 
+  mutate(n = slide_dbl(n, mean, .before = 13, .complete = TRUE)) %>% 
   ungroup()
 
 active_listings_indexed <- 
   active_listings %>%
-  filter(date >= key_date_regulations) %>%
-  group_by(group) %>% 
+  filter(date >= key_date_regulations - years(1)) %>%
+  group_by(group, status) %>% 
   mutate(index = 100*n/n[date == key_date_regulations])
 
 active_listings_indexed %>% 
@@ -217,7 +217,8 @@ active_listings_indexed %>%
   annotate("text", x = as.Date("2018-12-01"), y = 127,
            label = "Regulations", family = "Futura Condensed")+
   geom_line()+
-  ggtitle("Reservations")
+  facet_wrap(~status)+
+  ggtitle("Availabilities (L) and reservations (A), 14 days rolling window")
 
 # Revenue for CoV and CMA
 
@@ -231,7 +232,7 @@ revenue <-
 
 revenue_indexed <- 
   revenue %>%
-  filter(date >= key_date_regulations) %>%
+  filter(date >= key_date_regulations - years(1)) %>%
   group_by(group) %>% 
   mutate(index = 100*revenue/revenue[date == key_date_regulations])
 
@@ -318,7 +319,9 @@ daily_buffer <-
 stations_buffer %>%
   st_join(property) %>% 
   count(in_city) %>% 
-  ggplot()+geom_sf()active_listings <- 
+  ggplot()+geom_sf()
+
+active_listings <- 
   daily_buffer %>% 
   filter(housing, status != "B") %>% 
   count(date, in_city) %>% 
@@ -328,7 +331,7 @@ stations_buffer %>%
 
 active_listings_indexed <- 
   active_listings %>%
-  filter(date >= key_date_regulations) %>%
+  filter(date >= key_date_regulations - years(1)) %>%
   group_by(in_city) %>% 
   mutate(index = 100*n/n[date == key_date_regulations])
 
@@ -364,7 +367,7 @@ revenue <-
 
 revenue_indexed <- 
   revenue %>%
-  filter(date >= key_date_regulations) %>%
+  filter(date >= key_date_regulations - years(1)) %>%
   group_by(in_city) %>% 
   mutate(index = 100*revenue/revenue[date == key_date_regulations])
 

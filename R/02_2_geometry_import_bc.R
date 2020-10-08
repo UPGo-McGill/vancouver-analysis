@@ -71,5 +71,5 @@ skytrain <-
 
 # Save output -------------------------------------------------------------
 
-save(province, DA_CMA, CMA_CSDs, 
+save(province, DA_CMA, CMA_CSDs, skytrain, 
      file = "output/geometry_bc.Rdata")
