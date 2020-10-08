@@ -20,13 +20,8 @@ source("R/01_startup.R")
 
 # Load and filter data ----------------------------------------------------
 
-kj <- readRDS("data/ltr/kj.rds") %>% filter(city == "Montreal")
-cl <- readRDS("data/ltr/cl.rds") %>% filter(city == "montreal")
-
-rclalq <- 
-  readxl::read_xlsx("data/ltr/rclalq.xlsx") %>% 
-  filter(location == "VilledeMontréal") %>% 
-  select(-location)
+kj <- readRDS("data/ltr/kj.rds") %>% filter(city == "Vancouver")
+cl <- readRDS("data/ltr/cl.rds") %>% filter(city == "vancouver")
 
 
 # Get geometry from KJ listings -------------------------------------------
@@ -39,13 +34,6 @@ processed_addresses <-
   filter(entity %in% !!kj$location) %>% 
   collect()
 
-processed_addresses <- 
-  geolocation_remote %>% 
-  filter(entity %in% !!rclalq$address) %>% 
-  collect() %>% 
-  rbind(processed_addresses) %>% 
-  distinct()
-
 upgo_disconnect()
 
 kj_old_geography <- 
@@ -54,8 +42,7 @@ kj_old_geography <-
 
 kj_new_geography <-
   kj %>%
-  filter(!location %in% processed_addresses$entity,
-         !is.na(location))
+  filter(!location %in% processed_addresses$entity, !is.na(location))
 
 if (nrow(kj_new_geography) > 0) {
   
@@ -74,26 +61,9 @@ if (nrow(kj_new_geography) > 0) {
 } else kj_new_geography <- 
   mutate(kj_new_geography, lon = numeric(), lat = numeric())
 
-rclalq_old_geography <- 
-  rclalq %>% 
-  inner_join(processed_addresses, by = c("address" = "entity"))
-
-rclalq_new_geography <- 
-  rclalq %>%
-  filter(!address %in% processed_addresses$entity,
-         !is.na(address))
-
-if (nrow(rclalq_new_geography) > 0) {
-  rclalq_new_geography <- 
-    rclalq_new_geography %>% 
-    ggmap::mutate_geocode(address)
-} else rclalq_new_geography <- mutate(rclalq_new_geography, lon = numeric(), 
-                                      lat = numeric())
-
 locations_new <- 
   kj_new_geography %>% 
-  select(entity = location, lon, lat) %>% 
-  bind_rows(select(rclalq_new_geography, entity = address, lon, lat))
+  select(entity = location, lon, lat)
 
 locations_new <- 
   locations_new %>% 
@@ -108,7 +78,6 @@ upgo_disconnect()
 
 # Rbind results
 kj <- bind_rows(kj_old_geography, kj_new_geography)
-rclalq <- bind_rows(rclalq_old_geography, rclalq_new_geography)
 
 suppressWarnings(rm(processed_addresses, kj_old_geography, kj_new_geography, 
    rclalq_old_geography, rclalq_new_geography, locations_new, output,
@@ -163,7 +132,7 @@ cl <-
   cl %>% 
   select(id, created:furnished, title, text, photos) %>% 
   separate(location, c("lat", "lon"), sep = ";") %>% 
-  mutate(city = "Montreal",
+  mutate(city = "Vancouver",
          bedrooms = as.numeric(bedrooms),
          bathrooms = as.numeric(bathrooms),
          created = as.Date(created),
@@ -195,75 +164,6 @@ cl <-
 rm(cl_with_geom, cl_without_geom)
 
 
-# Clean up RCLALQ file ----------------------------------------------------
-
-rclalq <- 
-  rclalq %>% 
-  mutate(
-    id = paste0("kj-", id),
-    posted = str_sub(posted, start = 16L),
-    posted = str_replace_all(posted, c(
-      "jours|jour" = "", 
-      "plus d'un mois|un mois" = "30",
-      "[:digit:]+ heures|une heure|[:digit:]+ minutes|moins d'une minute|une minute" = "0",
-      "un" = "1")) %>% 
-      as.numeric()) %>% 
-  mutate(city = "Montreal",
-         scraped = as.Date(date, tryFormats = c("%m/%d/%Y")),
-         details = as.numeric(substr(details, 1, 1)),
-         bedrooms = (details - 2),
-         bedrooms = case_when(bedrooms <= 0 ~ 0, TRUE ~ bedrooms),
-         created = scraped - posted,
-         location = address,
-         short_long = NA,
-         bathrooms = NA,
-         furnished = NA,
-         type = NA,
-         text = NA,
-         photos = map(1:n(), ~NA),
-         kj = TRUE) %>% 
-  select(id, short_long, created, scraped, price, city, location, bedrooms, 
-         bathrooms, furnished, type, lat, lon, title, kj, text, photos)
-
-rclalq_with_geom <- 
-  rclalq %>% 
-  filter(!is.na(lon), !is.na(lat)) %>%
-  st_as_sf(coords = c("lon", "lat"), crs = 4326)
-
-rclalq_without_geom <-
-  rclalq %>%
-  filter(is.na(lon) | is.na(lat)) %>% 
-  mutate(geometry = st_sfc(st_point())) %>% 
-  st_as_sf(crs = 4326) %>% 
-  select(-lon, -lat)
-
-rclalq <-
-  rbind(rclalq_with_geom, rclalq_without_geom) %>% 
-  st_as_sf() %>% 
-  arrange(scraped, id)
-
-rm(rclalq_with_geom, rclalq_without_geom)
-
-
-# Merge KJ with RCLALQ ----------------------------------------------------
-
-kj <-
-  rclalq %>% 
-  anti_join(st_drop_geometry(kj), by = "id") %>% 
-  rbind(kj)
-
-kj <-
-  kj %>% 
-  left_join(st_drop_geometry(rclalq)[,c("id", "bedrooms", "price")], 
-            by = "id") %>% 
-  mutate(bedrooms = if_else(is.na(bedrooms.x), bedrooms.y, bedrooms.x),
-         price = if_else(is.na(price.x), price.y, price.x)) %>% 
-  select(-c(price.x, price.y, bedrooms.x, bedrooms.y)) %>% 
-    select(id:scraped, price, city, location, bedrooms, bathrooms:geometry)
-
-rm(rclalq)
-
-
 # Rbind into one table ----------------------------------------------------
 
 ltr <- rbind(kj, cl)
@@ -273,6 +173,7 @@ rm(kj, cl)
 
 # Add geometry ------------------------------------------------------------
 
+# Not updated yet!
 load("output/geometry.Rdata")
 
 ltr <- st_transform(ltr, 32618)
