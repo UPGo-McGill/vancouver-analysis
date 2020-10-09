@@ -116,6 +116,21 @@ streets_downtown <-
   streets %>% 
   st_intersection(downtown_poly)
 
+# Business licenses 
+
+BL_raw <-
+  read_sf("data/shapefiles/business-licences.shp") %>% 
+  st_drop_geometry()
+
+BL <- 
+  BL_raw %>% 
+  mutate(issued_date = as.Date(substr(issueddate, 1, 10)),
+         folder_year = as.numeric(sub("^", "20", folderyear)),
+         expired_date = expireddate) %>% 
+  select(-c(folderyear, issueddate, expireddate, businessnam, businesstra, businesssub:postalcode, numberofemp, extractdate)) %>% 
+  set_names(c("licence_rsn", "licence_num", "licence_revision", "status", "business_type", "area", "fee_paid", "issued_date", "folder_year", "expired_date"))
+  
+
 
 # Save output -------------------------------------------------------------
 
