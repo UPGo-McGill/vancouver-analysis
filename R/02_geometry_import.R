@@ -134,5 +134,5 @@ BL <-
 
 # Save output -------------------------------------------------------------
 
-save(province, DA, city, streets, LA, #streets_downtown, 
+save(province, DA, city, streets, LA, BL, #streets_downtown, 
      file = "output/geometry.Rdata")
