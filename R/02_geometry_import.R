@@ -78,56 +78,57 @@ city <-
   st_set_agr("constant")
 
 # Streets -----------------------------------------------------------------
-
-streets <- 
-  (getbb("Vancouver BC") * c(1.01, 0.99, 0.99, 1.01)) %>% 
-  opq(timeout = 200) %>% 
-  add_osm_feature(key = "highway") %>% 
-  osmdata_sf()
-
-streets <-
-  rbind(
-    streets$osm_polygons %>% st_set_agr("constant") %>% st_cast("LINESTRING"), 
-    streets$osm_lines) %>% 
-  as_tibble() %>% 
-  st_as_sf() %>% 
-  st_transform(32610) %>%
-  st_set_agr("constant") %>%
-  st_intersection(city)
-
-streets <- 
-  streets %>% 
-  filter(highway %in% c("primary", "secondary")) %>% 
-  select(osm_id, name, highway, geometry)
-
-downtown_poly <- 
-  st_polygon(list(matrix(c(490000, 5457200,
-                           493000, 5457200,
-                           493000, 5460500,
-                           490000, 5460500,
-                           490000, 5457200), 
-                          ncol = 2, byrow = TRUE))) %>% 
-  st_sfc(crs = 32610)
- 
-streets_downtown <- 
-  streets %>% 
-  st_intersection(downtown_poly)
+# 
+# streets <- 
+#   (getbb("Vancouver BC") * c(1.01, 0.99, 0.99, 1.01)) %>% 
+#   opq(timeout = 200) %>% 
+#   add_osm_feature(key = "highway") %>% 
+#   osmdata_sf()
+# 
+# streets <-
+#   rbind(
+#     streets$osm_polygons %>% st_set_agr("constant") %>% st_cast("LINESTRING"), 
+#     streets$osm_lines) %>% 
+#   as_tibble() %>% 
+#   st_as_sf() %>% 
+#   st_transform(32610) %>%
+#   st_set_agr("constant") %>%
+#   st_intersection(city)
+# 
+# streets <- 
+#   streets %>% 
+#   filter(highway %in% c("primary", "secondary")) %>% 
+#   select(osm_id, name, highway, geometry)
+# 
+# downtown_poly <- 
+#   st_polygon(list(matrix(c(490000, 5457200,
+#                            493000, 5457200,
+#                            493000, 5460500,
+#                            490000, 5460500,
+#                            490000, 5457200), 
+#                           ncol = 2, byrow = TRUE))) %>% 
+#   st_sfc(crs = 32610)
+#  
+# streets_downtown <- 
+#   streets %>% 
+#   st_intersection(downtown_poly)
 
 # Business licenses ------------------------------------------------------
 
-BL_raw <-
+BL <-
   read_sf("data/shapefiles/business-licences.shp") %>% 
   st_drop_geometry()
 
 BL <- 
-  BL_raw %>% 
-  mutate(issued_date = as.Date(substr(issueddate, 1, 10)),
-         folder_year = as.numeric(sub("^", "20", folderyear)),
-         expired_date = expireddate) %>% 
-  select(-c(folderyear, issueddate, expireddate, businessnam, businesstra, 
-            businesssub:postalcode, numberofemp, extractdate)) %>% 
-  set_names(c("licence_rsn", "licence_num", "licence_revision", "status", 
-              "business_type", "area", "fee_paid", "issued_date", "folder_year", "expired_date"))
+  as_tibble(BL) %>% 
+  mutate(issued = as.Date(substr(issueddate, 1, 10))) %>% 
+  filter(businesstyp == "Short-Term Rental") %>%
+  transmute(registration = licencenumb,
+            issued,
+            expired = expireddate,
+            status,
+            fee_paid = feepaid,
+            local_area = localarea)
 
 # Import of skytrain shapefile --------------------------------------------
 
