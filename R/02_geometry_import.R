@@ -128,7 +128,7 @@ BL <-
             expired = expireddate,
             status,
             fee_paid = feepaid,
-            local_area = localarea)
+            area = localarea)
 
 # Import of skytrain shapefile --------------------------------------------
 
