@@ -70,8 +70,8 @@ conformity_status <-
 # Graphing the conformity status of active listings
 conformity_status %>% 
   filter(active >= max(active, na.rm = T) - days(30),
-         registration_analyzed != "Inactive listing") %>% count(registration_analyzed)
-ggplot()+
+         registration_analyzed != "Inactive listing") %>%
+  ggplot()+
   geom_histogram(stat = "count", aes(registration_analyzed, fill = registration_analyzed))+
   xlab("")+
   ylab("Listing number")+
@@ -124,22 +124,6 @@ conformity_status %>%
 
 
 ### Geography of conformity status -------------------------------------------
-
-# absolute number of non-conform listing per area
-LA %>% 
-  st_join(conformity_status) %>% 
-  filter(registration_analyzed != "Inactive listing",
-         active >= max(active, na.rm = T) - days(30)) %>% 
-  mutate(registration_analyzed = ifelse(registration_analyzed != "Conform",
-                                        "Non-conform", registration_analyzed)) %>% 
-  count(area.x, registration_analyzed) %>% 
-  filter(registration_analyzed == "Non-conform") %>% 
-  ggplot()+
-  geom_sf(aes(fill = n), colour = "white") +
-  scale_fill_gradientn(colors = col_palette[c(3, 4, 1)], na.value = "grey80")  +
-  guides(fill = guide_colourbar(title = "Non-conform listings",
-                                title.vjust = 1)) + 
-  theme_void()
 
 # percentage of non-conform listings per area
 LA %>% 
