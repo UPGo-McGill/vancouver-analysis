@@ -24,14 +24,13 @@ province <-
   st_transform(32610) %>% 
   select(geometry)
 
+# Vancouver CMA without Vancouver -----------------------------------------
 
-# Vancouver CMA -----------------------------------------------------------
-
-CMA <- 
-  get_census("CA16", regions = list(CMA = "59933"), geo_format = "sf") %>% 
-  st_transform(32610) %>% 
-  select(geometry)
-
+CMA <-
+  get_census(
+    dataset = "CA16", regions = list(CMA = "59933"), level = "CSD", geo_format = "sf") %>% 
+  filter(name != "Vancouver (CY)") %>%
+  st_transform(32610)
   
 # Vancouver DAs -----------------------------------------------------------
 
@@ -44,7 +43,7 @@ DA <-
   set_names(c("GeoUID", "dwellings", "geometry")) %>% 
   st_set_agr("constant")
 
-# Vancouver local areas
+# Vancouver local areas ---------------------------------------------------
 
 LA_raw <-
   read_sf("data/shapefiles/local-area-boundary.shp") %>% 
@@ -68,7 +67,6 @@ LA <-
   st_as_sf() %>% 
   arrange(area)
 
-
 # Vancouver CSD -----------------------------------------------------------
 
 city <-
@@ -78,7 +76,6 @@ city <-
   select(GeoUID, Dwellings) %>% 
   set_names(c("GeoUID", "dwellings", "geometry")) %>% 
   st_set_agr("constant")
-
 
 # Streets -----------------------------------------------------------------
 
@@ -116,7 +113,7 @@ streets_downtown <-
   streets %>% 
   st_intersection(downtown_poly)
 
-# Business licenses 
+# Business licenses ------------------------------------------------------
 
 BL_raw <-
   read_sf("data/shapefiles/business-licences.shp") %>% 
@@ -127,12 +124,25 @@ BL <-
   mutate(issued_date = as.Date(substr(issueddate, 1, 10)),
          folder_year = as.numeric(sub("^", "20", folderyear)),
          expired_date = expireddate) %>% 
-  select(-c(folderyear, issueddate, expireddate, businessnam, businesstra, businesssub:postalcode, numberofemp, extractdate)) %>% 
-  set_names(c("licence_rsn", "licence_num", "licence_revision", "status", "business_type", "area", "fee_paid", "issued_date", "folder_year", "expired_date"))
-  
+  select(-c(folderyear, issueddate, expireddate, businessnam, businesstra, 
+            businesssub:postalcode, numberofemp, extractdate)) %>% 
+  set_names(c("licence_rsn", "licence_num", "licence_revision", "status", 
+              "business_type", "area", "fee_paid", "issued_date", "folder_year", "expired_date"))
+
+# Import of skytrain shapefile --------------------------------------------
+
+skytrain <- 
+  read_sf("data/shapefiles/RW_STN_point.shp") %>% 
+  filter(STTN_SR1_M == "Translink Skytrain") %>% 
+  select(station = STTN_NGLSM) %>% 
+  group_by(station) %>% 
+  mutate(id = row_number()) %>% 
+  filter(id == 1) %>% 
+  select(-id) %>% 
+  st_transform(32610)
 
 
 # Save output -------------------------------------------------------------
 
-save(province, DA, city, streets, LA, BL, #streets_downtown, 
+save(province, CMA, DA, city, LA, BL, skytrain, #streets, streets_downtown, 
      file = "output/geometry.Rdata")
