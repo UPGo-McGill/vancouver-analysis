@@ -74,9 +74,10 @@ conformity_status %>%
   ggplot()+
   geom_histogram(stat = "count", aes(registration_analyzed, fill = registration_analyzed))+
   xlab("")+
-  ylab("Listing number")+
+  ylab("Number of listings")+
   guides(x = guide_axis(angle = 10))+
-  scale_fill_discrete(name = "Registration conformity")
+  scale_fill_manual(name = "Registration conformity", values = col_palette[c(1, 2, 3, 4)])+
+  theme_minimal()
 
 # percentage of non-conform active listings
 conformity_status %>% 
@@ -87,6 +88,7 @@ conformity_status %>%
 conformity_status %>% 
   filter(registration_analyzed != "Inactive listing") %>%
   filter(active >= max(active, na.rm = T) - days(30)) %>% nrow()
+
 
 # percentage of all conformity status category for active listings
 conformity_status %>% 
@@ -103,9 +105,11 @@ conformity_status %>%
   ggplot()+
   geom_histogram(stat = "count", aes(registration_analyzed, fill = registration_analyzed))+
   xlab("")+
-  ylab("Listing number")+
+  ylab("Number of listings")+
   guides(x = guide_axis(angle = 10))+
-  scale_fill_discrete(name = "Registration conformity")
+  scale_fill_manual(name = "Registration conformity", values = col_palette[c(1, 2, 3, 4)])+
+  theme_minimal()
+
 
 # percentage of non-conform scrapable listings
 conformity_status %>% 
@@ -114,6 +118,7 @@ conformity_status %>%
   nrow() /
   conformity_status %>% 
   filter(registration_analyzed != "Inactive listing") %>% nrow()
+
 
 # percentage of all conformity status category for scrapable listings
 conformity_status %>% 
@@ -138,11 +143,11 @@ LA %>%
   filter(registration_analyzed == "Non-conform") %>%
   ggplot()+
   geom_sf(aes(fill = non_conform_per), colour = "white") +
-  scale_fill_gradientn(colors = col_palette[c(3, 4, 1)], na.value = "grey80",
+  scale_fill_gradientn(colors = col_palette[c(6, 1)], na.value = "grey80",
                        # limits = c(0, 0.5), oob = scales::squish, 
                        labels = scales::percent)  +
   guides(fill = guide_colourbar(title = "Non-conform listings in %",
-                                title.vjust = 1)) + 
+                                title.vjust = 0.5)) + 
   theme_void()+
   geom_sf_text(aes(label = n), colour = "black")+
-  ggtitle("      Percentage of non-conform listings in color, and absolute number\n      of non-conform listings on local area")
+  ggtitle("Percentage of non-conform listings (gradient) and\nnumber of non-conform listings (numerical) per local area")
