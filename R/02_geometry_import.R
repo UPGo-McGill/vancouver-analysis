@@ -130,6 +130,20 @@ BL <-
             fee_paid = feepaid,
             area = localarea)
 
+BL <- data.table::setDT(BL)
+
+BL <- BL %>% 
+  filter(!is.na(issued), !is.na(expired))
+
+# Add new date field
+BL <- BL[, date := list(list(issued:expired)), by = seq_len(nrow(BL))]
+
+# Unnest
+BL <- BL[, lapply(.SD, unlist), by = 1:nrow(BL)
+][, c("nrow", "issued", "expired") := NULL]
+
+BL <- BL[, date := as.Date(date, origin = "1970-01-01")]
+
 # Import of skytrain shapefile --------------------------------------------
 
 skytrain <- 
