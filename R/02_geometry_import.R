@@ -139,8 +139,7 @@ BL <- BL %>%
 BL <- BL[, date := list(list(issued:expired)), by = seq_len(nrow(BL))]
 
 # Unnest
-BL <- BL[, lapply(.SD, unlist), by = 1:nrow(BL)
-][, c("nrow", "issued", "expired") := NULL]
+BL <- BL[, lapply(.SD, unlist), by = 1:nrow(BL)]
 
 BL <- BL[, date := as.Date(date, origin = "1970-01-01")]
 
