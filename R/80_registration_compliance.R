@@ -271,3 +271,51 @@ property_lucrativity %>%
   geom_text(aes(registration_analyzed, nights_reserved, label = label), vjust=1.6, color="white")+
   theme_minimal()
 
+### Daily counts of licence vs active listings -----------------------------------
+active_listings <- 
+daily %>% 
+  filter(status == c("R", "A")) %>% 
+  count(date) %>% 
+  rename(listings = n)
+
+active_licences <- 
+  BL %>% 
+  count(date) %>% 
+  rename(licences = n)
+
+licences_listings <- 
+left_join(filter(active_listings, date >= min(active_licences$date)), 
+          filter(active_licences, date <= max(active_listings$date))) %>% 
+  pivot_longer(c(listings, licences), 
+               names_to = "Type",
+               values_to = "Amount")
+
+licences_listings %>% 
+  ggplot(aes(date, Amount, fill = Type)) +
+  geom_col(lwd = 0) +
+  annotate("segment", x = key_date_covid, xend = key_date_covid,
+           y = 0, yend = Inf, alpha = 0.3) +
+  annotate("curve", x = as.Date("2019-08-01"), xend = key_date_covid - days(10),
+           y = 3000, yend = 2700, curvature = -.2, lwd = 0.25,
+           arrow = arrow(length = unit(0.05, "inches"))) +
+  annotate("text", x = as.Date("2019-05-01"), y = 3000,
+           label = "COVID-19 \nAirbnb's response") + #, family = "Futura Condensed"
+  annotate("segment", x = key_date_regulations, xend = key_date_regulations,
+           y = 0, yend = Inf, alpha = 0.3) +
+  annotate("curve", x = as.Date("2018-06-01"), xend = key_date_regulations - days(10),
+           y = 3200, yend = 3100, curvature = -.2, lwd = 0.25,
+           arrow = arrow(length = unit(0.05, "inches"))) +
+  annotate("text", x = as.Date("2018-02-01"), y = 3200,
+           label = "Regulations")+ #, family = "Futura Condensed"
+  scale_fill_manual(values = col_palette[c(1, 5)]) +
+  scale_y_continuous(name = NULL, label = scales::comma) +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        panel.grid.minor.x = element_blank(),
+        text = element_text(face = "plain", #family = "Futura"
+        ),
+        legend.title = element_text(face = "bold", #family = "Futura", 
+                                    size = 10),
+        legend.text = element_text( size = 10, #family = "Futura"
+        ))
+          
