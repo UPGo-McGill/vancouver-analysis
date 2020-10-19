@@ -176,21 +176,21 @@ rm(kj, cl)
 # Not updated yet!
 load("output/geometry.Rdata")
 
-ltr <- st_transform(ltr, 32618)
+ltr <- st_transform(ltr, 32610)
 
 ltr <- 
   ltr %>% 
-  st_join(boroughs_raw) %>% 
-  select(-dwellings)
+  st_join(LA_raw) #%>% 
+  #select(-dwellings)
 
 ltr <-
   ltr %>% 
   st_join(DA) %>% 
   as_tibble() %>% 
-  st_as_sf() %>% 
-  select(-CMA_UID, -population)
+  st_as_sf() #%>% 
+  #select(-CMA_UID, -population)
 
-rm(boroughs, boroughs_raw, city, DA, province)
+rm(LA, LA_raw, city, DA, province)
 
 
 # Save output -------------------------------------------------------------
