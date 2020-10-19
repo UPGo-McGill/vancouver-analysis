@@ -462,7 +462,7 @@ bedroom_match_table %>%
 #' Of the 61,393 [1] LTR listings we analyzed, 25.0% [2] were listed as 
 #' furnished, 74.8% [2] as unfurnished, and 0.2% [2] did not provide this 
 #' information. Listings which matched with STRs had a significantly higher 
-#' proportion classified as furnished: 750% [3] furnished and 24.9% [3] 
+#' proportion classified as furnished: 75.0% [3] furnished and 24.9% [3] 
 #' unfurnished, with only 0.1% [3] not providing this information.
 
 #' [1] All scraped LTR listings
@@ -481,14 +481,14 @@ ltr_unique_property_ID %>%
 
 # Are matched listings commercial operations? -----------------------------
 
-#' Of the 2,526 [1] unique STR listings that matched with the LTR market, 
-#' 2,177 [2] (86.2% [2]) are entire-home listings and 315 [2] (12.5% [2]) are 
-#' private-room listings. Examining the entire-home listings, 58.4% [3] of them 
+#' Of the 1,380 [1] unique STR listings that matched with the LTR market, 
+#' 1,127 [2] (83.9% [2]) are entire-home listings and 207 [2] (15.4% [2]) are 
+#' private-room listings. Examining the entire-home listings, 52.9% [3] of them 
 #' were identified as frequently rented entire-home (FREH) listings at some 
 #' point, which means they were almost certainly operated commercially. 
-#' Moreover, 78.6% [3] of entire-home STR listings which matched to LTR listings 
+#' Moreover, 54.1% [3] of entire-home STR listings which matched to LTR listings 
 #' were multilistings at some point, which means they were operated by hosts 
-#' controlling multiple listings simultaneously. In total, 88.9% [3] of 
+#' controlling multiple listings simultaneously. In total, 74.8% [3] of 
 #' entire-home listings had one of these two strong indicators of commercial 
 #' activity.
 
@@ -519,10 +519,10 @@ daily %>%
             ML_pct = sum(ML) / total,
             either_pct = sum(ceiling((FREH + ML) / 2)) / total)
 
-#' The 315 [1] private-room listings require some further analysis, because each 
+#' The 207 [1] private-room listings require some further analysis, because each 
 #' of these listings matched to a Craigslist or Kijiji listing advertised as an 
 #' entire housing unit. Our analysis suggests that these listings break down 
-#' into three categories. The first is miscategorizations. 69 [2] (21.9% [2]) of 
+#' into three categories. The first is miscategorizations. 7 [2] (21.9% [2]) of 
 #' the LTR listings that matched to STR private-room listings had titles such as 
 #' “1 fully furnished bedroom” or “swap”.
 
@@ -548,9 +548,9 @@ property %>%
       pull(n)})} %>% 
   round(3)
 
-#' 124 [1] (39.4%) [1] of the 315 [2] private-room listings which matched to 
+#' 108 [1] (52.2%) [1] of the 207 [2] private-room listings which matched to 
 #' Craiglist or Kijiji were listings identified as belonging to ghost hostels in 
-#' Montreal. 
+#' Vancouver. 
 
 #' [1] GH matches
 property %>% 
@@ -574,7 +574,7 @@ property %>%
   filter(listing_type == "Private room") %>% 
   pull(n)
 
-#' The remaining 122 [1] private-room Airbnb listings which matched to 
+#' The remaining 92 [1] private-room Airbnb listings which matched to 
 #' Craigslist or Kijiji are likely to be ghost hostels which our algorithms 
 #' failed to identify, or smaller housing units similarly subdivided into 
 #' private rooms.
@@ -595,10 +595,10 @@ property %>%
       nrow()}
 
 #' Focusing on the unambiguous case of the entire-home listings which matched 
-#' between STR and LTR platforms, 24.2% [1] of the commercial listings active 
+#' between STR and LTR platforms, 27.9% [1] of the commercial listings active 
 #' in 2020 have been transferred to Craiglist or Kijiji since March.... 
 #' Expressed as a percentage of the commercial listings active on March 1, 2020, 
-#' at the onset of the pandemic, the matches represent 40.6% [2] of these 
+#' at the onset of the pandemic, the matches represent 48.0% [2] of these 
 #' listings.
 
 #' [1] EH matches as % of commercial operations on March 1
@@ -627,8 +627,8 @@ property %>%
 
 # Which STR hosts transferred their listings to Craigslist and Kij --------
 
-#' In Montreal, 1,149 [1] unique Airbnb host IDs were linked to the 2,526 [2] 
-#' LTR matches. 288 [3] of these hosts posted more than one of their STR units 
+#' In Vancouver, XXXX [1] unique Airbnb host IDs were linked to the XXXX [2] 
+#' LTR matches. XXX [3] of these hosts posted more than one of their STR units 
 #' on Craigslist or Kijiji. For example, the top host network in Montreal 
 #' (discussed in section 2) posted 239 [3] of its STR units on the LTR market. 
 #' Half (49.7% [4]) of the active properties of these 1,149 [1] hosts were found
@@ -661,7 +661,7 @@ property %>%
     nrow()} %>% 
   round(3)
 
-#' The median STR host revenue was $4,300 [1] in the entire City of Montreal in 
+#' The median STR host revenue was $8,700 [1] in the entire City of Vancouver in 
 #' 2019. The annual median revenue of hosts who transferred listings to the LTR 
 #' market was $14,300 [2], while the median revenue of hosts who did not 
 #' transfer listings was only $4,000 [2]. Moreover, many of Montreal’s highest 
