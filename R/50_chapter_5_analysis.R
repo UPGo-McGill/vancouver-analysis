@@ -57,11 +57,11 @@ ltr_PR <-
 
 # How many STR listings have returned to the long-term market? ------------
 
-#' Our image matching algorithm recognized 2,526 [1] unique Airbnb listings 
-#' which matched with 4,842 [2] different LTR listings (as some units are posted 
-#' multiple times) in the City of Montreal. The matching LTR listings were 
+#' Our image matching algorithm recognized 1,380 [1] unique Airbnb listings 
+#' which matched with 2,542 [2] different LTR listings (as some units are posted 
+#' multiple times) in the City of Vancouver. The matching LTR listings were 
 #' evenly split between Kijiji (2,596 [3] listings, or 53.6%) and Craigslist 
-#' (2,246 [3] listings, or 46.4%). Out of the 2,526 matching Airbnb listings,
+#' majorily posted on Craigslist (92.4%), with only 7.6% on Kijiji.
 #' 51.2% (1,294 [3] listings) were active STRs in 2020, which establishes a 
 #' lower bound for the number of unique housing units that went from the STR 
 #' market to the LTR market due to the COVID-19 pandemic.
@@ -99,11 +99,12 @@ property %>%
   count(active = active >= "2020-01-01" | created >= "2020-01-01") %>% 
   mutate(pct = n / sum(n))
 
-#' Out of the 1,690 [1] Airbnb listings which we matched to Kijiji, 74.0% [2]
-#' were identified by their hosts as “long-term rentals” and 26.0% [2] were 
-#' identified as “short-term rentals”. Among these listings, 50.3% [3] specified 
-#' lease lengths of one year, 21.9% [3] specified month-to-month, and 27.8% [3]
-#' did not specify.
+#' Out of the 112 [1] Airbnb listings which we matched to Kijiji, 65.2% [2]
+#' were identified by their hosts as “long-term rentals” and 34.8% [2] were 
+#' identified as “short-term rentals”. Among these listings, 33.9% [3] specified 
+#' lease lengths of one year, 29.5% [3] specified month-to-month, and 36.6% [3]
+#' did not specify. It is important, however, to mention that Kijiji listings
+#' represent a marginal fraction of matches.
 
 #' [1] KJ or CL
 ltr_unique_property_ID %>% 
@@ -127,19 +128,20 @@ ltr_unique_property_ID %>%
 
 # When did STR listings move to the long-term market? ---------------------
 
-#' By the end of the March, more than 60 [1] listings were being transferred 
+#' By the end of the March, more than 62 [1] listings were being transferred 
 #' each day. Daily numbers remained high through April, but even from May 
-#' through July an average of 5.5 [2] new Airbnb listings were transferred to 
+#' through July an average of 6.5 [2] new Airbnb listings were transferred to 
 #' Craigslist or Kijiji each day.
 
-#' [1] Peak dailiy listings transfer
+#' [1] Peak daily listings transfer
 ltr %>% 
   st_drop_geometry() %>% 
   unnest(property_ID) %>% 
   filter(!is.na(property_ID)) %>% 
   arrange(created) %>% 
   distinct(property_ID, .keep_all = TRUE) %>% 
-  count(created, kj, sort = TRUE) %>% 
+  count(created, kj, sort = TRUE) %>%
+  View()
   slice(1)
 
 #' [2] Average daily listings transfer, May - July
@@ -156,11 +158,11 @@ ltr %>%
 
 # Spatial distribution of matched listings --------------------------------
 
-#' Out of the 2,526 [1] unique STR listings matched to LTR listings in the City 
-#' of Montreal, nearly half (44.4% [2]) were located in the Ville-Marie borough 
-#' and 28.5% [2] in Le Plateau-Mont-Royal, with Le Sud-Ouest (8.2% [2]), 
-#' Côte-des-Neiges-Notre-Dame-de-Grâce (5.0% [2]) and Rosemont-La-Petite-Patrie 
-#' (4.0% [2]) accounting for most of the remaining matches.... In fact, 
+#' Out of the 1,380 [1] unique STR listings matched to LTR listings in the City 
+#' of Vancouver, nearly  (% [2]) were located in the Downtown area 
+#' and [2] in the XXXX area, followed by XXXX (% [2]), 
+#' XXXX (% [2]) and XXXX
+#' (% [2]) accounting for most of the remaining matches.... In fact, 
 #' the number of STR listings matched to LTR listings in Ville-Marie is 
 #' equivalent to nearly half (41.4% [3]) of all the STR listings active in the 
 #' borough on March 1, 2020, and 24.7% [4] of all the listings active in the 
@@ -169,39 +171,39 @@ ltr %>%
 #' [1] Unique STR matches
 property %>% filter(!is.na(ltr_ID)) %>% nrow()
 
-#' [2] Total number of unique matches by borough
+#' [2] Total number of unique matches by area
 property %>% 
   st_drop_geometry() %>% 
   filter(!is.na(ltr_ID)) %>% 
-  count(borough) %>% 
+  count(area) %>% 
   mutate(pct = round(n / sum(n), 3)) %>% 
   arrange(-pct) %>% 
   slice(1:6)
 
-#' [3] Ville-Marie active March 1 percentage
+#' [3] Downtown active March 1 percentage
 {{property %>% 
   st_drop_geometry() %>% 
   filter(!is.na(ltr_ID)) %>% 
-  count(borough) %>% 
+  count(area) %>% 
   mutate(pct = n / sum(n)) %>% 
   slice(18) %>% 
   pull(n)} /
   {daily %>% 
-      filter(housing, borough == "Ville-Marie", status != "B", 
+      filter(housing, area == "Downtown", status != "B", 
              date == "2020-03-01") %>% 
       nrow}} %>% 
   round(3)
 
-#' [4] Ville-Marie active 2020 percentage
+#' [4] Downtown active 2020 percentage
 {{property %>% 
     st_drop_geometry() %>% 
     filter(!is.na(ltr_ID)) %>% 
-    count(borough) %>% 
+    count(area) %>% 
     mutate(pct = n / sum(n)) %>% 
     slice(18) %>% 
     pull(n)} /
   {daily %>% 
-      filter(housing, borough == "Ville-Marie", status != "B", 
+      filter(housing, area == "Downtown", status != "B", 
              date >= "2020-01-01") %>% 
       pull(property_ID) %>% 
       unique() %>% 
@@ -231,11 +233,11 @@ asking_rents <-
   ungroup() %>% 
   mutate(status = "All listings", .before = created) %>% 
   bind_rows(asking_rents) %>% 
-  mutate(geography = "City of Montreal")
+  mutate(geography = "City of Vancouver")
 
-asking_rents_vm <- 
+asking_rents_dt <- 
   ltr_unique %>% 
-  filter(price > 425, price < 8000, borough == "Ville-Marie") %>% 
+  filter(price > 425, price < 8000, area == "Downtown") %>% 
   mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
   group_by(matched, created) %>%
   summarize(avg_price = mean(price)) %>% 
@@ -246,72 +248,83 @@ asking_rents_vm <-
 
 asking_rents <- 
   ltr_unique %>% 
-  filter(price > 425, price < 8000, borough == "Ville-Marie") %>% 
+  filter(price > 425, price < 8000, area == "Downtown") %>% 
   mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
   group_by(created) %>%
   summarize(avg_price = mean(price)) %>% 
   ungroup() %>% 
   mutate(status = "All listings", .before = created) %>% 
-  bind_rows(asking_rents_vm) %>% 
-  mutate(geography = "Ville-Marie") %>% 
+  bind_rows(asking_rents_dt) %>% 
+  mutate(geography = "Downtown") %>% 
   bind_rows(asking_rents)
 
-#' On March 13 [1], when the average asking rent on LTR platforms in the City 
-#' of Montreal was $1,387 [1], the average asking rent among listings which we 
-#' matched to Airbnb was $2,641 [1]—90.4% [1] higher. Over the course of
+#' On March 14 [1], when the average asking rent on LTR platforms in the City 
+#' of Montreal was $1,984 [1], the average asking rent among listings which we 
+#' matched to Airbnb was $2,500 [1]—26.0% [1] higher. Over the course of
 #' March, average asking rents for LTR listings matched to Airbnb declined 
-#' steadily, and since April they have been relatively stable, with a daily 
-#' average of $1,746 [2]. This remains a significantly higher (22.0% [2]) 
-#' average asking price than the non-matched listings, though, which from 
-#' April through July averaged $1,431 [2].
+#' slightly, only to pick up until July, with an average of of $2,726 [2]
+#' for the months of April to July. It remained a significantly higher (25.5% [2]) 
+#' average asking price than the non-matched listings, which from 
+#' April through July averaged $2,172 [2]. From August to mid-October, average rents
+#' decreased for both STR matches and non-matches, with matches averaging $2,433 [3]
+#' and non-matches, $1,863 [3] - however, the difference between both was larger, with
+#' 30.6% [3] difference.
 
 #' [1] Peak difference between matched and city-wide
 asking_rents %>% 
-  filter(geography == "City of Montreal", created >= "2020-03-13") %>% 
+  filter(geography == "City of Vancouver", created >= "2020-03-13") %>% 
   group_by(created) %>% 
   summarize(city = avg_price[status == "All listings"],
             match = avg_price[status == "Matched to STR"],
             dif = avg_price[status == "Matched to STR"] - 
               avg_price[status == "All listings"],
             dif_pct = match / city - 1) %>% 
-  filter(dif == max(dif))
+  filter(dif == max(dif)) 
 
 #' [2] April-July averages
 asking_rents %>% 
-  filter(geography == "City of Montreal", created >= "2020-04-01",
+  filter(geography == "City of Vancouver", created >= "2020-04-01",
          created <= "2020-07-31") %>% 
   group_by(status) %>% 
   summarize(avg_price = mean(avg_price)) %>% 
   mutate(pct_higher = avg_price / min(avg_price) - 1)
-  
-#' Even in Ville-Marie, however, LTR listings matched to Airbnb have been on 
-#' average 11.4% [1] higher than listings not matched, and the same pattern of 
-#' initially extremely high asking rents in March yielding to lower (although 
-#' still high) rents from April through July is visible.
 
-#' [1] Ville-Marie overall average rent differences
+#' [2] August-mid-October averages
 asking_rents %>% 
-  filter(geography == "Ville-Marie", created >= "2020-03-13",
+  filter(geography == "City of Vancouver", created >= "2020-08-01",
+         created <= "2020-10-06") %>% 
+  group_by(status) %>% 
+  summarize(avg_price = mean(avg_price)) %>% 
+  mutate(pct_higher = avg_price / min(avg_price) - 1)
+  
+#' Even in the Downtown area, LTR listings matched to Airbnb have been on 
+#' average 7.7% [1] higher than listings not matched, with a pattern of
+#' increasing rents until the end of June, yielding to lower (although still high)
+#' rents from July to October.
+
+#' [1] Downtown overall average rent differences
+asking_rents %>% 
+  filter(geography == "Downtown", created >= "2020-03-13",
          status != "All listings") %>% 
   group_by(status) %>% 
   summarize(avg_price = mean(avg_price)) %>% 
   summarize(max(avg_price) / min(avg_price) - 1)
 
 #' The average city-wide asking rent on Craigslist and Kijiji has remained 
-#' between $1,326 [1] and $1,579 [1] throughout the March-July period we tracked 
-#' it.... The daily average asking rent in March was $1,736 [2], while in July 
-#' it was $1,627 [2]—a $109 [2] or 6.7% [2] decline.
+#' between $1,239 [1] and $3,003 [1] throughout the March-mid-October period we tracked 
+#' it.... The daily average asking rent in March was $2,703 [2], while in September 
+#' it was $2,403 [2]—a $301 [2] or 11% [2] decline.
 
 asking_rents %>% 
-  filter(created >= "2020-03-13", created <= "2020-07-31", 
-         status == "All listings", geography == "City of Montreal") %>% 
+  filter(created >= "2020-03-13", created <= "2020-10-06", 
+         status == "All listings", geography == "City of Vancouver") %>% 
   summarize(min = min(avg_price), max = max(avg_price))
 
-#' [2] Ville-Marie March/July rent differences
+#' [2] Downtown March/September rent differences
 asking_rents %>% 
-  filter(geography == "Ville-Marie", created >= "2020-03-13",
-         created <= "2020-07-31", status == "All listings") %>% 
-  filter(created <= "2020-03-31" | created >= "2020-07-01") %>% 
+  filter(geography == "Downtown", created >= "2020-03-13",
+         created <= "2020-09-30", status == "All listings") %>% 
+  filter(created <= "2020-03-31" | created >= "2020-09-01") %>% 
   group_by(created <= "2020-03-31") %>% 
   summarize(avg_price = mean(avg_price)) %>% 
   mutate(dif = avg_price - min(avg_price),
@@ -321,15 +334,15 @@ asking_rents %>%
 # Listing amenities -------------------------------------------------------
 
 #' Studios were overrepresented among LTR listings which matched to Airbnb 
-#' (17.7% [1]) compared with LTR listings which did not match (9.9% [2]), 
-#' STR listings (in 2019, 10.0% [3]) and Montreal’s rental stock (9.9% [4]). 
-#' Units with three bedrooms or more were overrepresented in LTR listings, 
-#' at 24.1% [1] for matches and 21.3% [2] for non-matches, compared to the 
-#' City (10.3% [4]) and the STR market (12.2% [3]). One-bedrooms, which were 
-#' considerably overrepresented in STR listings (56.6% [3]) compared to the 
-#' overall rental housing stock (27.2% [4]), constituted 36.0% [1] of LTR 
+#' (8.1% [1]) compared with LTR listings which did not match (3.9% [2]), 
+#' STR listings (in 2019, 5.1% [3]) and Vancouver’s rental stock (X.X% [4]). 
+#' Units with one bedrooms were underrepresented in LTR listings, 
+#' at 40.6% [1] for matches and 38.0% [2] for non-matches, compared to the 
+#' the STR market (56.6% [3]). Two-bedrooms, which were 
+#' considerably underrepresented in STR listings (25.0% [3]) compared to the 
+#' overall rental housing stock (XX,X% [4]), constituted 39.2% [1] of LTR 
 #' listings that matched with STR listings, and a similar proportion among 
-#' non-matched listings (35.7% [2]).
+#' non-matched listings (41.0% [2]).
 
 #' [1] Bedrooms in LTR matches
 ltr_unique_property_ID %>% 
@@ -371,7 +384,7 @@ property %>%
   rename(bedrooms = group) %>% 
   mutate(n = round(n / sum(n), 3))
 
-#' [4] Bedrooms in City of Montreal rentals
+#' [4] Bedrooms in City of Vancouver rentals
 city_units %>% 
   filter(date == 2019) %>% 
   slice(1:4) %>% 
@@ -385,7 +398,7 @@ bedroom_match_table <-
   mutate(pct = round(units / sum(units), 3)) %>% 
   mutate(bedrooms = c("Studio", "1-bedroom", "2-bedroom", "3+-bedroom")) %>% 
   select(bedrooms, pct) %>% 
-  mutate(Category = "City of Montreal rental stock", .before = bedrooms)
+  mutate(Category = "City of Vancouver rental stock", .before = bedrooms)
 
 bedroom_match_table <-
   property %>% 
@@ -446,11 +459,11 @@ bedroom_match_table %>%
   opt_row_striping() %>% 
   fmt_percent(columns = c(2:5), decimals = 1)
 
-#' Of the 82,016 [1] LTR listings we analyzed, 26.8% [2] were listed as 
-#' furnished, 55.8% [2] as unfurnished, and 17.4% [2] did not provide this 
+#' Of the 61,393 [1] LTR listings we analyzed, 25.0% [2] were listed as 
+#' furnished, 74.8% [2] as unfurnished, and 0.2% [2] did not provide this 
 #' information. Listings which matched with STRs had a significantly higher 
-#' proportion classified as furnished: 76.7% [3] furnished and 22.7% [3] 
-#' unfurnished, with only 0.6% [3] not providing this information.
+#' proportion classified as furnished: 750% [3] furnished and 24.9% [3] 
+#' unfurnished, with only 0.1% [3] not providing this information.
 
 #' [1] All scraped LTR listings
 ltr_unique %>% nrow()
