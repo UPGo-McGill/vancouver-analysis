@@ -140,7 +140,7 @@ figure_5_2 <-
   group_by(kj) %>% 
   mutate(n = slide_dbl(n, mean, .before = 2)) %>% 
   ungroup() %>% 
-  filter(created >= "2020-03-01", created <= "2020-07-31") %>% 
+  filter(created >= "2020-03-01", created <= "2020-09-30") %>% 
   ggplot(aes(created, n, fill = kj)) +
   annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
            ymin = 0, ymax = Inf, alpha = .2) +
@@ -149,7 +149,7 @@ figure_5_2 <-
            y = 45, yend = 50, curvature = .2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
   annotate("text", x = as.Date("2020-07-14"), y = 45,
-           label = "STRs banned \nby Province", family = "Futura Condensed") +
+           label = "STRs banned \nby Province") + #, family = "Futura Condensed"
   scale_x_date(name = NULL) +
   scale_y_continuous(name = NULL, label = scales::comma) +
   scale_fill_manual(name = NULL, labels = c("Craigslist", "Kijiji"), 
@@ -157,10 +157,10 @@ figure_5_2 <-
   theme_minimal() +
   theme(legend.position = "bottom", 
         panel.grid.minor.x = element_blank(),
-        text = element_text(face = "plain", family = "Futura"),
-        legend.title = element_text(face = "bold", family = "Futura", 
+        text = element_text(face = "plain"), #, family = "Futura"
+        legend.title = element_text(face = "bold", #, family = "Futura" 
                                     size = 10),
-        legend.text = element_text( size = 10, family = "Futura"))
+        legend.text = element_text( size = 10)) #, family = "Futura"
 
 
 ggsave("output/figures/figure_5_2.pdf", plot = figure_5_2, width = 8, 
@@ -174,53 +174,53 @@ extrafont::embed_fonts("output/figures/figure_5_2.pdf")
 figure_5_3_left <-
   ltr_unique_property_ID %>% 
   select(-geometry) %>% 
-  count(borough) %>% 
-  left_join(boroughs, .) %>% 
+  count(area) %>% 
+  left_join(LA, .) %>% 
   ggplot() +
   geom_sf(data = province, colour = "transparent", fill = "grey93") +
   geom_sf(aes(fill = n), colour = "white") +
   scale_fill_gradientn(colors = col_palette[c(3, 4)],
-                       limits = c(0, 1500),
+                       limits = c(0, 650),
                        breaks = c(0, 300, 600, 900, 1200, 1500),
                        na.value = "grey80")  +
   guides(fill = guide_colourbar(title = "Total STR to\nLTR matches",
                                 title.vjust = 1)) + 
-  gg_bbox(boroughs) +
+  gg_bbox(LA) +
   theme_void() +
   theme(legend.position = "bottom",
-        text = element_text(family = "Futura", face = "plain"),
-        legend.title = element_text(family = "Futura", face = "bold",
+        text = element_text(face = "plain",), #family = "Futura"
+        legend.title = element_text(face = "bold", #family = "Futura"
                                     size = 7),
         legend.title.align = 0.9,
-        legend.text = element_text(family = "Futura", size = 5),
+        legend.text = element_text(size = 5), #family = "Futura"
         panel.border = element_rect(colour = "white", size = 2))
 
 figure_5_3_right <-
   ltr_unique_property_ID %>% 
   select(-geometry) %>% 
-  count(borough) %>% 
+  count(area) %>% 
   left_join(count(filter(daily, housing, status != "B", date == "2020-03-01"), 
-                  borough), by = "borough") %>% 
+                  area), by = "area") %>% 
   mutate(pct = n.x / n.y) %>% 
-  left_join(boroughs, .) %>% 
+  left_join(LA, .) %>%
   ggplot() +
   geom_sf(data = province, colour = "transparent", fill = "grey93") +
   geom_sf(aes(fill = pct), colour = "white") +
-  scale_fill_gradientn(colors = col_palette[c(5, 2)], 
+  scale_fill_gradientn(colors = col_palette[c(2, 5)], 
                        na.value = "grey80",
-                       limits = c(0, .5),
+                       limits = c(0.05, .55),
                        breaks = c(0, 0.1, .2, .3, .4, .5),
                        label = scales::label_percent(accuracy = 1))  +
   guides(fill = guide_colourbar(title = "Matches as %\nof active STRs",
                                 title.vjust = 1)) + 
-  gg_bbox(boroughs) +
+  gg_bbox(LA) +
   theme_void() +
   theme(legend.position = "bottom",
-        text = element_text(family = "Futura", face = "plain"),
-        legend.title = element_text(family = "Futura", face = "bold",
+        text = element_text(face = "plain"), #,family = "Futura" 
+        legend.title = element_text(face = "bold", #family = "Futura"
                                     size = 7),
         legend.title.align = 0.9,
-        legend.text = element_text(family = "Futura", size = 5),
+        legend.text = element_text(size = 5), #family = "Futura", 
         panel.border = element_rect(colour = "white", size = 2))
 
 figure_5_3 <- figure_5_3_left + figure_5_3_right
@@ -255,11 +255,11 @@ asking_rents <-
   ungroup() %>% 
   mutate(status = "All listings", .before = created) %>% 
   bind_rows(asking_rents) %>% 
-  mutate(geography = "City of Montreal")
+  mutate(geography = "City of Vancouver")
 
-asking_rents_vm <- 
+asking_rents_dt <- 
   ltr_unique %>% 
-  filter(price > 425, price < 8000, borough == "Ville-Marie") %>% 
+  filter(price > 425, price < 8000, area == "Downtown") %>% 
   mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
   group_by(matched, created) %>%
   summarize(avg_price = mean(price)) %>% 
@@ -271,26 +271,26 @@ asking_rents_vm <-
 
 asking_rents <- 
   ltr_unique %>% 
-  filter(price > 425, price < 8000, borough == "Ville-Marie") %>% 
+  filter(price > 425, price < 8000, area == "Downtown") %>% 
   mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
   group_by(created) %>%
   summarize(avg_price = mean(price)) %>% 
   mutate(avg_price = slide_dbl(avg_price, mean, .before = 6)) %>% 
   ungroup() %>% 
   mutate(status = "All listings", .before = created) %>% 
-  bind_rows(asking_rents_vm) %>% 
-  mutate(geography = "Ville-Marie") %>% 
+  bind_rows(asking_rents_dt) %>% 
+  mutate(geography = "Downtown") %>% 
   bind_rows(asking_rents)
 
 figure_5_4 <-
   asking_rents %>% 
-  filter(created >= "2020-03-13", created <= "2020-07-31") %>% 
+  filter(created >= "2020-03-13", created <= "2020-09-30") %>% 
   ggplot(aes(created, avg_price, color = status)) +
   annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
            ymin = -Inf, ymax = Inf, alpha = .2) +
   geom_line(lwd = 1) +
   scale_x_date(name = NULL, limits = c(as.Date("2020-03-01"), NA)) +
-  scale_y_continuous(name = NULL, limits = c(1000, 2500), 
+  scale_y_continuous(name = NULL, limits = c(1500,3800), 
                      label = scales::dollar) +
   scale_color_manual(name = NULL, values = col_palette[c(5, 1, 3)]) +
   facet_wrap(vars(geography)) +
@@ -298,11 +298,11 @@ figure_5_4 <-
   theme(legend.position = "bottom",
         panel.grid.minor.x = element_blank(),
         panel.grid.minor.y = element_blank(),
-        text = element_text(family = "Futura", face = "plain"),
-        legend.title = element_text(family = "Futura", face = "bold", 
+        text = element_text(face = "plain"), #, family = "Futura" 
+        legend.title = element_text(face = "bold",#family = "Futura", 
           size = 10),
-        legend.text = element_text(family = "Futura", size = 10),
-        strip.text = element_text(face = "bold", family = "Futura"))
+        legend.text = element_text(size = 10), #family = "Futura", 
+        strip.text = element_text(face = "bold")) #, family = "Futura"
 
 ggsave("output/figures/figure_5_4.pdf", plot = figure_5_4, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
