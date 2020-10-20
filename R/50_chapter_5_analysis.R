@@ -60,8 +60,7 @@ ltr_PR <-
 #' Our image matching algorithm recognized 1,380 [1] unique Airbnb listings 
 #' which matched with 2,542 [2] different LTR listings (as some units are posted 
 #' multiple times) in the City of Vancouver. The matching LTR listings were 
-#' evenly split between Kijiji (2,596 [3] listings, or 53.6%) and Craigslist 
-#' majorily posted on Craigslist (92.4%), with only 7.6% on Kijiji.
+#' emajorily posted on Craigslist (92.4%), with only 7.6% on Kijiji.
 #' 51.2% (1,294 [3] listings) were active STRs in 2020, which establishes a 
 #' lower bound for the number of unique housing units that went from the STR 
 #' market to the LTR market due to the COVID-19 pandemic.
@@ -163,7 +162,7 @@ ltr %>%
 #' and [2] in the XXXX area, followed by XXXX (% [2]), 
 #' XXXX (% [2]) and XXXX
 #' (% [2]) accounting for most of the remaining matches.... In fact, 
-#' the number of STR listings matched to LTR listings in Ville-Marie is 
+#' the number of STR listings matched to LTR listings in Downtown is 
 #' equivalent to nearly half (41.4% [3]) of all the STR listings active in the 
 #' borough on March 1, 2020, and 24.7% [4] of all the listings active in the 
 #' borough in 2020.
