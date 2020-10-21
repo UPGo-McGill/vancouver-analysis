@@ -19,7 +19,62 @@ load("output/str_processed.Rdata")
 load("output/geometry.Rdata")
 load("output/registration.Rdata")
 
-### Tidy data  --------------------------------------------------------------
+
+### Daily counts of displayed listings and licences --------------------------------
+
+active_listings <- 
+  daily %>% 
+  data.table::setDT() %>% 
+  count(date) %>% 
+  rename(listings = n)
+
+active_licences <- 
+  BL_expand %>% 
+  count(date) %>% 
+  rename(licences = n)
+
+licences_listings <- 
+  left_join(filter(active_listings, date >= min(active_licences$date)), 
+            filter(active_licences, date <= max(active_listings$date))) %>% 
+  mutate(licences = slide_dbl(licences, mean, .before = 6, .complete = TRUE),
+         listings = slide_dbl(listings, mean, .before = 6, .complete = TRUE)) %>% 
+  filter(!is.na(licences))
+
+licences_listings %>% 
+  ggplot() +
+  geom_col(aes(date, listings), color = col_palette[c(3)]) +
+  geom_col(aes(date, licences), color = col_palette[c(5)])+
+  annotate("segment", x = key_date_covid, xend = key_date_covid,
+           y = 0, yend = Inf, alpha = 0.3) +
+  annotate("segment", x = key_date_regulations, xend = key_date_regulations,
+           y = 0, yend = Inf, alpha = 0.3) +
+  scale_y_continuous(name = NULL, label = scales::comma) +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        panel.grid.minor.x = element_blank(),
+        text = element_text(face = "plain", #family = "Futura"
+        ),
+        legend.title = element_text(face = "bold", #family = "Futura", 
+                                    size = 10),
+        legend.text = element_text( size = 10, #family = "Futura"
+        ))+
+  ggtitle("All listings (pink) and valid licences (green), 7 day-average")
+
+
+# New licences in fall/winter 2019
+pull(active_licences[date == "2019-12-31"])-
+  pull(active_licences[date == "2019-10-01"])
+
+# Decrease of displyaed listings in fall/winter 2019
+pull(active_listings[date == "2019-12-31"])-
+  pull(active_listings[date == "2019-10-01"])
+
+# New licences after COVID
+pull(active_licences[date == max(date)])-
+  pull(active_licences[date == key_date_covid])
+
+
+### Tidy data for compliance status -------------------------------------------
 
 registration <- 
 registration %>% 
@@ -50,7 +105,8 @@ property <-
   left_join(select(registration, -area))
 
 
-### Look at their conformity ------------------------------------------------
+### Class by conformity -------------------------------------------------
+
 # Prepare a conformity vector
 conformity_status <- 
   property %>% 
@@ -65,7 +121,6 @@ conformity_status <-
                                         "Inactive listing", registration_analyzed),
          registration_analyzed = ifelse(is.na(registration), 
                                         "Operating without licence", registration_analyzed)) 
-
 
 # Graphing the conformity status of active listings
 conformity_status %>% 
@@ -99,7 +154,7 @@ conformity_status %>%
   mutate(per = n/sum(n))
 
 
-# Graphing the conformity status of all scrapable listings
+# Graphing the conformity status of displayed listings
 conformity_status %>% 
   filter(registration_analyzed != "Inactive listing") %>%
   ggplot()+
@@ -111,7 +166,7 @@ conformity_status %>%
   theme_minimal()
 
 
-# percentage of non-conform scrapable listings
+# percentage of non-conform displayed listings
 conformity_status %>% 
   filter(registration_analyzed != "Inactive listing",
          registration_analyzed != "Conform") %>%
@@ -120,7 +175,7 @@ conformity_status %>%
   filter(registration_analyzed != "Inactive listing") %>% nrow()
 
 
-# percentage of all conformity status category for scrapable listings
+# percentage of all conformity status category for displayed listings
 conformity_status %>% 
   st_drop_geometry() %>% 
   filter(registration_analyzed != "Inactive listing") %>% 
@@ -158,8 +213,6 @@ property_lucrativity <-
 conformity_status %>% 
   filter(registration_analyzed != "Inactive listing",
          active >= max(active, na.rm = T) - days(30)) %>% 
-  # mutate(registration_analyzed = ifelse(registration_analyzed != "Conform",
-  #                                       "Non-conform", registration_analyzed)) %>%
   filter(listing_type == "Entire home/apt")
 
 # revenue per listing since COVID
@@ -186,14 +239,15 @@ property_lucrativity %>%
   scale_fill_manual(name = "Registration conformity", values = col_palette[c(4, 2, 3, 6)])+
   geom_text(aes(registration_analyzed, `Revenue per day`, label = label), vjust=1.6, color="white")+
   theme_minimal()
-  
-  property_lucrativity %>% 
-    st_drop_geometry() %>% 
-    left_join(revenue_covid, by = "property_ID") %>% 
-    mutate(registration_analyzed = ifelse(registration_analyzed != "Conform",
-                                          "Non-conform", registration_analyzed)) %>% 
-    group_by(registration_analyzed) %>% 
-    summarize(`Revenue per day` = round(mean(revenue, na.rm = T), digit = 2)) %>% View
+
+# Conform vs non-conform listings, average daily revenue
+property_lucrativity %>% 
+  st_drop_geometry() %>% 
+  left_join(revenue_covid, by = "property_ID") %>% 
+  mutate(registration_analyzed = ifelse(registration_analyzed != "Conform",
+                                        "Non-conform", registration_analyzed)) %>% 
+  group_by(registration_analyzed) %>% 
+  summarize(`Revenue per day` = round(mean(revenue, na.rm = T), digit = 2))
     
   
 # revenue per listing since regulations
@@ -271,51 +325,3 @@ property_lucrativity %>%
   geom_text(aes(registration_analyzed, nights_reserved, label = label), vjust=1.6, color="white")+
   theme_minimal()
 
-### Daily counts of licence vs active listings -----------------------------------
-active_listings <- 
-daily %>% 
-  filter(status == c("R", "A")) %>% 
-  count(date) %>% 
-  rename(listings = n)
-
-active_licences <- 
-  BL %>% 
-  count(date) %>% 
-  rename(licences = n)
-
-licences_listings <- 
-left_join(filter(active_listings, date >= min(active_licences$date)), 
-          filter(active_licences, date <= max(active_listings$date))) %>% 
-  pivot_longer(c(listings, licences), 
-               names_to = "Type",
-               values_to = "Amount")
-
-licences_listings %>% 
-  ggplot(aes(date, Amount, fill = Type)) +
-  geom_col(lwd = 0) +
-  annotate("segment", x = key_date_covid, xend = key_date_covid,
-           y = 0, yend = Inf, alpha = 0.3) +
-  annotate("curve", x = as.Date("2019-08-01"), xend = key_date_covid - days(10),
-           y = 3000, yend = 2700, curvature = -.2, lwd = 0.25,
-           arrow = arrow(length = unit(0.05, "inches"))) +
-  annotate("text", x = as.Date("2019-05-01"), y = 3000,
-           label = "COVID-19 \nAirbnb's response") + #, family = "Futura Condensed"
-  annotate("segment", x = key_date_regulations, xend = key_date_regulations,
-           y = 0, yend = Inf, alpha = 0.3) +
-  annotate("curve", x = as.Date("2018-06-01"), xend = key_date_regulations - days(10),
-           y = 3200, yend = 3100, curvature = -.2, lwd = 0.25,
-           arrow = arrow(length = unit(0.05, "inches"))) +
-  annotate("text", x = as.Date("2018-02-01"), y = 3200,
-           label = "Regulations")+ #, family = "Futura Condensed"
-  scale_fill_manual(values = col_palette[c(1, 5)]) +
-  scale_y_continuous(name = NULL, label = scales::comma) +
-  theme_minimal() +
-  theme(legend.position = "bottom", 
-        panel.grid.minor.x = element_blank(),
-        text = element_text(face = "plain", #family = "Futura"
-        ),
-        legend.title = element_text(face = "bold", #family = "Futura", 
-                                    size = 10),
-        legend.text = element_text( size = 10, #family = "Futura"
-        ))
-          

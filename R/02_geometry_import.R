@@ -131,8 +131,8 @@ BL <-
             area = localarea)
 
 # When expanded, issuance change for the first day of the year if it was issued
-# at the end of the previous year. It results to if a licence expires at the end of the year,
-# it is counted as issued at the first of january of that said year.
+# in the end of the previous year. It results to: if a licence expires at the end of the year,
+# it is counted as issued minimum at the first of january of that said year, no earlier
 
 BL_expand <-
 BL %>% 
