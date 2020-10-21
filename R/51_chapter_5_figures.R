@@ -142,14 +142,14 @@ figure_5_2 <-
   ungroup() %>% 
   filter(created >= "2020-03-01", created <= "2020-09-30") %>% 
   ggplot(aes(created, n, fill = kj)) +
-  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
-           ymin = 0, ymax = Inf, alpha = .2) +
   geom_col(lwd = 0) +
-  annotate("curve", x = as.Date("2020-07-05"), xend = as.Date("2020-05-20"),
-           y = 45, yend = 50, curvature = .2, lwd = 0.25,
+  annotate("segment", x = key_date_covid, xend = key_date_covid,
+           y = -Inf, yend = Inf, alpha = 0.3) +
+  annotate("curve", x = as.Date("2020-05-31"), xend = key_date_covid + days(5),
+           y = 40, yend = 37, curvature = .2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
-  annotate("text", x = as.Date("2020-07-14"), y = 45,
-           label = "STRs banned \nby Province") + #, family = "Futura Condensed"
+  annotate("text", x = as.Date("2020-06-15"), y = 40,
+           label = "COVID-19 \nAirbnb's response") + #, family = "Futura Condensed"
   scale_x_date(name = NULL) +
   scale_y_continuous(name = NULL, label = scales::comma) +
   scale_fill_manual(name = NULL, labels = c("Craigslist", "Kijiji"), 
@@ -286,9 +286,14 @@ figure_5_4 <-
   asking_rents %>% 
   filter(created >= "2020-03-13", created <= "2020-09-30") %>% 
   ggplot(aes(created, avg_price, color = status)) +
-  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
-           ymin = -Inf, ymax = Inf, alpha = .2) +
   geom_line(lwd = 1) +
+  annotate("segment", x = key_date_covid, xend = key_date_covid,
+           y = -Inf, yend = Inf, alpha = 0.3) +
+  annotate("text", x = as.Date("2020-08-15"), y = 3700,
+           label = "COVID-19 \nAirbnb's response") + #, family = "Futura Condensed"
+  annotate("curve", x = as.Date("2020-08-01"), xend = key_date_covid + days(5),
+           y = 3700, yend = 3500, curvature = .2, lwd = 0.25,
+           arrow = arrow(length = unit(0.05, "inches"))) +
   scale_x_date(name = NULL, limits = c(as.Date("2020-03-01"), NA)) +
   scale_y_continuous(name = NULL, limits = c(1500,3800), 
                      label = scales::dollar) +
@@ -379,11 +384,11 @@ figure_5_6 <-
   theme(legend.position = "none",
         panel.grid.minor.x = element_blank(),
         panel.grid.minor.y = element_blank(),
-        text = element_text(family = "Futura", face = "plain"),
-        legend.title = element_text(family = "Futura", face = "bold", 
+        text = element_text(face = "plain"), #, family = "Futura" 
+        legend.title = element_text(face = "bold",#, family = "Futura" 
                                     size = 10),
-        legend.text = element_text(family = "Futura", size = 10),
-        strip.text = element_text(face = "bold", family = "Futura"))
+        legend.text = element_text(size = 10), #, family = "Futura" 
+        strip.text = element_text(face = "bold")) #, family = "Futura"
 
 ggsave("output/figures/figure_5_6.pdf", plot = figure_5_6, width = 8, 
        height = 2.5, units = "in", useDingbats = FALSE)
@@ -412,11 +417,11 @@ figure_5_7 <-
   theme(legend.position = "none",
         panel.grid.minor.x = element_blank(),
         panel.grid.minor.y = element_blank(),
-        text = element_text(family = "Futura", face = "plain"),
-        legend.title = element_text(family = "Futura", face = "bold", 
+        text = element_text(face = "plain"), #, family = "Futura"
+        legend.title = element_text(face = "bold",#, family = "Futura" 
                                     size = 10),
-        legend.text = element_text(family = "Futura", size = 10),
-        strip.text = element_text(face = "bold", family = "Futura"))
+        legend.text = element_text(size = 10), #, family = "Futura"
+        strip.text = element_text(face = "bold")) #, family = "Futura"
 
 ggsave("output/figures/figure_5_7.pdf", plot = figure_5_7, width = 8, 
        height = 2.5, units = "in", useDingbats = FALSE)
