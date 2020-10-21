@@ -662,13 +662,13 @@ property %>%
 
 #' The median STR host revenue was $8,700 [1] in the entire City of Vancouver in 
 #' 2019. The annual median revenue of hosts who transferred listings to the LTR 
-#' market was $14,300 [2], while the median revenue of hosts who did not 
-#' transfer listings was only $4,000 [2]. Moreover, many of Montreal’s highest 
+#' market was $ [2], while the median revenue of hosts who did not 
+#' transfer listings was only $4,000 [2]. Moreover, many of Vancouver’s highest 
 #' earning STR hosts turned to LTR platforms during the COVID-19 pandemic. For 
-#' example, 27 [3] of the 38 [3] hosts that made more than $500,000 in the past 
+#' example, 3 [3] of the 5 [3] hosts that made more than $500,000 in the past 
 #' year listed at least one of their STR units on an LTR platform. On average 
-#' these top earning hosts listed 28.9 [4] units on LTR platforms, compared to 
-#' 1.6 units [4] for all other hosts). 
+#' these top earning hosts listed 2 [4] units on LTR platforms, compared to 
+#'  units [4] for all other hosts). 
 
 revenue_2019 <- 
   daily %>%
@@ -715,10 +715,10 @@ property %>%
   summarize(round(mean(n), 1))
 
 #' Out of all hosts with active STR listings in 2020 that shifted their listings 
-#' to the LTR market in Montreal, 22.9% [1] had Superhost status. This is almost 
-#' twice [1] as high as the general 12.8% [1] prevalence of Superhost status 
-#' among Montreal hosts, which is consistent with the idea that the listings 
-#' moving from STR to LTR platforms in Montreal are dominated by commercial 
+#' to the LTR market in Vancouver, XX.X% [1] had Superhost status. This is almost 
+#' twice [1] as high as the general XX.X% [1] prevalence of Superhost status 
+#' among Vancouver hosts, which is consistent with the idea that the listings 
+#' moving from STR to LTR platforms in Vancouver are dominated by commercial 
 #' operations. 
 
 #' [1] Superhost status
@@ -735,15 +735,15 @@ property %>%
 
 # Are matched listings successfully rented, or still active on Air --------
 
-#' STR matches were listed an average of 22.0 [1] days on LTR platforms, while 
-#' non-matches were listed only half as long—11.3 [1] days on average.
+#' STR matches were listed an average of 23.0 [1] days on LTR platforms, while 
+#' non-matches were listed only three quarters as long—17.1 [1] days on average.
 
 #' [1] length of availability on LTR platforms
 ltr_unique %>% 
   group_by(matched = !is.na(property_ID)) %>% 
   summarize(round(mean(scraped - created, na.rm = TRUE), 1))
 
-#' Out of the total 2,526 [1] Airbnb listings which we identified on LTR 
+#' Out of the total 1,380 [1] Airbnb listings which we identified on LTR 
 #' platforms, 1,475 [2] (58.4% [2]) were still present on Airbnb at the
 #' beginning of 2020. Out of this number, 916 [2] (62.1% [2]) were still present
 #' by the end of July 2020 (the last day for which we have data), while the 
