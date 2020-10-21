@@ -130,18 +130,27 @@ BL <-
             fee_paid = feepaid,
             area = localarea)
 
-BL <- data.table::setDT(BL)
+# When expanded, issuance change for the first day of the year if it was issued
+# at the end of the previous year. It results to if a licence expires at the end of the year,
+# it is counted as issued at the first of january of that said year.
 
-BL <- BL %>% 
-  filter(!is.na(issued), !is.na(expired))
+BL_expand <-
+BL %>% 
+  filter(!is.na(issued), !is.na(expired)) %>% 
+  mutate(issued = ifelse(str_extract(issued, "^\\d{4}") < str_extract(expired, "^\\d{4}"), 
+                         str_glue("{expired_year}-01-01",
+                                  expired_year = {str_extract(expired, "^\\d{4}")}), substr(issued, 1, 10)),
+         issued = as.Date(issued))
+
+BL_expand <- data.table::setDT(BL_expand)
 
 # Add new date field
-BL <- BL[, date := list(list(issued:expired)), by = seq_len(nrow(BL))]
+BL_expand <- BL_expand[, date := list(list(issued:expired)), by = seq_len(nrow(BL_expand))]
 
 # Unnest
-BL <- BL[, lapply(.SD, unlist), by = 1:nrow(BL)]
+BL_expand <- BL_expand[, lapply(.SD, unlist), by = 1:nrow(BL_expand)]
 
-BL <- BL[, date := as.Date(date, origin = "1970-01-01")]
+BL_expand <- BL_expand[, date := as.Date(date, origin = "1970-01-01")]
 
 # Import of skytrain shapefile --------------------------------------------
 
@@ -158,5 +167,5 @@ skytrain <-
 
 # Save output -------------------------------------------------------------
 
-save(province, CMA, DA, city, LA, BL, skytrain, #streets, streets_downtown, 
+save(province, CMA, DA, city, LA, BL, BL_expand, skytrain, #streets, streets_downtown, 
      file = "output/geometry.Rdata")
