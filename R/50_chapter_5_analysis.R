@@ -310,9 +310,9 @@ asking_rents %>%
   summarize(max(avg_price) / min(avg_price) - 1)
 
 #' The average city-wide asking rent on Craigslist and Kijiji has remained 
-#' between $1,239 [1] and $3,003 [1] throughout the March-mid-October period we tracked 
-#' it.... The daily average asking rent in March was $2,703 [2], while in September 
-#' it was $2,403 [2]—a $301 [2] or 11% [2] decline.
+#' between $1,527 [1] and $2,451 [1] throughout the March-mid-October period we tracked 
+#' it.... The daily average asking rent in March was $2,802 [2], while in September 
+#' it was $2,400 [2]—a $403 [2] or 16.8% [2] decline.
 
 asking_rents %>% 
   filter(created >= "2020-03-13", created <= "2020-10-06", 
