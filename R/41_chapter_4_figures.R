@@ -5,6 +5,9 @@
 #' Output:
 #' - `figure_4_1.pdf`
 #' - `figure_4_2.pdf`
+#' - `figure_4_3.pdf`
+#' - `figure_4_4.pdf`
+#' - `figure_4_5.pdf`
 #' 
 #' Script dependencies:
 #' - `09_str_processing.R`
@@ -34,14 +37,8 @@ figure_4_1 <-
   mutate(n = slide_dbl(n, mean, .before = 13)) %>% 
   ungroup() %>% 
   filter(date >= "2018-01-01") %>% 
+  filter(status != "U") %>% 
   ggplot(aes(date, n, color = status)) +
-  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"), 
-           ymin = -Inf, ymax = Inf, alpha = 0.2) +
-  annotate("curve", x = as.Date("2019-02-01"), xend = as.Date("2020-05-01"),
-           y = 7500, yend = 7500, curvature = -.3, lwd = 0.25,
-           arrow = arrow(length = unit(0.05, "inches"))) +
-  annotate("text", x = as.Date("2018-12-11"), y = 7500,
-           label = "STRs banned \nby Province", family = "Futura Condensed") +
   geom_line(lwd = 1) +
   scale_x_date(name = NULL) +
   scale_y_continuous(name = NULL, limits = c(0, NA), label = scales::comma) +
@@ -50,10 +47,10 @@ figure_4_1 <-
   theme_minimal() +
   theme(legend.position = "bottom", 
         panel.grid.minor.x = element_blank(),
-        text = element_text(face = "plain", family = "Futura"), 
-        legend.title = element_text(face = "bold", family = "Futura", 
+        text = element_text(face = "plain"), #, family = "Futura"
+        legend.title = element_text(face = "bold", #, family = "Futura"
                                     size = 10),
-        legend.text = element_text( size = 10, family = "Futura"))
+        legend.text = element_text( size = 10)) #, family = "Futura"
 
 ggsave("output/figures/figure_4_1.pdf", plot = figure_4_1, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
@@ -120,8 +117,6 @@ figure_4_2 <-
   pivot_longer(-date) %>% 
   filter(!is.na(value)) %>%
   ggplot() +
-  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
-           ymin = -Inf, ymax = Inf, alpha = 0.2) +
   geom_ribbon(aes(x = date, ymin = n, ymax = trend, group = 1),
               data = reservations, fill = col_palette[3], 
               alpha = 0.3) +
@@ -132,7 +127,7 @@ figure_4_2 <-
                   prettyNum(round(abs(diff(
                     value[date == as.Date("2020-07-31")])), -1), ","),
                   "fewer", "reservations", "than", "expected", sep = "\n")), 
-            family = "Futura Condensed", inherit.aes = FALSE, hjust = 1,
+            inherit.aes = FALSE, hjust = 1, #family = "Futura Condensed", 
             nudge_x = -4) +
   geom_segment(aes(x = as.Date("2020-07-31"), xend = as.Date("2020-07-31"),
                    y = min(value[date == as.Date("2020-07-31")]),
@@ -148,10 +143,10 @@ figure_4_2 <-
   theme_minimal() +
   theme(legend.position = "bottom", 
         panel.grid.minor.x = element_blank(),
-        text = element_text(face = "plain", family = "Futura"), 
-        legend.title = element_text(face = "bold", family = "Futura", 
+        text = element_text(face = "plain"), #, family = "Futura"
+        legend.title = element_text(face = "bold", #, family = "Futura"
                                     size = 10),
-        legend.text = element_text( size = 10, family = "Futura"))
+        legend.text = element_text( size = 10))#, family = "Futura"
 
 ggsave("output/figures/figure_4_2.pdf", plot = figure_4_2, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
@@ -219,8 +214,6 @@ figure_4_3 <-
   filter(date >= "2019-01-01") %>% 
   pivot_longer(-date) %>% 
   ggplot(aes(date, value, colour = name)) +
-  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"), 
-           ymin = -Inf, ymax = Inf, alpha = 0.2) +
   geom_line(lwd = 1) +
   scale_x_date(name = NULL) +
   scale_y_continuous(name = NULL, limits = c(50, NA),
@@ -231,10 +224,10 @@ figure_4_3 <-
   theme_minimal() +
   theme(legend.position = "bottom", 
         panel.grid.minor.x = element_blank(),
-        text = element_text(face = "plain", family = "Futura"), 
-        legend.title = element_text(face = "bold", family = "Futura", 
+        text = element_text(face = "plain"),#, family = "Futura"
+        legend.title = element_text(face = "bold", #family = "Futura", 
                                     size = 10),
-        legend.text = element_text( size = 10, family = "Futura"))
+        legend.text = element_text( size = 10)) #, family = "Futura"
 
 ggsave("output/figures/figure_4_3.pdf", plot = figure_4_3, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
@@ -462,7 +455,7 @@ figure_4_4 <-
   geom_segment(aes(x = x, xend = xend, y = y, yend = yend, group = variable,
                    colour = ramp), data = fig_segments, inherit.aes = FALSE) +
   geom_text(aes(x, y, group = variable, label = label), data = fig_labels,
-            colour = "white", family = "Futura", size = 2) +
+            colour = "white", size = 2) + #family = "Futura", 
   scale_colour_gradientn(colours = col_palette[c(5, 3, 5, 2, 5, 1)]) +
   scale_fill_manual(values = c("total listings" = col_palette[5], 
                                "active" = col_palette[1],
@@ -472,8 +465,8 @@ figure_4_4 <-
              scales = "free_y", space = "free_y") +
   theme_void() +
   theme(legend.position = "none",
-        text = element_text(face = "plain", family = "Futura"), 
-        strip.text = element_text(face = "bold", family = "Futura"))
+        text = element_text(face = "plain"), #, family = "Futura" 
+        strip.text = element_text(face = "bold")) #, family = "Futura"
 
 ggsave("output/figures/figure_4_4.pdf", plot = figure_4_4, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
@@ -517,8 +510,6 @@ figure_4_5_left <-
   mutate(n = slide_dbl(n, mean, .before = 13)) %>% 
   ungroup() %>% 
   ggplot(aes(date, n, colour = FREH_feb)) +
-  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"), 
-           ymin = 0, ymax = Inf, alpha = 0.2) +
   geom_line(lwd = 1) +
   scale_x_date(name = NULL) +
   scale_y_continuous(name = "Total daily reservations", limits = c(0, NA), 
@@ -528,30 +519,28 @@ figure_4_5_left <-
   theme_minimal() +
   theme(legend.position = "bottom", 
         panel.grid.minor.x = element_blank(),
-        text = element_text(face = "plain", family = "Futura"), 
-        legend.title = element_text(face = "bold", family = "Futura", 
+        text = element_text(face = "plain"),#, family = "Futura"
+        legend.title = element_text(face = "bold", #family = "Futura", 
                                     size = 10),
-        legend.text = element_text( size = 10, family = "Futura"))
+        legend.text = element_text( size = 10)) #, family = "Futura"
 
 figure_4_5_right <- 
   monthly_reservation_trajectories %>% 
   mutate(date = as.Date(yearmon)) %>% 
   ggplot(aes(date, n, colour = FREH_feb)) +
-  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"), 
-           ymin = 0, ymax = Inf, alpha = 0.2) +
   geom_line(lwd = 1) +
   scale_x_date(name = NULL) +
-  scale_y_continuous(name = "Average monthly reservations", limits = c(0, NA), 
+  scale_y_continuous(name = "Average monthly reservations", limits = c(5, NA), 
                      label = scales::label_number(accuracy = 1)) +
   scale_color_manual(name = "FREH status in January-February 2020", 
                      values = col_palette[c(5, 1)]) +
   theme_minimal() +
   theme(legend.position = "bottom", 
         panel.grid.minor.x = element_blank(),
-        text = element_text(face = "plain", family = "Futura"), 
-        legend.title = element_text(face = "bold", family = "Futura", 
+        text = element_text(face = "plain"),  #, family = "Futura"
+        legend.title = element_text(face = "bold", #family = "Futura", 
                                     size = 10),
-        legend.text = element_text( size = 10, family = "Futura"))
+        legend.text = element_text( size = 10)) #, family = "Futura"
 
 figure_4_5 <- figure_4_5_left + figure_4_5_right + 
   plot_layout(guides = 'collect') & theme(legend.position = "bottom")
