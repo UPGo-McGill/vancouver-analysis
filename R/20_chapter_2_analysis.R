@@ -183,10 +183,10 @@ daily %>%
 daily %>% 
   filter(housing, status != "B", date >= LTM_start_date,
          date <= LTM_end_date + years(1),
-         (date <= "2019-07-31" | date >= LTM_start_date + years(1)),
+         (date <= max(daily$date) - years(1) | date >= LTM_start_date + years(1)),
          date != "2020-02-29") %>%
   group_by(year_2020 = date >= LTM_start_date + years(1)) %>% 
-  summarize(n = n() / 181) %>% 
+  summarize(n = n() / as.numeric((max(daily$date) - as.Date("2020-01-01")))) %>% 
   summarize(change = (n[2] - n[1]) / n[1])
 
 #' [5] YOY reservation change, 2018-2019
