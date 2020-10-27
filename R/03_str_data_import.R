@@ -15,7 +15,7 @@
 #'   dates
 
 source("R/01_startup.R")
-load("output/geometry.Rdata")
+qload("output/geometry.qs", nthreads = availableCores())
 
 
 # Get data ----------------------------------------------------------------
@@ -25,7 +25,9 @@ upgo_connect(daily_inactive = TRUE)
 property <- 
   property_remote %>% 
   filter(country == "Canada", city == "Vancouver") %>% 
-  collect()
+  collect() %>% 
+  strr_as_sf(32610) %>% 
+  st_filter(city)
 
 property_bc <- 
   property_remote %>% 
@@ -80,14 +82,18 @@ host_bc <- host_bc %>% strr_expand()
 upgo_disconnect()
 
 
-# Manually remove wonky created dates -------------------------------------
+# Manually fix wonky created dates ----------------------------------------
 
 property <-
   property %>% 
+  mutate(created = if_else(is.na(created), first_active, created),
+         scrpaed = if_else(is.na(scraped), last_active, scraped)) %>% 
   filter(!is.na(created))
 
 property_bc <- 
   property_bc %>% 
+  mutate(created = if_else(is.na(created), first_active, created),
+         scrpaed = if_else(is.na(scraped), last_active, scraped)) %>% 
   filter(!is.na(created))
 
 daily <-
@@ -111,14 +117,15 @@ host_bc <-
 
 # Load old property files
 prop_04 <- 
-  read_csv(paste0("~/Documents/Academic/Code/global-file-import/", 
-                  "data/property_2020_04.gz")) %>% 
-  select(property_ID = `Property ID`,
-         old_scraped = `Last Scraped Date`)
+  qread(paste0("~/Documents/Academic/Code/global-file-import/", 
+                  "output/property/property_2020_04.qs"),
+        nthreads = availableCores()) %>% 
+  select(property_ID, old_scraped = scraped)
 
 # Get fixes
 jan_fix <- 
   property %>% 
+  st_drop_geometry() %>% 
   filter(scraped >= "2020-01-29", scraped <= "2020-01-31") %>% 
   left_join(prop_04) %>% 
   filter(scraped < old_scraped) %>% 
@@ -145,68 +152,61 @@ property_bc <-
   mutate(scraped = if_else(is.na(old_scraped), scraped, old_scraped)) %>% 
   select(-old_scraped)
 
-
 # Scrape fixed listings with May scraped date to see which are still active
 to_scrape <- jan_fix %>% filter(old_scraped >= "2020-05-01")
-upgo_scrape_connect(chrome = "84.0.4147.30", check = FALSE)
+upgo_scrape_connect()
 new_scrape <- to_scrape %>% upgo_scrape_ab(proxies = .proxy_list, cores = 10)
 upgo_scrape_disconnect()
 still_active <- new_scrape %>% filter(!is.na(country))
 
 to_scrape_2 <- jan_fix_bc %>% filter(old_scraped >= "2020-05-01")
-upgo_scrape_connect(chrome = "84.0.4147.30", check = FALSE)
+upgo_scrape_connect()
 new_scrape_2 <- 
   to_scrape_2 %>% upgo_scrape_ab(proxies = .proxy_list, cores = 10)
 upgo_scrape_disconnect()
 still_active_2 <- new_scrape_2 %>% filter(!is.na(country))
 
-
 # Update scraped dates for active listings
 property <- 
   property %>% 
   mutate(scraped = if_else(property_ID %in% still_active$property_ID,
-                           as.Date("2020-08-01"), scraped))
+                           as.Date("2020-09-01"), scraped))
 
 property_bc <- 
   property_bc %>% 
   mutate(scraped = if_else(property_ID %in% still_active_2$property_ID,
-                           as.Date("2020-08-01"), scraped))
-
+                           as.Date("2020-09-01"), scraped))
 
 # Get inactives
-upgo_connect(daily_inactive = TRUE)
-
 inactives <-
-  daily_inactive_remote %>% 
-  filter(property_ID %in% !!jan_fix$property_ID) %>% 
-  collect() %>% 
-  strr_expand()
+  daily_inactive %>% 
+  filter(property_ID %in% jan_fix$property_ID)
 
 inactives_bc <-
-  daily_inactive_remote %>% 
-  filter(property_ID %in% !!jan_fix_bc$property_ID) %>% 
-  collect() %>% 
-  strr_expand()
+  daily_inactive %>% 
+  filter(property_ID %in% jan_fix_bc$property_ID)
 
-upgo_disconnect()
+# Add inactive rows to daily file
 
-
-# Add inactive rows to daily file then re-trim
 daily <- 
-  daily %>% 
-  bind_rows(daily_inactive) %>% 
-  left_join(select(property, property_ID, created, scraped)) %>%
+  inactives %>% 
+  left_join(select(st_drop_geometry(property), 
+                   property_ID, created, scraped)) %>%
   filter(date >= created, date <= scraped) %>%
-  select(-created, -scraped)
+  select(-created, -scraped) %>% 
+  bind_rows(daily)
 
 daily_bc <- 
-  daily_bc %>% 
-  bind_rows(inactives_bc) %>% 
-  left_join(select(property_bc, property_ID, created, scraped)) %>%
+  inactives_bc %>% 
+  left_join(select(st_drop_geometry(property), 
+                   property_ID, created, scraped)) %>%
   filter(date >= created, date <= scraped) %>%
-  select(-created, -scraped)
+  select(-created, -scraped) %>% 
+  bind_rows(daily_bc)
 
-rm(prop_04, jan_fix, to_scrape, new_scrape, still_active, inactives)
+rm(prop_04, jan_fix, jan_fix_bc, to_scrape, to_scrape_2, new_scrape, 
+   new_scrape_2, still_active, still_active_2, inactives, inactives_bc,
+   daily_inactive, daily_inactive_bc)
 
 
 # Convert currency --------------------------------------------------------
@@ -232,27 +232,10 @@ daily_bc <-
 
 # Process the property and daily files ------------------------------------
 
-# # Spatial join to only keep the properties inside the city of Mtl
-# property <- 
-#   property %>% 
-#   strr_as_sf(32618) %>% 
-#   st_intersection(city)
-
 # Run raffle to assign a DA to each listing
 property <-
   property %>% 
-  strr_as_sf(32610) %>% 
   strr_raffle(DA, GeoUID, dwellings, seed = 1)
-
-# Trim daily file
-daily <- 
-  daily %>% 
-  filter(property_ID %in% property$property_ID)
-
-# Trim host file
-host <- 
-  host %>% 
-  filter(host_ID %in% property$host_ID)
 
 # Add area to property file
 property <-
@@ -269,5 +252,7 @@ daily <-
 
 # Save output -------------------------------------------------------------
 
-save(property, daily, host, exchange_rates, file = "output/str_raw.Rdata")
-save(property_bc, daily_bc, host_bc, file = "output/str_province.Rdata")
+qsavem(property, daily, host, exchange_rates, file = "output/str_raw.qs",
+       nthreads = availableCores())
+qsavem(property_bc, daily_bc, host_bc, file = "output/str_province_raw.qs",
+       nthreads = availableCores())
