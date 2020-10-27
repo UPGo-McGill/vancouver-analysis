@@ -16,7 +16,7 @@
 
 source("R/01_startup.R")
 
-load("output/str_processed.Rdata")
+qload("output/str_processed.qs", nthreads = availableCores())
 load("output/national_comparison.Rdata")
 load("output/geometry.Rdata")
 # load("output/condo_analysis.Rdata")
