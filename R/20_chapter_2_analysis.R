@@ -19,6 +19,7 @@ source("R/01_startup.R")
 qload("output/str_processed.qs", nthreads = availableCores())
 load("output/national_comparison.Rdata")
 load("output/geometry.Rdata")
+qload("output/FREH_model.qs", nthreads = availableCores())
 # load("output/condo_analysis.Rdata")
 
 
@@ -226,11 +227,11 @@ daily %>%
 # Vancouver in comparison with other major Canadian cities -----------------
 
 #' In 2019, Vancouver had the second largest STR market in the country by both 
-#' active listing numbers (3,970 [1]) and host revenue ($151.8 million [2]), 
+#' active listing numbers (3,920 [1]) and host revenue ($151.8 million [2]), 
 #' falling in both cases behind Toronto and Montreal (Table 2.2). However, in relative terms 
 #' Vancouver stands considerably ahead of both Montreal and Toronto. Vancouver 
 #' had the most active listings per 1000 households (12.3 [3] compared to 
-#' 10.7 [3] in Montreal) and the most revenue per listing ($38,300 [4] compared 
+#' 10.7 [3] in Montreal) and the most revenue per listing ($38,700 [4] compared 
 #' to $27,200 [4] in Toronto).
 
 #' [1] Daily active listings
@@ -289,7 +290,7 @@ LA_breakdown <-
             rev_2018 = sum(revenue[date < LTM_start_date]),
             rev_growth = (annual_rev - rev_2018) / rev_2018,
             .groups = "drop") %>% 
-  mutate(listings_pct = active_listings / sum(active_listings),
+  mutate(listings_pct = active_listings / sum(active_listings, na.rm = TRUE),
          listings_pct_dwellings = active_listings / dwellings,
          rev_pct = annual_rev / sum(annual_rev)) %>% 
   select(area, active_listings, active_growth, listings_pct,
@@ -301,14 +302,14 @@ LA_breakdown %>%
   geom_line(aes(active_listings, active_growth))
 
 #' STR activity in Vancouver is mostly concentrated in the area of Downtown (Table 2.2). 
-#' This area accounts for 25.1% [1] of all listings in 2019, and even higher shares of 
-#' host revenue (32.7% [1]). The area with the next highest percentage of average number 
-#' of daily active listings is Kitsilano (7.8% [2]), followed by West End (6.7% [2]). The 
-#' former accounts for 8.8% [2] of annual STR revenue in the city and the latter 7.7% [2].
+#' This area accounts for 25.4% [1] of all listings in 2019, and even higher shares of 
+#' host revenue (32.8% [1]). The area with the next highest percentage of average number 
+#' of daily active listings is Kitsilano (7.9% [2]), followed by West End (6.7% [2]). The 
+#' former accounts for 8.9% [2] of annual STR revenue in the city and the latter 7.7% [2].
 #' 
 #' When measured in per-capita terms, areas are fairly distributed. Downtown is 
 #' showing the highest figure of active STR listings on total housing units at 
-#' 2.5% [1]. At second place, active STR listings account for 2.4% [3] of 
+#' 2.5% [1]. At second place, active STR listings account for 2.3% [3] of 
 #' Riley park’s housing units, while all the other area’s figures are under 2%.
 
 #' [1] Figures for Downtown
@@ -319,7 +320,7 @@ LA_breakdown %>%
 LA_breakdown %>% 
   slice(c(10, 21))
 
-#' [3] Figures for Kitsilano and West End
+#' [3] Figures for Riley Park
 LA_breakdown %>% 
   slice(c(15))
 
@@ -387,12 +388,12 @@ listing_type_breakdown <-
 
 #' The majority of STRs in Vancouver are entire homes, a category which 
 #' includes single-family homes, townhouses, apartments and condominiums. 
-#' 41.9% [1] of these were one-bedroom housing units, and a third (33.4% [1]) were 
-#' two-bedrooms units. Almost a fifth of these listings (18.1% [1]) were 3 or 
-#' more bedrooms housing units, and 6.5% [1] were studios. 
+#' 42.1% [1] of these were one-bedroom housing units, and a third (33.3% [1]) were 
+#' two-bedrooms units. Almost a fifth of these listings (17.9% [1]) were 3 or 
+#' more bedrooms housing units, and 6.7% [1] were studios. 
 
-#' In 2019 entire-home listings accounted for 69.4% [2] of all daily active 
-#' listings, and 86.2% [2] of total host revenue. Private rooms accounted for 
+#' In 2019 entire-home listings accounted for 69.8% [2] of all daily active 
+#' listings, and 86.4% [2] of total host revenue. Private rooms accounted for 
 #' nearly all of the remainder.
 
 #' [1] Bedroom counts
@@ -585,14 +586,14 @@ host_rev <-
   summarize(rev = sum(price))
   
 #' Among all the STR hosts who earned revenue in the City of Vancouver last year, 
-#' the median revenue was $15,400 [1], while the top host (in this case a network 
-#' of numerous host accounts which we discuss below) earned $0.7 million [2] 
-#' (Table 2.5). Throughout the City of Vancouver, there were 19 hosts [3] that 
+#' the median revenue was $15,700 [1], while the top host (in this case a network 
+#' of numerous host accounts which we discuss below) earned $4.1 million [2] 
+#' (Table 2.5). Throughout the City of Vancouver, there were 27 hosts [3] that 
 #' earned more than $250,000 in 2019. Figure 2.6 shows the percentage of the 
 #' total $151.8 million [4] in STR revenue which accrued to each decile of 
-#' hosts. The most successful 10% of hosts earned more than two-thirds 
-#' (68.8% [5]) of all STR revenue. The revenue concentration is even steeper 
-#' among the top 10%: the top 5% earned 58.9% [6] of revenue, while the top 1% 
+#' hosts. The most successful 10% of hosts earned more four tenths
+#' (43.2% [5]) of all STR revenue. The revenue concentration is even steeper 
+#' among the top 10%: the top 5% earned 30.5% [6] of revenue, while the top 13.6% 
 #' of hosts earned 40.7% [7] of all revenue. 
 
 #' [1] Median host revenue
@@ -648,7 +649,7 @@ commercial_listings <-
   ungroup()
 
 
-#' Since 93.6% [1] of entire-home listings have three or fewer bedrooms...
+#' Since 94.0% [1] of entire-home listings have three or fewer bedrooms...
 
 #' [1] Bedrooms
 property %>% 
@@ -657,11 +658,11 @@ property %>%
   st_drop_geometry() %>% 
   summarize(bedrooms_3_or_fewer = mean(bedrooms <= 3))
 
-#' In 2019, 40.7% [1] of active listings in Vancouver were multilistings, earning 
-#' 37.1% [2] of total host revenue. Multilistings have been a steadily growing 
+#' In 2019, 34.6% [1] of active listings in Vancouver were multilistings, earning 
+#' 30.3% [2] of total host revenue. Multilistings have been a steadily growing 
 #' share of both listings and revenue in Vancouver since 2017 (Figure 2.7), and 
 #' amidst generally declining STR activity during the COVID-19 pandemic,
-#' multilistings briefly earned a bit more than 1 out of every 3 [3] dollars 
+#' multilistings briefly earned slightly more than 1 out of every 4 [3] dollars 
 #' on STR platforms in Vancouver.
 
 #' [1] 2019 ML listings
@@ -686,9 +687,9 @@ daily %>%
   tally(price) %>% 
   summarize(multi_rev = n[2] / sum(n))
 
-#' The pinnacle in the number of commercial listings in 2018 was 3,270 [1] in 
-#' August, and this figure was close to being reached exactly one year 
-#' later at 3,190 [2.
+#' The pinnacle in the number of commercial listings in 2018 was 2,920 [1] in 
+#' August, and this figure was reached again exactly one year 
+#' later at 2,930 [2].
 
 #' [1] Peak of commercial listings in 2018
 commercial_listings %>% 
