@@ -18,10 +18,10 @@ source("R/01_startup.R")
 
 # Load previous data ------------------------------------------------------
 
-load("output/str_processed.Rdata")
-load("output/ltr_processed.Rdata")
-load("output/matches_processed.Rdata")
-dl_location <- "/Volumes/Data/Scrape photos/mtl"
+qload("output/str_processed.qs", nthreads = availableCores())
+ltr <- qread("output/ltr_processed.qs", nthreads = availableCores())
+qload("output/matches_processed.qs", nthreads = availableCores())
+dl_location <- "/Volumes/Data 2/Scrape photos/vancouver"
 
 
 # Clean up ab_matches -----------------------------------------------------
@@ -215,5 +215,6 @@ ltr <-
 
 # Save output -------------------------------------------------------------
 
-save(property, daily, host, file = "output/str_processed.Rdata")
-save(ltr, file = "output/ltr_processed.Rdata")
+qsavem(property, daily, host, file = "output/str_processed.qs",
+       nthreads = availableCores())
+qsave(ltr, file = "output/ltr_processed.qs", nthreads = availableCores())
