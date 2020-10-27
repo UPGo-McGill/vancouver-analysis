@@ -12,7 +12,7 @@
 #' 
 #' External dependencies:
 #' - `CMHC_NBHD_2016-mercWGS84.shp`: CMHC neighbourhood shapefile
-#' - `mtl_units.csv`, `mtl_avg_rent.csv` & `mtl_vacancy.csv`: Tables downloaded 
+#' - `van_units.csv`, `van_avg_rent.csv` & `van_vacancy.csv`: Tables downloaded 
 #'   from CMHC housing market information portal 
 #'   (https://www03.cmhc-schl.gc.ca/hmip-pimh/)
 
@@ -26,34 +26,33 @@ library(unpivotr)
 # # National units
 # download.file(c(
 #   paste0(
-#     "https://assets.cmhc-schl.gc.ca/sf/project/cmhc/pubsandreports/excel/", 
-#     "rms-1-urban-units-rental-universe-by-bedroom-type-2015-10.xlsx?", 
+#     "https://assets.cmhc-schl.gc.ca/sf/project/cmhc/pubsandreports/excel/",
+#     "rms-1-urban-units-rental-universe-by-bedroom-type-2015-10.xlsx?",
 #     "rev=953481b3-42bd-4ecc-98d8-9747624f94ff"),
 #   paste0(
-#     "https://assets.cmhc-schl.gc.ca/sf/project/cmhc/pubsandreports/excel/", 
-#     "rms-1-urban-units-rental-universe-by-bedroom-type-2016-10.xlsx?", 
+#     "https://assets.cmhc-schl.gc.ca/sf/project/cmhc/pubsandreports/excel/",
+#     "rms-1-urban-units-rental-universe-by-bedroom-type-2016-10.xlsx?",
 #     "rev=c74ecdb7-2d3b-4da5-a4eb-428579041dc5"),
 #   paste0(
-#     "https://assets.cmhc-schl.gc.ca/sf/project/cmhc/pubsandreports/excel/", 
-#     "rms-1-urban-units-rental-universe-by-bedroom-type-2017-10.xlsx?", 
+#     "https://assets.cmhc-schl.gc.ca/sf/project/cmhc/pubsandreports/excel/",
+#     "rms-1-urban-units-rental-universe-by-bedroom-type-2017-10.xlsx?",
 #     "rev=1eb7624c-c220-4194-89e8-dc4883fb3da2"),
 #   paste0(
-#     "https://assets.cmhc-schl.gc.ca/sites/cmhc/data-research/data-tables/", 
-#     "urban-rental-market-survey-data/2018/urban-rental-market-survey-data-", 
+#     "https://assets.cmhc-schl.gc.ca/sites/cmhc/data-research/data-tables/",
+#     "urban-rental-market-survey-data/2018/urban-rental-market-survey-data-",
 #     "number-units-2018-10-en.xlsx?rev=62f1b6b0-a004-41b0-bfe4-39fadf86f49b"),
 #   paste0(
 #     "https://assets.cmhc-schl.gc.ca/sites/cmhc/data-research/data-tables/",
-#     "urban-rental-market-survey-data-number-units/urban-rental-market-", 
-#     "survey-data-number-units-2019.xlsx?rev=c86bcd61-72d3-42b7-a782-", 
+#     "urban-rental-market-survey-data-number-units/urban-rental-market-",
+#     "survey-data-number-units-2019.xlsx?rev=c86bcd61-72d3-42b7-a782-",
 #     "f076e9edbc7d")),
 #   destfile = paste0("data/cmhc/annual_units_", 2015:2019, ".xlsx"))
-#
-#
+# 
 # # National average rents
 # download.file(c(
 #   paste0(
 #     "https://assets.cmhc-schl.gc.ca/sf/project/cmhc/xls/data-tables/",
-#     "average-apartment-rents-vacant-occupied/average-rents-vacant-occupied-", 
+#     "average-apartment-rents-vacant-occupied/average-rents-vacant-occupied-",
 #     "units-2015-en.xlsx?rev=e694194d-2d82-41dd-9ff5-3fde3e8a2bbe"),
 #   paste0(
 #     "https://assets.cmhc-schl.gc.ca/sf/project/cmhc/xls/data-tables/",
@@ -73,8 +72,7 @@ library(unpivotr)
 #     "average-rents-vacant-occupied-units/average-rents-vacant-occupied-units-",
 #     "2019-en.xlsx?rev=8dbefa49-8770-4d89-bc1a-0e11060ed3b7")),
 #   destfile = paste0("data/cmhc/annual_avg_rent_", 2015:2019, ".xlsx"))
-#
-#
+# 
 # # National vacancy
 # download.file(c(
 #   paste0(
@@ -295,9 +293,9 @@ import_annual_vacancy <- function(data, year) {
 
 # Process annual city tables ----------------------------------------------
 
-city_units <- read_csv("data/cmhc/mtl_units.csv", skip = 2, n_max = 18)
-city_avg_rent <- read_csv("data/cmhc/mtl_avg_rent.csv", skip = 2, n_max = 18)
-city_vacancy <- read_csv("data/cmhc/mtl_vacancy.csv", skip = 2, n_max = 18)
+city_units <- read_csv("data/cmhc/van_units.csv", skip = 2, n_max = 18)
+city_avg_rent <- read_csv("data/cmhc/van_avg_rent.csv", skip = 2, n_max = 18)
+city_vacancy <- read_csv("data/cmhc/van_vacancy.csv", skip = 2, n_max = 18)
 
 city_avg_rent <- city_avg_rent %>% import_web_table(avg_rent)
 city_units <- city_units %>% import_web_table(units, quality = FALSE)
@@ -317,8 +315,7 @@ annual_vacancy <- paste0("data/cmhc/annual_vacancy_", 2015:2019, ".xlsx") %>%
 annual_avg_rent <- 
   annual_avg_rent %>% 
   map_dfr(import_annual_avg_rent) %>% 
-  filter(CMA == "Montréal CMA", zone <= 18) %>% 
-  mutate(zone_name = if_else(zone == 6, "Plateau-Mont-Royal", zone_name)) %>% 
+  filter(CMA == "Vancouver CMA", zone <= 10) %>% 
   select(-CMA)
 
 zones <- 
@@ -329,63 +326,47 @@ zones <-
 annual_units <- 
   annual_units %>% 
   map2_dfr(2015:2019, import_annual_units) %>% 
-  filter(centre == "Montréal", neighbourhood == "Total") %>% 
+  filter(centre == "Vancouver", neighbourhood == "Total") %>% 
   select(-province, -centre, -neighbourhood) %>% 
   mutate(zone = case_when(
-    str_detect(zone, "Downtown")      ~ 1,
-    str_detect(zone, "Verdun")        ~ 2,
-    str_detect(zone, "LaSalle")       ~ 3,
-    str_detect(zone, "ND-de-G")       ~ 4,
-    str_detect(zone, "Ct-des")        ~ 5,
-    str_detect(zone, "Plateau")       ~ 6,
-    str_detect(zone, "Villeray")      ~ 7,
-    str_detect(zone, "Hochelag")      ~ 8,
-    str_detect(zone, "Rosemont")      ~ 9,
-    str_detect(zone, "Anjou")         ~ 10,
-    str_detect(zone, "-Nord")         ~ 11,
-    str_detect(zone, "Ahuntsic")      ~ 12,
-    str_detect(zone, "Saint-Laurent") ~ 13,
-    str_detect(zone, "Dorval")        ~ 14,
-    str_detect(zone, "Baie-d")        ~ 15,
-    str_detect(zone, "Sainte-G")      ~ 16,
-    str_detect(zone, "Mercier")       ~ 17,
-    str_detect(zone, "Pte-aux")       ~ 18,
+    str_detect(zone, "Stanley")   ~ 1,
+    str_detect(zone, "English")   ~ 2,
+    str_detect(zone, "Downtown")  ~ 3,
+    str_detect(zone, "Granville") ~ 4,
+    str_detect(zone, "Kitsilano") ~ 5,
+    str_detect(zone, "Westside")  ~ 6,
+    str_detect(zone, "Marpole")   ~ 7,
+    str_detect(zone, "Renfrew")   ~ 8,
+    str_detect(zone, "Hastings")  ~ 9,
+    str_detect(zone, "Southeast") ~ 10,
     TRUE ~ NA_real_
   )) %>% 
   left_join(zones, by = "zone") %>% 
   relocate(zone_name, .after = zone) %>% 
-  filter(zone <= 18) %>% 
+  filter(zone <= 10) %>% 
   arrange(date, zone, dwelling_type, bedroom)
 
 annual_vacancy <-
   annual_vacancy %>% 
   map2_dfr(2015:2019, import_annual_vacancy) %>% 
-  filter(centre == "Montréal", neighbourhood == "Total") %>% 
+  filter(centre == "Vancouver", neighbourhood == "Total") %>% 
   select(-province, -centre, -neighbourhood) %>% 
   mutate(zone = case_when(
-    str_detect(zone, "Downtown")      ~ 1,
-    str_detect(zone, "Verdun")        ~ 2,
-    str_detect(zone, "LaSalle")       ~ 3,
-    str_detect(zone, "ND-de-G")       ~ 4,
-    str_detect(zone, "Ct-des")        ~ 5,
-    str_detect(zone, "Plateau")       ~ 6,
-    str_detect(zone, "Villeray")      ~ 7,
-    str_detect(zone, "Hochelag")      ~ 8,
-    str_detect(zone, "Rosemont")      ~ 9,
-    str_detect(zone, "Anjou")         ~ 10,
-    str_detect(zone, "-Nord")         ~ 11,
-    str_detect(zone, "Ahuntsic")      ~ 12,
-    str_detect(zone, "Saint-Laurent") ~ 13,
-    str_detect(zone, "Dorval")        ~ 14,
-    str_detect(zone, "Baie-d")        ~ 15,
-    str_detect(zone, "Sainte-G")      ~ 16,
-    str_detect(zone, "Mercier")       ~ 17,
-    str_detect(zone, "Pte-aux")       ~ 18,
+    str_detect(zone, "Stanley")   ~ 1,
+    str_detect(zone, "English")   ~ 2,
+    str_detect(zone, "Downtown")  ~ 3,
+    str_detect(zone, "Granville") ~ 4,
+    str_detect(zone, "Kitsilano") ~ 5,
+    str_detect(zone, "Westside")  ~ 6,
+    str_detect(zone, "Marpole")   ~ 7,
+    str_detect(zone, "Renfrew")   ~ 8,
+    str_detect(zone, "Hastings")  ~ 9,
+    str_detect(zone, "Southeast") ~ 10,
     TRUE ~ NA_real_
   )) %>% 
   left_join(zones, by = "zone") %>% 
   relocate(zone_name, .after = zone) %>% 
-  filter(zone <= 18) %>% 
+  filter(zone <= 10) %>% 
   arrange(date, zone, dwelling_type, bedroom)
 
 
@@ -395,7 +376,7 @@ cmhc <- read_sf("data/shapefiles/CMHC_NBHD_2016-mercWGS84.shp")
 
 cmhc <- 
   cmhc %>% 
-  filter(METCODE == "1060", NBHDCODE <= 360) %>% 
+  filter(METCODE == "2410", ZONECODE <= 10) %>% 
   select(ZONECODE, NAME_EN) %>% 
   rename(zone = ZONECODE, neighbourhood = NAME_EN) %>% 
   group_by(zone) %>% 
@@ -403,13 +384,13 @@ cmhc <-
   mutate(zone = as.numeric(zone)) %>% 
   left_join(zones, by = "zone") %>% 
   select(zone, zone_name, geometry) %>% 
-  st_transform(32618)
+  st_transform(32610)
 
 DA_CMA <-
   cancensus::get_census(
-    dataset = "CA16", regions = list(CMA = "24462"), level = "DA",
+    dataset = "CA16", regions = list(CMA = "59933"), level = "DA",
     geo_format = "sf", vectors = c("v_CA16_4836", "v_CA16_4838")) %>% 
-  st_transform(32618) %>% 
+  st_transform(32610) %>% 
   select(5, 4, 13:15) %>% 
   set_names(c("GeoUID", "dwellings", "total_households", "renter_households", 
               "geometry")) %>% 
@@ -432,5 +413,6 @@ cmhc <-
 rm(DA_CMA, import_annual_avg_rent, import_annual_units, import_annual_vacancy,
    import_web_table, zones)
 
-save(annual_avg_rent, annual_units, annual_vacancy, 
-     city_avg_rent, city_units, city_vacancy, cmhc, file = "output/cmhc.Rdata")
+qsavem(annual_avg_rent, annual_units, annual_vacancy, 
+       city_avg_rent, city_units, city_vacancy, cmhc, file = "output/cmhc.qs",
+       nthreads = availableCores())
