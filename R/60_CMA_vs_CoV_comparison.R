@@ -24,7 +24,7 @@ property_buffer <-
   rbind(select(mutate(property_bc, group = "Burnaby"), property_ID, group)) %>%
   st_intersection(select(buffer_VoC_Burnaby, -everything()))
 
-# Active listings for BC and Vancou
+# Active listings for Burnaby and CoV
 
 daily_buffer <- 
   rbind(select(daily,
@@ -90,6 +90,8 @@ active_listings_indexed <-
   mutate(index = 100*n/n[date == key_date_regulations])
 
 active_listings_indexed %>% 
+  ungroup() %>% 
+  mutate(status = ifelse(status == "R", "Reserved", "Available")) %>% 
   ggplot(aes(date, index, colour = group)) +
   annotate("segment", x = key_date_covid, xend = key_date_covid,
            y = -Inf, yend = Inf, alpha = 0.3) +
@@ -104,7 +106,7 @@ active_listings_indexed %>%
   theme(legend.position = "bottom", panel.grid.minor.x = element_blank())
   ggtitle("Availabilities (L) and reservations (A), 14 days rolling window")
 
-# Revenue for CoV and CMA
+# Revenue for CoV and Burnaby
 
 revenue <-
   daily_buffer %>%
@@ -120,8 +122,6 @@ revenue_indexed <-
   group_by(group) %>% 
   mutate(index = 100*revenue/revenue[date == key_date_regulations])
 
-
-
 revenue_indexed %>% 
   ggplot(aes(date, index, colour = group)) +
   annotate("segment", x = key_date_covid, xend = key_date_covid,
@@ -135,8 +135,38 @@ revenue_indexed %>%
   theme_minimal() +
   theme(legend.position = "bottom", panel.grid.minor.x = element_blank())
 
+# Prices variation after regulations for Burnaby and Vancou
 
+avg_price <-
+  daily_buffer %>%
+  filter(housing, status == "R") %>%
+  group_by(date, group) %>% 
+  summarize(avg_price = mean(price)) %>% 
+  group_by(group) %>% 
+  mutate(avg_price = slide_dbl(avg_price, mean, .before = 6, .complete = TRUE))
 
+daily_buffer %>% 
+  distinct(property_ID, .keep_all = T) %>% 
+  count(group)
+
+avg_price_indexed <- 
+  avg_price %>%
+  filter(date >= key_date_regulations - years(1)) %>%
+  group_by(group) %>%
+  mutate(index = 100*avg_price/avg_price[date == key_date_regulations])
+
+avg_price_indexed %>% 
+  ggplot(aes(date, index, colour = group)) +
+  annotate("segment", x = key_date_covid, xend = key_date_covid,
+           y = -Inf, yend = Inf, alpha = 0.3) +
+  annotate("segment", x = key_date_regulations, xend = key_date_regulations,
+           y = -Inf, yend = Inf, alpha = 0.3) +
+  geom_line(lwd = 1)+
+  scale_colour_manual(name = NULL, values = col_palette[c(3, 2)])+
+  scale_y_continuous(name = NULL) +
+  scale_x_date(name = NULL)+
+  theme_minimal() +
+  theme(legend.position = "bottom", panel.grid.minor.x = element_blank())
 
 
 # ### Active listings for BC and Vancou ##############################
