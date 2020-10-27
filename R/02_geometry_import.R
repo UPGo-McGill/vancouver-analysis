@@ -24,14 +24,28 @@ province <-
   st_transform(32610) %>% 
   select(geometry)
 
+
 # Vancouver CMA without Vancouver -----------------------------------------
 
 CMA <-
   get_census(
-    dataset = "CA16", regions = list(CMA = "59933"), level = "CSD", geo_format = "sf") %>% 
+    dataset = "CA16", regions = list(CMA = "59933"), level = "CSD", 
+    geo_format = "sf") %>% 
   filter(name != "Vancouver (CY)") %>%
   st_transform(32610)
   
+
+# Vancouver CSD -----------------------------------------------------------
+
+city <-
+  get_census(
+    dataset = "CA16", regions = list(CSD = "5915022"), geo_format = "sf") %>% 
+  st_transform(32610) %>% 
+  select(GeoUID, Dwellings) %>% 
+  set_names(c("GeoUID", "dwellings", "geometry")) %>% 
+  st_set_agr("constant")
+
+
 # Vancouver DAs -----------------------------------------------------------
 
 DA <-
@@ -43,17 +57,15 @@ DA <-
   set_names(c("GeoUID", "dwellings", "geometry")) %>% 
   st_set_agr("constant")
 
+
 # Vancouver local areas ---------------------------------------------------
 
-LA_raw <-
+LA <-
   read_sf("data/shapefiles/local-area-boundary.shp") %>% 
   select(area = name) %>% 
   st_set_agr("constant") %>%
   st_as_sf() %>% 
-  st_transform(32610) 
-
-LA <- 
-  LA_raw %>% 
+  st_transform(32610) %>% 
   st_intersection(province)
 
 LA <- 
@@ -67,15 +79,19 @@ LA <-
   st_as_sf() %>% 
   arrange(area)
 
-# Vancouver CSD -----------------------------------------------------------
 
-city <-
-  get_census(
-    dataset = "CA16", regions = list(CSD = "5915022"), geo_format = "sf") %>% 
-  st_transform(32610) %>% 
-  select(GeoUID, Dwellings) %>% 
-  set_names(c("GeoUID", "dwellings", "geometry")) %>% 
-  st_set_agr("constant")
+# Import of skytrain shapefile --------------------------------------------
+
+skytrain <- 
+  read_sf("data/shapefiles/RW_STN_point.shp") %>% 
+  filter(STTN_SR1_M == "Translink Skytrain") %>% 
+  select(station = STTN_NGLSM) %>% 
+  group_by(station) %>% 
+  mutate(id = row_number()) %>% 
+  filter(id == 1) %>% 
+  select(-id) %>% 
+  st_transform(32610)
+
 
 # Streets -----------------------------------------------------------------
 # 
@@ -113,14 +129,12 @@ city <-
 #   streets %>% 
 #   st_intersection(downtown_poly)
 
+
 # Business licenses ------------------------------------------------------
 
 BL <-
   read_sf("data/shapefiles/business-licences.shp") %>% 
-  st_drop_geometry()
-
-BL <- 
-  as_tibble(BL) %>% 
+  st_drop_geometry() %>% 
   mutate(issued = as.Date(substr(issueddate, 1, 10))) %>% 
   filter(businesstyp == "Short-Term Rental") %>%
   transmute(registration = licencenumb,
@@ -128,44 +142,40 @@ BL <-
             expired = expireddate,
             status,
             fee_paid = feepaid,
-            area = localarea)
+            area = localarea) %>% 
+  mutate(
+    # Change issued date to Jan 1 if Nov/Dec to avoid double counting
+    issued = if_else(
+      str_extract(issued, "^\\d{4}") < str_extract(expired, "^\\d{4}"), 
+      str_glue("{expired_year}-01-01", 
+               expired_year = {str_extract(expired, "^\\d{4}")}), 
+      substr(issued, 1, 10)),
+    issued = as.Date(issued))
 
-# When expanded, issuance change for the first day of the year if it was issued
-# in the end of the previous year. It results to: if a licence expires at the end of the year,
-# it is counted as issued minimum at the first of january of that said year, no earlier
+BL_expanded <- copy(BL)
 
-BL_expand <-
-BL %>% 
-  filter(!is.na(issued), !is.na(expired)) %>% 
-  mutate(issued = ifelse(str_extract(issued, "^\\d{4}") < str_extract(expired, "^\\d{4}"), 
-                         str_glue("{expired_year}-01-01",
-                                  expired_year = {str_extract(expired, "^\\d{4}")}), substr(issued, 1, 10)),
-         issued = as.Date(issued))
+data.table::setDT(BL_expanded)
 
-BL_expand <- data.table::setDT(BL_expand)
+BL_expanded <- BL_expanded[!is.na(issued) & !is.na(expired)]
 
 # Add new date field
-BL_expand <- BL_expand[, date := list(list(issued:expired)), by = seq_len(nrow(BL_expand))]
+BL_expanded[, date := list(list(issued:expired)), 
+            by = seq_len(nrow(BL_expanded))]
 
 # Unnest
-BL_expand <- BL_expand[, lapply(.SD, unlist), by = 1:nrow(BL_expand)]
+BL_expanded <- 
+  BL_expanded[, lapply(.SD, unlist), by = seq_len(nrow(BL_expanded))]
 
-BL_expand <- BL_expand[, date := as.Date(date, origin = "1970-01-01")]
+BL_expanded[, date := as.Date(date, origin = "1970-01-01")]
 
-# Import of skytrain shapefile --------------------------------------------
-
-skytrain <- 
-  read_sf("data/shapefiles/RW_STN_point.shp") %>% 
-  filter(STTN_SR1_M == "Translink Skytrain") %>% 
-  select(station = STTN_NGLSM) %>% 
-  group_by(station) %>% 
-  mutate(id = row_number()) %>% 
-  filter(id == 1) %>% 
-  select(-id) %>% 
-  st_transform(32610)
+BL_expanded <- 
+  BL_expanded %>% 
+  as_tibble() %>% 
+  select(-seq_len) %>% 
+  relocate(date, .after = registration)
 
 
 # Save output -------------------------------------------------------------
 
-save(province, CMA, DA, city, LA, BL, BL_expand, skytrain, #streets, streets_downtown, 
-     file = "output/geometry.Rdata")
+qsavem(province, CMA, DA, city, LA, BL, BL_expanded, skytrain, #streets, streets_downtown, 
+     file = "output/geometry.qs", nthreads = availableCores())

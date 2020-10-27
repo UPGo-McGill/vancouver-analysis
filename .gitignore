@@ -37,3 +37,14 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+# Other
+.DS_Store
+
+# Data files
+output/FREH*
+output/geom*
+output/ltr*
+output/str*
+data/ltr*
+data/shape

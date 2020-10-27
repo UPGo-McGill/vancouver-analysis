@@ -25,6 +25,8 @@ library(data.table)
 library(gt)
 library(extrafont)
 library(patchwork)
+library(qs)
+
 
 # Set global variables ----------------------------------------------------
 
