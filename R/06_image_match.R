@@ -33,18 +33,28 @@ rm(daily, host)
 
 # Specify location on drive to download photos ----------------------------
 
-dl_location <- "/Volumes/Data/Scrape photos/montreal"
+dl_location <- "/Volumes/Data 2/Scrape photos/vancouver"
 
 
 # Get image URLs ----------------------------------------------------------
 
 # Get AB urls
 ab_urls <- 
-  property$ab_image_url %>% 
-  str_replace('(?<=jpg).*', '')
+  property %>% 
+  mutate(urls = if_else(is.na(ab_image_url), ha_image_url, ab_image_url)) %>% 
+  pull(urls) %>% 
+  str_replace('(?<=(jpg|JPEG|jpeg|JPG)).*', '')
 
 # Get AB IDs
 ab_ids <- property$property_ID
+
+# Remove already downloaded images
+ab_paths <- 
+  list.files(paste0(dl_location, "/ab")) %>% 
+  str_remove(".(jpg|jpeg|JPG|JPEG)")
+
+ab_urls <- ab_urls[!ab_ids %in% ab_paths]
+ab_ids <- ab_ids[!ab_ids %in% ab_paths]
 
 # Get KJ urls
 kj_urls <-
@@ -136,13 +146,37 @@ rm(dl_location, ab_urls, ab_ids, cl_urls, cl_ids, kj_urls, kj_ids)
 
 # Get signatures ----------------------------------------------------------
 
-ab_sigs <- identify_image(ab_paths, batch_size = 100)
+ab_sigs <- identify_image(ab_paths, batch_size = 1000)
 save(ab_sigs, file = "output/img_sigs.Rdata")
 
-cl_sigs <- identify_image(cl_paths, batch_size = 2000)
+cl_sigs <- identify_image(cl_paths, batch_size = 5000)
+
+cl_sigs_1 <- identify_image(cl_paths[1:100000], batch_size = 5000)
+save(ab_sigs, cl_sigs_1, file = "output/img_sigs.Rdata")
+
+cl_sigs_2 <- identify_image(cl_paths[100001:200000], batch_size = 5000)
+save(ab_sigs, cl_sigs_1, cl_sigs_2, file = "output/img_sigs.Rdata")
+
+cl_sigs_3 <- identify_image(cl_paths[200001:300000], batch_size = 5000)
+save(ab_sigs, cl_sigs_1, cl_sigs_2, cl_sigs_3, file = "output/img_sigs.Rdata")
+
+cl_sigs_4 <- identify_image(cl_paths[300001:400000], batch_size = 5000)
+save(ab_sigs, cl_sigs_1, cl_sigs_2, cl_sigs_3, cl_sigs_4, 
+     file = "output/img_sigs.Rdata")
+
+cl_sigs_5 <- identify_image(cl_paths[400001:500000], batch_size = 5000)
+save(ab_sigs, cl_sigs_1, cl_sigs_2, cl_sigs_3, cl_sigs_4, cl_sigs_5,
+     file = "output/img_sigs.Rdata")
+
+cl_sigs_6 <- identify_image(cl_paths[500001:596118], batch_size = 5000)
+
+cl_sigs <- new_matchr_sig_list(
+  c(unclass(cl_sigs_1), unclass(cl_sigs_2), unclass(cl_sigs_3),
+    unclass(cl_sigs_4), unclass(cl_sigs_5), unclass(cl_sigs_6)))
+
 save(ab_sigs, cl_sigs, file = "output/img_sigs.Rdata")
 
-kj_sigs <- identify_image(kj_paths, batch_size = 2000)
+kj_sigs <- identify_image(kj_paths, batch_size = 5000)
 save(ab_sigs, cl_sigs, kj_sigs, file = "output/img_sigs.Rdata")
 
 rm(ab_paths, cl_paths, kj_paths)

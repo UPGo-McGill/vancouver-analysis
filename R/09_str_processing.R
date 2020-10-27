@@ -51,10 +51,6 @@ daily <-
 
 # Calculate multilistings -------------------------------------------------
 
-host <- 
-  host %>% 
-  filter(host_ID %in% property$host_ID)
-
 daily <- 
   daily %>% 
   strr_multi(host) %>% 
@@ -122,4 +118,5 @@ rm(GH_daily)
 
 # Save output -------------------------------------------------------------
 
-save(property, daily, GH, file = "output/str_processed.Rdata")
+qsavem(property, daily, GH, file = "output/str_processed.qs",
+       nthreads = availableCores())

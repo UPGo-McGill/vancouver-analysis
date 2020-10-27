@@ -140,10 +140,10 @@ daily <-
 # probabilities_12 <- model_12_test %>% predict(test_data_12, type = "response")
 # predicted_classes_12 <- ifelse(probabilities_12 > 0.5, "TRUE", "FALSE")
 # mean(predicted_classes_12 == test_data_12$FREH)
-# # Outcome: 0.864
+# # Outcome: 0.863
 
 
-# Model based on last n months --------------------------------------------
+# Model based on last 3 months --------------------------------------------
 
 # Summarize by month
 after_one_year <- 
@@ -160,12 +160,10 @@ after_one_year <-
 
 # Fit models and apply to listings > 2 months -----------------------------
 
-model_1 <- glm(FREH ~ R + AR + month, data = after_one_year, family = binomial)
-
 model_3 <- glm(FREH ~ R_3 + AR_3 + month, data = after_one_year, 
                family = binomial)
 
-model_1_3_results <- 
+model_3_results <- 
   monthly %>% 
   mutate(month = month.name[.data$month],
          AR = A + R) %>% 
@@ -174,9 +172,6 @@ model_1_3_results <-
          AR_3 = slide_int(AR, sum, .before = 2, .complete = TRUE)) %>% 
   ungroup() %>% 
   filter(!is.na(R_3), !is.na(AR_3)) %>% 
-  modelr::add_predictions(model_1, type = "response") %>% 
-  mutate(FREH_1 = pred) %>% 
-  select(-pred) %>% 
   modelr::add_predictions(model_3, type = "response") %>% 
   mutate(FREH_3 = pred) %>% 
   select(-pred) %>% 
@@ -186,10 +181,9 @@ model_1_3_results <-
 
 daily <-
   daily %>% 
-  left_join(select(model_1_3_results, property_ID, year, month, FREH_1, FREH_3),
+  left_join(select(model_3_results, property_ID, year, month, FREH_3),
             by = c("property_ID", "year", "month")) %>% 
-  mutate(FREH_1 = if_else(is.na(FREH_1), 0, FREH_1),
-         FREH_3 = if_else(is.na(FREH_3), 0, FREH_3))
+  mutate(FREH_3 = if_else(is.na(FREH_3), 0, FREH_3))
 
 daily <- daily %>% select(-year, -month)
 
@@ -197,33 +191,28 @@ daily <- daily %>% select(-year, -month)
 # # Model testing -----------------------------------------------------------
 # 
 # # Split the data into training and test set
-# training_samples_1_3 <-
+# training_samples_3 <-
 #   after_one_year$FREH %>% createDataPartition(p = 0.80, list = FALSE)
 # 
-# train_data_1_3 <- after_one_year[training_samples_1_3, ]
-# test_data_1_3 <- after_one_year[-training_samples_1_3, ]
+# train_data_3 <- after_one_year[training_samples_3, ]
+# test_data_3 <- after_one_year[-training_samples_3, ]
 # 
-# # Fit the models
-# model_1_test <- glm(FREH ~ R + AR + month, data = train_data_1_3,
-#                           family = binomial)
-# 
-# model_3_test <- glm(FREH ~ R_3 + AR_3 + month, data = train_data_1_3,
+# # Fit the model
+# model_3_test <- glm(FREH ~ R_3 + AR_3 + month, data = train_data_3,
 #                           family = binomial)
 # 
 # # Test models
-# probabilities_1 <- model_1_test %>% predict(test_data_1_3, type = "response")
-# predicted_classes_1 <- ifelse(probabilities_1 > 0.5, "TRUE", "FALSE")
-# mean(predicted_classes_1 == test_data_1_3$FREH)
-# # Outcome: 0.796
-# 
-# probabilities_3 <- model_3_test %>% predict(test_data_1_3, type = "response")
+# probabilities_3 <- model_3_test %>% predict(test_data_3, type = "response")
 # predicted_classes_3 <- ifelse(probabilities_3 > 0.5, "TRUE", "FALSE")
-# mean(predicted_classes_3 == test_data_1_3$FREH)
-# # Outcome: 0.836
+# mean(predicted_classes_3 == test_data_3$FREH)
+# # Outcome: 0.844
 
 
 # Save output -------------------------------------------------------------
 
-save(property, daily, GH, file = "output/str_processed.Rdata")
-save(FREH, monthly, first_year, model_12, model_12_results, after_one_year,
-     model_1, model_3, model_1_3_results, file = "output/FREH_model.Rdata")
+qsavem(property, daily, GH, file = "output/str_processed.qs",
+       nthreads = availableCores())
+
+qsavem(FREH, monthly, first_year, model_12, model_12_results, after_one_year,
+       model_3, model_3_results, file = "output/FREH_model.qs",
+       nthreads = availableCores())

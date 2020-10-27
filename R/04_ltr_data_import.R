@@ -10,18 +10,16 @@
 #' - None
 #' 
 #' External dependencies:
-#' - `kj.rds` and `cl.rds`, the results of scraping Kjiji and Craigslist 
+#' - `kj.qs` and `cl.qs`, the results of scraping Kjiji and Craigslist 
 #'   listings, respectively.
-#' - `rclalq.xls`, a spreadsheet with Kijiji listing scrapes performed by the
-#'   RCLALQ, shared with UPGo.
 
 source("R/01_startup.R")
 
 
 # Load and filter data ----------------------------------------------------
 
-kj <- readRDS("data/ltr/kj.rds") %>% filter(city == "Vancouver")
-cl <- readRDS("data/ltr/cl.rds") %>% filter(city == "vancouver")
+kj <- qread("data/ltr/kj.qs") %>% filter(city == "Vancouver")
+cl <- qread("data/ltr/cl.qs") %>% filter(city == "vancouver")
 
 
 # Get geometry from KJ listings -------------------------------------------
@@ -195,4 +193,4 @@ rm(LA, LA_raw, city, DA, province)
 
 # Save output -------------------------------------------------------------
 
-save(ltr, file = "output/ltr_raw.Rdata")
+qsave(ltr, file = "output/ltr_raw.qs", nthreads = availableCores())
