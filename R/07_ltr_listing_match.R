@@ -21,10 +21,10 @@ source("R/01_startup.R")
 
 # Load previous data ------------------------------------------------------
 
-load("output/str_raw.Rdata")
+qload("output/str_raw.qs", nthreads = availableCores())
 load("output/matches_raw.Rdata")
-load("output/ltr_raw.Rdata")
-dl_location <- "/Volumes/Data/Scrape photos/mtl"
+ltr <- qread("output/ltr_raw.qs", nthreads = availableCores())
+dl_location <- "/Volumes/Data 2/Scrape photos/vancouver"
 
 
 # Clean up matches --------------------------------------------------------
@@ -63,7 +63,7 @@ rm(cl_matches, kj_matches)
 
 property_nest <-
   property %>% 
-  st_drop_geometry() %>% 
+  st_drop_geometry() %>%
   left_join(matches, by = "property_ID") %>% 
   select(property_ID, ltr_ID)
 
@@ -72,7 +72,7 @@ property <-
   group_by(property_ID) %>% 
   summarize(ltr_ID = list(ltr_ID)) %>% 
   left_join(property, .) %>% 
-  select(-geometry, everything(), geometry) %>% 
+  select(-geometry, everything(), geometry) %>%
   as_tibble() %>% 
   st_as_sf()
   
@@ -95,6 +95,9 @@ rm(property_nest, ltr_nest)
 
 # Save output -------------------------------------------------------------
 
-save(property, daily, host, file = "output/str_processed.Rdata")
-save(ltr, file = "output/ltr_processed.Rdata")
-save(matches, ab_matches, file = "output/matches_processed.Rdata")
+qsavem(property, daily, host, file = "output/str_processed.qs",
+       nthreads = availableCores())
+qsave(ltr, file = "output/ltr_processed.qs",
+      nthreads = availableCores())
+qsavem(matches, ab_matches, file = "output/matches_processed.qs",
+       nthreads = availableCores())
