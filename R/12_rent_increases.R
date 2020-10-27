@@ -17,8 +17,8 @@ source("R/01_startup.R")
 
 # Load data ---------------------------------------------------------------
 
-load("output/cmhc.Rdata")
-load("output/str_processed.Rdata")
+qload("output/cmhc.qs", nthreads = availableCores())
+qload("output/str_processed.qs", nthreads = availableCores())
 
 # The magic value derived from Barron et al.
 magic_value <- 0.00651547619
@@ -76,4 +76,5 @@ rent_increase_zone <-
 # Save output -------------------------------------------------------------
 
 rm(magic_value)
-save(rent_increase, rent_increase_zone, file = "output/rent_increases.Rdata")
+qsavem(rent_increase, rent_increase_zone, file = "output/rent_increases.qs",
+       nthreads = availableCores())
