@@ -152,7 +152,7 @@ make_listing_map <- function(df) {
     geom_sf(data = province, colour = "transparent", fill = "grey93") +
     geom_sf(aes(fill = percentage),
             colour = if (nrow(df) == 19) "white" else "transparent") +
-    scale_fill_gradientn(colors = col_palette[c(3, 4, 1)], na.value = "grey80",
+    scale_fill_gradientn(colors = col_palette[c(5, 3, 1)], na.value = "grey80",
                          limits = c(0, 0.05), oob = scales::squish, 
                          labels = scales::percent)  +
     guides(fill = guide_colourbar(title = "STRs/\ndwelling",
@@ -314,7 +314,7 @@ extrafont::embed_fonts("output/figures/figure_2_5.pdf")
 
 # Figure 2.6 Host revenue distribution ------------------------------------
 
-revenue_colour <- colorRampPalette(col_palette[c(1, 4, 2, 3, 5)])(10)
+revenue_colour <- colorRampPalette(col_palette[c(1, 3, 6, 4, 2, 5)])(10)
 
 host_deciles <-
   daily %>%
@@ -371,10 +371,12 @@ figure_2_6 <-
   geom_area(colour = "white", lwd = 1.2) +
   geom_text(aes(x = 0.02, y = absolute_val, label = display_percentile), 
             data = filter(host_deciles, position == 0, decile <= 2),
-            family = "Futura", hjust = 0) +
+            family = "Futura", 
+            hjust = 0) +
   geom_text(aes(x = 0.98, y = absolute_val, label = display_val), 
             data = filter(host_deciles, position == 1, decile <= 2),
-            family = "Futura", hjust = 1) +
+            family = "Futura", 
+            hjust = 1) +
   scale_y_continuous(name = "Host decile", label = scales::label_percent(1),
                      breaks = seq(0, 1, by = 0.1), limits = c(0, 1),
                      sec.axis = sec_axis(~., 
