@@ -293,9 +293,9 @@ import_annual_vacancy <- function(data, year) {
 
 # Process annual city tables ----------------------------------------------
 
-city_units <- read_csv("data/cmhc/van_units.csv", skip = 2, n_max = 18)
-city_avg_rent <- read_csv("data/cmhc/van_avg_rent.csv", skip = 2, n_max = 18)
-city_vacancy <- read_csv("data/cmhc/van_vacancy.csv", skip = 2, n_max = 18)
+city_units <- read_csv("data/cmhc/van_units.csv", skip = 2, n_max = 30)
+city_avg_rent <- read_csv("data/cmhc/van_avg_rent.csv", skip = 2, n_max = 30)
+city_vacancy <- read_csv("data/cmhc/van_vacancy.csv", skip = 2, n_max = 30)
 
 city_avg_rent <- city_avg_rent %>% import_web_table(avg_rent)
 city_units <- city_units %>% import_web_table(units, quality = FALSE)
