@@ -22,10 +22,10 @@
 source("R/01_startup.R")
 library(imager)
 
-load("output/str_processed.Rdata")
-load("output/geometry.Rdata")
-load("output/ltr_processed.Rdata")
-load("output/matches_raw.Rdata")
+qload("output/str_processed.qs", nthreads = availableCores())
+qload("output/geometry.Rdata", nthreads = availableCores())
+ltr <- qread("output/ltr_processed.qs", nthreads = availableCores())
+qload("output/matches_raw.Rdata", nthreads = availableCores())
 
 
 # Prepare new objects -----------------------------------------------------
@@ -146,9 +146,9 @@ figure_5_2 <-
   annotate("segment", x = key_date_covid, xend = key_date_covid,
            y = -Inf, yend = Inf, alpha = 0.3) +
   annotate("curve", x = as.Date("2020-05-31"), xend = key_date_covid + days(5),
-           y = 40, yend = 37, curvature = .2, lwd = 0.25,
+           y = 35, yend = 32, curvature = .2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
-  annotate("text", x = as.Date("2020-06-15"), y = 40,
+  annotate("text", x = as.Date("2020-06-15"), y = 35,
            label = "COVID-19 \nAirbnb's response") + #, family = "Futura Condensed"
   scale_x_date(name = NULL) +
   scale_y_continuous(name = NULL, label = scales::comma) +
@@ -339,11 +339,15 @@ figure_5_5 <-
   theme(legend.position = "none",
         panel.grid.minor.x = element_blank(),
         panel.grid.minor.y = element_blank(),
-        text = element_text(family = "Futura", face = "plain"),
-        legend.title = element_text(family = "Futura", face = "bold", 
+        text = element_text(#family = "Futura", 
+          face = "plain"),
+        legend.title = element_text(#family = "Futura", 
+          face = "bold", 
                                     size = 10),
-        legend.text = element_text(family = "Futura", size = 10),
-        strip.text = element_text(face = "bold", family = "Futura"))
+        legend.text = element_text(#family = "Futura", 
+          size = 10),
+        strip.text = element_text(face = "bold"#, family = "Futura"
+                                  ))
 
 ggsave("output/figures/figure_5_5.pdf", plot = figure_5_5, width = 8, 
        height = 2.5, units = "in", useDingbats = FALSE)
