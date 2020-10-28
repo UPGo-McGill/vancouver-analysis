@@ -285,10 +285,10 @@ length(FREH_in_jan_feb) %>% round(-1)
 property %>% 
   st_drop_geometry() %>% 
   filter(property_ID %in% FREH_in_jan_feb) %>% 
-  summarize(total = round(sum(scraped <= "2020-07-31"), -1),
-            pct = round(mean(scraped <= "2020-07-31"), 3))
+  summarize(total = round(sum(scraped <= "2020-08-31"), -1),
+            pct = round(mean(scraped <= "2020-08-31"), 3))
 
-#' [3] Percentage of 2019 Jan-Feb FREH deleted by end of July 2019
+#' [3] Percentage of 2019 Jan-Feb FREH deleted by end of August 2019
 FREH_in_jan_feb_2019 <- 
   daily %>% 
   filter(housing, date >= "2019-01-01", date <= "2019-02-28", FREH_3 > 0.5) %>% 
@@ -298,7 +298,7 @@ FREH_in_jan_feb_2019 <-
 property %>% 
   st_drop_geometry() %>% 
   filter(property_ID %in% FREH_in_jan_feb_2019) %>% 
-  summarize(mean(scraped <= "2019-07-31"))
+  summarize(mean(scraped <= "2019-08-31"))
 
 #' [4] Percentage of non-FREH Jan-Feb listings deleted by end of August 2020
 property %>% 
