@@ -27,7 +27,7 @@ load("output/geometry.Rdata")
 load("output/condo_analysis.Rdata")
 
 
-# Figure 2.1 Active daily listings ----------------------------------------
+# Figure 2.1.1 Active daily listings ----------------------------------------
 
 active_listings <- 
   daily %>% 
@@ -46,7 +46,7 @@ active_listings <-
   bind_rows(active_listings) %>% 
   arrange(date, listing_type)
 
-figure_2_1 <-
+figure_2_1_1 <-
   active_listings %>% 
   ggplot(aes(date, n, colour = listing_type, size = listing_type)) +
   annotate("segment", x = key_date_covid, xend = key_date_covid,
@@ -76,7 +76,51 @@ figure_2_1 <-
   theme(legend.position = "bottom", panel.grid.minor.x = element_blank(),
         text = element_text(family = "Futura"))
 
-ggsave("output/figures/figure_2_1.pdf", plot = figure_2_1, width = 8, 
+ggsave("output/figures/figure_2_1_1.pdf", plot = figure_2_1_1, width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_2_1.pdf")
+
+# Figure 2.1.2 All daily listings ----------------------------------------
+
+active_listings <- 
+  daily %>% 
+  filter(housing) %>% 
+  count(date, listing_type) %>% 
+  group_by(listing_type) %>% 
+  mutate(n = slide_dbl(n, mean, .before = 6, .complete = TRUE)) %>% 
+  ungroup()
+
+active_listings <- 
+  daily %>% 
+  filter(housing) %>% 
+  count(date) %>% 
+  mutate(n = slide_dbl(n, mean, .before = 6, .complete = TRUE),
+         listing_type = "All listings") %>% 
+  bind_rows(active_listings) %>% 
+  arrange(date, listing_type)
+
+figure_2_1_2 <-
+  active_listings %>% 
+  ggplot(aes(date, n, colour = listing_type, size = listing_type)) +
+  annotate("segment", x = key_date_covid, xend = key_date_covid,
+           y = -Inf, yend = Inf, alpha = 0.3) +
+  annotate("segment", x = key_date_regulations, xend = key_date_regulations,
+           y = -Inf, yend = Inf, alpha = 0.3) +
+  geom_line() +
+  scale_y_continuous(name = NULL, label = scales::comma) +
+  scale_x_date(name = NULL, limits = c(as.Date("2016-01-01"), NA)) +
+  scale_colour_manual(name = NULL, values = col_palette[c(5, 1:3)],
+                      guide = guide_legend(
+                        override.aes = list(size = c(1.5, 0.75, 0.75, 0.75)))) +
+  scale_size_manual(values = c("All listings" = 1.5, "Entire home/apt" = 0.75,
+                               "Private room" = 0.75, "Shared room" = 0.75),
+                    guide = "none") +
+  theme_minimal() +
+  theme(legend.position = "bottom", panel.grid.minor.x = element_blank(),
+        text = element_text(family = "Futura"))
+
+ggsave("output/figures/figure_2_1_2.pdf", plot = figure_2_1_2, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_2_1.pdf")

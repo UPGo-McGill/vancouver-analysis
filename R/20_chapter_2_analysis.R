@@ -698,12 +698,69 @@ commercial_listings %>%
   slice(c(1)) %>% 
   mutate(n = round(n, -1))
 
-#' [2] Peak of commercial listings in 2019
+#' [2] Peak of commercial listings after it
 commercial_listings %>% 
-  filter(date >= "2019-01-01", date <= "2019-10-01", commercial) %>% 
+  filter(date >= "2019-01-01", commercial) %>% 
   arrange(desc(n)) %>% 
   slice(c(1)) %>%
   mutate(n = round(n, -1))
+
+
+# Listings taken down due to regulations -----------------------------------
+
+taken_down_properties <- 
+  property %>% 
+  st_drop_geometry() %>% 
+  filter(scraped >= "2018-08-23", scraped <= "2018-08-31") %>% 
+  pull(property_ID)
+
+# How many units have been taken down?
+length(taken_down_properties)
+
+# How many were still active in the year it was enforced?
+daily %>% 
+  filter(property_ID %in% taken_down_properties,
+         date >= "2018-01-01",
+         status != "B") %>% 
+  distinct(property_ID) %>% 
+  nrow()
+
+# How many commercial operations active in 2018
+daily %>% 
+  filter(housing, 
+         property_ID %in% taken_down_properties,
+         date >= "2018-01-01",
+         FREH_3 >= 0.5 | multi) %>% 
+  distinct(property_ID) %>% 
+  nrow() /
+  daily %>% 
+  filter(property_ID %in% taken_down_properties,
+         date >= "2018-01-01",
+         status != "B") %>% 
+  distinct(property_ID) %>% 
+  nrow()
+
+# How many commercial operations
+daily %>% 
+  filter(housing, 
+         property_ID %in% taken_down_properties,
+         date >= key_date_regulations,
+         FREH_3 >= 0.5 | multi) %>% 
+  distinct(property_ID) %>% 
+  nrow()
+
+# Percentage of commercial listings taken down
+daily %>% 
+  filter(housing, 
+         property_ID %in% taken_down_properties,
+         date >= key_date_regulations,
+         FREH_3 >= 0.5 | multi) %>% 
+  distinct(property_ID) %>% 
+  nrow() /
+commercial_listings %>% 
+  filter(date == key_date_regulations, commercial) %>% 
+  pull(n)
+
 
 # Clean up ----------------------------------------------------------------
 
