@@ -17,11 +17,11 @@
 
 source("R/01_startup.R")
 
-load("output/str_processed.Rdata")
+qload("output/str_processed.qs", nthreads = availableCores())
 load("output/geometry.Rdata")
-load("output/cmhc.Rdata")
-load("output/rent_increases.Rdata")
-load("output/condo_analysis.Rdata")
+qload("output/cmhc.qs", nthreads = availableCores())
+qload("output/rent_increases.qs", nthreads = availableCores())
+# load("output/condo_analysis.Rdata")
 
 
 # Prepare new objects -----------------------------------------------------
@@ -51,6 +51,31 @@ GH_area <-
   as_tibble() %>% 
   mutate(date = if_else(date >= LTM_start_date, 2019, 2018))
 
+FREH_total <- 
+  daily %>% 
+  filter(date >= "2016-01-01") %>% 
+  group_by(date) %>% 
+  summarize(across(c(FREH, FREH_3), sum)) %>%
+  filter(substr(date, 9, 10) == "01")
+
+GH_total <-
+  GH %>%
+  st_drop_geometry() %>%
+  filter(status != "B") %>% 
+  group_by(date) %>%
+  summarize(GH = sum(housing_units)) %>%
+  mutate(GH = slide_dbl(GH, mean, .before = 29))
+
+housing_loss <-
+  FREH_total %>%
+  select(date, FREH_3) %>% 
+  left_join(GH_total, by = "date") %>%
+  rename(`Entire home/apt` = FREH_3, `Private room` = GH) %>%
+  pivot_longer(c(`Entire home/apt`, `Private room`), 
+               names_to = "Listing type",
+               values_to = "Housing units") %>% 
+  mutate(`Listing type` = factor(`Listing type`, 
+                                 levels = c("Private room", "Entire home/apt")))  
 
 # STR-induced housing loss ------------------------------------------------
 
@@ -86,8 +111,14 @@ GH %>% filter(date == LTM_end_date) %>% pull(housing_units) %>% sum() %>%
 
 #' [5] Total housing loss for 2018
 {{FREH %>% filter(date == "2018-12-01") %>% pull(FREH_3)} +
-  {GH %>% filter(date == LTM_end_date - years(1)) %>% pull(housing_units) %>% 
-      sum()}} %>% 
+    {GH %>% filter(date == LTM_end_date - years(1)) %>% pull(housing_units) %>% 
+        sum()}} %>% 
+  round(digit = -1)
+
+#' [5] Total housing loss for 2019
+{{FREH %>% filter(date == "2019-12-01") %>% pull(FREH_3)} +
+    {GH %>% filter(date == LTM_end_date ) %>% pull(housing_units) %>% 
+        sum()}} %>% 
   round(digit = -1)
 
 #' [6] Peak in housing loss
@@ -139,15 +170,15 @@ LA %>%
   st_drop_geometry() %>% 
   filter(area %in% c("Downtown", "Riley Park", "Shaughnessy"))
 
-#' [3] Vacancy rates in VM and LPMR
+#' [3] Vacancy rates in Downtown and Riley Park
 annual_vacancy %>% 
   filter(dwelling_type == "Total",
          bedroom == "Total",
-         zone %in% c(1, 6),
+         zone %in% c(3),
          !is.na(vacancy)) %>% 
   group_by(zone) %>% 
   filter(date == max(date)) %>% 
-  ungroup()
+  ungroup() 
 
 #' Table 3.1
 LA_housing_table <- 
@@ -209,29 +240,34 @@ LA_housing_table %>%
 
 #' [1] 2019 city vacancy
 city_vacancy %>% 
-  filter(date == 2019, bedroom == "Total")
+  filter(bedroom == "Total") %>% 
+  arrange(desc(date))
 
 #' [2] Le Sud-Ouest 2019 vacancy
 annual_vacancy %>% 
-  filter(zone == 2, date == 2019, dwelling_type == "Total", bedroom == "Total")
+  filter(date == 2019, dwelling_type == "Total", bedroom == "Total", quality == "a") %>% # I added quality a, if not we have 2 southeast vancouver
+  filter(vacancy <= 0.03)
 
-#' [3] Total rental units in Le Sud-Ouest
+#' [3] Total rental units in Downtown
 annual_units %>% 
-  filter(zone == 2, date == 2019, dwelling_type == "Total", 
+  filter(zone_name == "Downtown", 
+         date == 2019, dwelling_type == "Total", 
          bedroom == "Total") %>% 
-  pull(units) %>% 
+  pull(units) %>%
   round(-2)
 
-#' [4] Total vacant units in Le Sud-Ouest
+#' [4] Total vacant units in Downtown
 annual_units %>% 
   left_join(annual_vacancy) %>% 
-  filter(zone == 2, date == 2019, dwelling_type == "Total", 
+  filter(zone_name == "Downtown", 
+         date == 2019, dwelling_type == "Total", 
          bedroom == "Total") %>% 
   transmute(vacant_units = vacancy * units)
 
-#' [5] 3+ bedroom vacancy rate in VM
+#' [5] 3+ bedroom vacancy rate in Downtown
 annual_vacancy %>% 
-  filter(zone == 1, date == 2018, dwelling_type == "Total",
+  filter(zone_name == "Downtown", 
+         date == 2019, dwelling_type == "Total",
          bedroom == "3 Bedroom +") %>% 
   pull(vacancy)
 
@@ -246,20 +282,11 @@ annual_vacancy %>%
 #' dedicated STRs would have been rental housing, and the remaining 33.1% would 
 #' have been ownership housing.
 
-DA_probabilities_2019 %>% 
-  mutate(across(c(p_condo, p_renter), ~{.x * dwellings})) %>% 
-  mutate(across(where(is.numeric), ~if_else(is.na(.x), 0, as.numeric(.x)))) %>% 
-  select(dwellings, p_condo, p_renter, geometry) %>% 
-  st_interpolate_aw(cmhc, extensive = TRUE) %>% 
-  st_drop_geometry() %>% 
-  select(-Group.1) %>% 
-  rename(n_condo = p_condo, n_renter = p_renter) %>% 
-  cbind(cmhc, .) %>% 
+cmhc %>% 
   as_tibble() %>% 
   select(-geometry) %>% 
-  mutate(p_renter = n_renter / dwellings) %>% 
-  select(zone, p_renter) %>% 
-  filter(zone == 4)
+  mutate(p_renter = renter_households / total_households) %>% 
+  select(zone_name, p_renter)
 
 
 # The impact of STRs on residential rents ---------------------------------

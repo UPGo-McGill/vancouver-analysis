@@ -77,7 +77,7 @@ figure_3_1 <-
            arrow = arrow(length = unit(0.05, "inches"))) +
   annotate("text", x = as.Date("2018-02-01"), y = 3200,
            label = "Regulations")+ #, family = "Futura Condensed"
-  scale_fill_manual(values = col_palette[c(1, 5)]) +
+  scale_fill_manual(values = col_palette[c(2, 3)]) +
   scale_x_date(name = NULL, limits = c(as.Date("2016-10-01"), NA)) +
   scale_y_continuous(name = NULL, label = scales::comma) +
   theme_minimal() +
@@ -118,20 +118,10 @@ figure_3_2 <-
   geom_line(lwd = 1) +
   annotate("segment", x = key_date_covid, xend = key_date_covid,
            y = 0, yend = Inf, alpha = 0.3) +
-  annotate("curve", x = as.Date("2019-08-01"), xend = key_date_covid - days(10),
-           y = 1, yend = 0.8, curvature = -.2, lwd = 0.25,
-           arrow = arrow(length = unit(0.05, "inches"))) +
-  annotate("text", x = as.Date("2019-05-01"), y = 1,
-           label = "COVID-19 \nAirbnb's response") + #, family = "Futura Condensed"
   annotate("segment", x = key_date_regulations, xend = key_date_regulations,
            y = 0, yend = Inf, alpha = 0.3) +
-  annotate("curve", x = as.Date("2018-06-01"), xend = key_date_regulations - days(10),
-           y = 1, yend = 0.8, curvature = -.2, lwd = 0.25,
-           arrow = arrow(length = unit(0.05, "inches"))) +
-  annotate("text", x = as.Date("2018-02-01"), y = 1,
-           label = "Regulations")+ #, family = "Futura Condensed"
   scale_y_continuous(name = NULL, labels = scales::percent) +
-  scale_colour_manual(values = col_palette[c(5, 1)]) +
+  scale_colour_manual(values = col_palette[c(2, 3)]) +
   theme_minimal() +
   theme(legend.position = "bottom",
         panel.grid.minor.x = element_blank(),
@@ -201,10 +191,10 @@ make_housing_map <- function(df) {
   ggplot(df) +
     geom_sf(data = province, colour = "transparent", fill = "grey93") +
     geom_sf(aes(fill = housing_loss_pct),
-            colour = if (nrow(df) == 19) "white" else "transparent") +
-    scale_fill_gradientn(colors = col_palette[c(3, 4, 1, 2)], 
+            colour = if (nrow(df) == 22) "white" else "transparent") +
+    scale_fill_gradientn(colors = col_palette[c(2, 3, 1, 4)], 
                          na.value = "grey80",
-                         limits = c(0, 0.06), oob = scales::squish, 
+                         limits = c(0, 0.03), oob = scales::squish, 
                          labels = scales::percent)  +
     guides(fill = guide_colourbar(title = "% housing\nlost to STR",
                                   title.vjust = 1)) + 
@@ -217,33 +207,35 @@ make_housing_map <- function(df) {
                                       size = 7),
           legend.title.align = 0.9,
           legend.text = element_text(#family = "Futura", 
-            size = 5),
-          panel.border = element_rect(colour = "white", size = 2))
+            size = 5)
+          # panel.border = element_rect(colour = "white", size = 2)
+  )
 }
 
 figure_3_3_left <- make_housing_map(housing_loss_area)
 
 figure_3_3_right <- 
-  make_housing_map(housing_loss_DA) +
-  geom_rect(xmin = 490000, ymin = 5457200, xmax = 493000, ymax = 5460500,
-            fill = NA, colour = "black", size = 0.3)
+  make_housing_map(housing_loss_DA) #+
+  # geom_rect(xmin = 490000, ymin = 5457200, xmax = 493000, ymax = 5460500,
+  #           fill = NA, colour = "black", size = 0.3)
 
-fig_zoom <- 
-  figure_3_3_right +
-  geom_sf(data = streets_downtown, size = 0.3, colour = "white") +
-  coord_sf(xlim = c(490000, 493000), ylim = c(5457200, 5460500),
-           expand = FALSE) +
-  theme(legend.position = "none",
-        panel.border = element_rect(fill = NA, colour = "black", size = 0.6))
+# fig_zoom <- 
+#   figure_3_3_right +
+#   geom_sf(data = streets_downtown, size = 0.3, colour = "white") +
+#   coord_sf(xlim = c(490000, 493000), ylim = c(5457200, 5460500),
+#            expand = FALSE) +
+#   theme(legend.position = "none",
+#         panel.border = element_rect(fill = NA, colour = "black", size = 0.6))
 
-layout <- c(
-  area(1, 1, 42, 40),
-  area(1, 41, 42, 80),
-  area(3, 41, 22, 60)
-)
+# layout <- c(
+#   area(1, 1, 42, 40),
+#   area(1, 41, 42, 80),
+#   area(3, 41, 22, 60)
+# )
 
 figure_3_3 <- 
-  figure_3_3_left + figure_3_3_right + fig_zoom + plot_layout(design = layout) + 
+  figure_3_3_left + figure_3_3_right + #fig_zoom + 
+  # plot_layout(design = layout) + 
   plot_layout(guides = 'collect') & theme(legend.position = "bottom")
 
 ggsave("output/figures/figure_3_3.pdf", plot = figure_3_3, width = 8, 
@@ -255,18 +247,19 @@ extrafont::embed_fonts("output/figures/figure_3_3.pdf")
 # Figure 3.4 Changes in housing supply ------------------------------------
 
 renter_zone <- 
-  DA_probabilities_2019 %>% 
-  mutate(across(c(p_condo, p_renter), ~{.x * dwellings})) %>% 
-  mutate(across(where(is.numeric), ~if_else(is.na(.x), 0, as.numeric(.x)))) %>% 
-  select(dwellings, p_condo, p_renter, geometry) %>% 
-  st_interpolate_aw(cmhc, extensive = TRUE) %>% 
-  st_drop_geometry() %>% 
-  select(-Group.1) %>% 
-  rename(n_condo = p_condo, n_renter = p_renter) %>% 
-  cbind(cmhc, .) %>% 
+  # DA_probabilities_2019 %>% 
+  # mutate(across(c(p_condo, p_renter), ~{.x * dwellings})) %>% 
+  # mutate(across(where(is.numeric), ~if_else(is.na(.x), 0, as.numeric(.x)))) %>% 
+  # select(dwellings, p_condo, p_renter, geometry) %>% 
+  # st_interpolate_aw(cmhc, extensive = TRUE) %>% 
+  # st_drop_geometry() %>% 
+  # select(-Group.1) %>% 
+  # rename(n_condo = p_condo, n_renter = p_renter) %>% 
+  # cbind(cmhc, .) %>% 
+  cmhc %>% 
   as_tibble() %>% 
   select(-geometry) %>% 
-  mutate(p_renter = n_renter / dwellings) %>% 
+  mutate(p_renter = renter_households / total_households) %>% 
   select(zone, p_renter)
 
 daily_cmhc <- 
@@ -298,9 +291,11 @@ strs_by_zone <-
 unit_change <-
   annual_units %>% 
   filter(dwelling_type == "Total", bedroom == "Total") %>% 
+  arrange(desc(date)) %>% 
+  distinct(date, zone_name, .keep_all =T) %>% 
   inner_join(daily_cmhc) %>% 
-  left_join(renter_zone) %>% 
-  mutate(housing_loss = housing_loss * p_renter) %>% 
+  left_join(renter_zone) %>%
+  mutate(housing_loss = housing_loss * p_renter) %>%
   group_by(zone) %>% 
   summarize(unit_change = units[date == 2019] - units[date == 2018],
             housing_loss_change = housing_loss[date == 2019] - 
@@ -311,6 +306,9 @@ unit_change <-
   slice(1:10) %>% 
   left_join(st_drop_geometry(cmhc)) %>% 
   select(zone, zone_name, unit_change:net_unit_change)
+
+unit_change %>% 
+  summarize(sum(unit_change))
   
 figure_3_4 <- 
   unit_change %>%
@@ -341,7 +339,7 @@ figure_3_4 <-
   theme_minimal() +
   theme(legend.position = "bottom",
         text = element_text(family = "Futura"),
-        axis.text.x = element_text(family = "Futura", size = 6),
+        # axis.text.x = element_text(family = "Futura", size = 8),
         panel.grid.minor.x = element_blank(),
         panel.grid.major.x = element_blank())
 
@@ -380,10 +378,10 @@ figure_3_5 <-
   mutate(label = scales::percent(vacancy, accuracy = 0.1)) %>% 
   ggplot() +
   geom_sf(data = province, colour = "transparent", fill = "grey93") +
-  geom_sf(data = streets, size = 0.2, colour = "white") +
+  # geom_sf(data = streets, size = 0.2, colour = "white") +
   geom_sf(aes(fill = vacancy), colour = "white", alpha = 0.7) +
   geom_sf_label(aes(label = label), size = 2, family = "Futura") +
-  scale_fill_gradientn(colors = col_palette[c(2, 4, 6)], 
+  scale_fill_gradientn(colors = col_palette[c(2, 3, 1)], 
                        na.value = "grey80",
                        limits = c(0, 0.05), oob = scales::squish,
                        labels = scales::percent)  +
@@ -399,13 +397,18 @@ figure_3_5 <-
         legend.title.align = 0.9,
         legend.text = element_text(family = "Futura", size = 5),
         strip.text = element_text(family = "Futura", face = "bold", size = 12),
-        panel.border = element_rect(colour = "white", size = 2))
+        # panel.border = element_rect(colour = "white", size = 2)
+        )
 
 ggsave("output/figures/figure_3_5.pdf", plot = figure_3_5, width = 8, 
        height = 4.2, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_3_5.pdf")
 
+cmhc %>% 
+  ggplot()+
+  geom_sf()+
+  geom_sf_text(aes(label =zone_name))
 
 # Figure 3.6 STR-induced rent increases -----------------------------------
 
