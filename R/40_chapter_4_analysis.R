@@ -131,13 +131,13 @@ average_prices <-
 
 # Reservations and prices collapsed during COVID-19 -----------------------
 
-#' There were 4.5% [1] more nights reserved in Vancouver STRs in 2019 than 
+#' There were 5.1% [1] more nights reserved in Vancouver STRs in 2019 than 
 #' there were in 2018—peaking at nearly 4,000 [2] nightly STR reservations in 
 #' the summer of 2019.... In March 2020, however, when reserved nights should 
 #' have been steadily increasing en route to the summer peak, they instead 
 #' collapsed in the face of COVID-19. While total reserved nights from January 
-#' to February 2020 increased at a rapid 76.7% [3] compared to 2019, reserved 
-#' nights from March to August 2020 decreased 63.2% [4] compared to the previous 
+#' to February 2020 increased at a rapid 79.5% [3] compared to 2019, reserved 
+#' nights from March to August 2020 decreased 55.4% [4] compared to the previous 
 #' year.
 
 #' [1] YOY growth in reservations, 2018-2019
@@ -169,21 +169,21 @@ daily %>%
   count(date_2020 = date >= LTM_start_date + years(1)) %>% 
   summarize((n[2] - n[1]) / n[1])
 
-#' On July 31, 2020, fewer than 1,275 [1] STRs were reserved in Vancouver. But 
+#' On August 31, 2020, fewer than 1,172 [1] STRs were reserved in Vancouver. But 
 #' the trajectory of STR activity established prior to the pandemic, combined 
 #' with the fact that bookings normally increase rapidly through the spring and 
 #' summer, suggests that, in the absence of the pandemic, Vancouver would have 
-#' been expected to receive 4,383 [1] reservations instead. The COVID-19 
-#' pandemic, therefore, depressed STR activity by 70.9% [1], or 3,108 
+#' been expected to receive 4,186 [1] reservations instead. The COVID-19 
+#' pandemic, therefore, depressed STR activity by 72.0% [1], or 3,014 
 #' [1] reservations, on that date. In total, from March through July 2020, we 
 #' estimate that there have been 355,890 [2] fewer STR nights reserved than 
-#' would normally have been expected to occur. The 187,723 [2] total nights 
-#' reserved in this time period is only 34.5% [2] of the 543,613 million [2] total 
+#' would normally have been expected to occur. The 224,477 [2] total nights 
+#' reserved in this time period is only 33.5% [2] of the 670,690  [2] total 
 #' that would represent the previous growth trend.
 
 #' [1] Actual and expected reservations on 2020-07-31
 reservations %>% 
-  filter(date == "2020-07-31") %>% 
+  filter(date == "2020-08-31") %>% 
   mutate(dif = trend - n, pct_change = 1 - n / trend)
 
 #' [2] Total actual and expected reservations, Mar-Aug 2020
@@ -193,9 +193,9 @@ reservations %>%
   mutate(dif = trend - n, pct = n / trend)
   
 #' Throughout the May-August period of 2020, nightly prices have been an average 
-#' of 34.0% [1] lower than expected. Spread across the 187,723 nights reserved 
+#' of 32.6% [1] lower than expected. Spread across the 224,477 nights reserved 
 #' during this period, this means that STR operators collectively earned 
-#' $11.3 million [2] less than they would have on their bookings in the absence 
+#' $13.6 million [2] less than they would have on their bookings in the absence 
 #' of the pandemic.
 
 #' [1] Average price difference
@@ -213,7 +213,7 @@ average_prices %>%
 
 #' When the lower prices on reservations which did occur is combined with the 
 #' reservations which did not occur, our estimate is that Vancouver’s STR hosts 
-#' lost a total of $86.2 million [1] in revenue between March and August 2020 
+#' lost a total of $109.9 million [1] in revenue between March and August 2020 
 #' because of the COVID-19 pandemic.
 
 #' [1] Total lost revenue
@@ -229,9 +229,9 @@ average_prices %>%
 # COVID’s impact on frequently rented entire-home listings ----------------
 
 #' According to the model, the number of housing units in Vancouver lost due to 
-#' commercial STRs reached a peak level since 2017 and the regulations (2,640 [1])
-#' at the beginning of 2020. Most of these (2,430 [1]) were FREH listings, with the remainder
-#' (210 [1]) being ghost hostels—clusters of private-room listings operated 
+#' commercial STRs reached a peak level since 2017 and the regulations (2,600 [1])
+#' at the beginning of 2020. Most of these (2,370 [1]) were FREH listings, with the remainder
+#' (220 [1]) being ghost hostels—clusters of private-room listings operated 
 #' out of a single housing unit. As of July 2020, the number of FREH listings 
 #' had dropped to its lowest amount since we began tracking it in 2016, with 
 #' just 830 [2] listings displaying availability and reservations consistent 
@@ -260,17 +260,17 @@ daily %>%
   summarize(FREH = sum(FREH_3)) %>% 
   left_join(GH_total) %>% 
   mutate(housing_loss = FREH + GH_units) %>% 
-  filter(date == "2020-07-01") %>% 
+  filter(date == "2020-08-01") %>% 
   mutate(across(-date, round, -1))
 
-#' There were 2,700 [1] listings which we consider likely to have been FREH in 
+#' There were 2,670 [1] listings which we consider likely to have been FREH in 
 #' either or both of January and February 2020. Of these listings, 850 [2] 
 #' were no longer listed on Airbnb or VRBO as of July 31, 2020. This is 
-#' 31.4% [2] of these listings—twice as high as the 17.6% [3] of listings which 
+#' 31.4% [2] of these listings—twice as high as the 16.0% [3] of listings which 
 #' were FREH in either January or February 2019 and were no longer listed on the 
-#' STR platforms by the end of July 2019. In total, 42.9% [4] of non-FREH 
+#' STR platforms by the end of July 2019. In total, 48.3% [4] of non-FREH 
 #' listings active in January or February 2020 were deactivated by the end of 
-#' July 2020, while the corresponding figure last year was 27.4% [5].
+#' July 2020, while the corresponding figure last year was 28.9% [5].
 
 #' [1] FREH in either Jan or Feb 2020
 FREH_in_jan_feb <- 
@@ -300,7 +300,7 @@ property %>%
   filter(property_ID %in% FREH_in_jan_feb_2019) %>% 
   summarize(mean(scraped <= "2019-07-31"))
 
-#' [4] Percentage of non-FREH Jan-Feb listings deleted by end of July 2020
+#' [4] Percentage of non-FREH Jan-Feb listings deleted by end of August 2020
 property %>% 
   st_drop_geometry() %>% 
   filter(property_ID %in% {daily %>% 
@@ -308,7 +308,7 @@ property %>%
              status != "B") %>% 
       pull(property_ID) %>% 
       unique()}, !property_ID %in% FREH_in_jan_feb) %>% 
-  summarize(mean(scraped <= "2020-07-31"))
+  summarize(mean(scraped <= "2020-08-31"))
 
 #' [5] Percentage of non-FREH Jan-Feb listings deleted by end of July 2019
 property %>% 
@@ -318,26 +318,26 @@ property %>%
              status != "B") %>% 
       pull(property_ID) %>% 
       unique()}, !property_ID %in% FREH_in_jan_feb_2019) %>% 
-  summarize(mean(scraped <= "2019-07-31"))
+  summarize(mean(scraped <= "2019-08-31"))
 
-#' Of the 1,850 [1] FREH listings which remained listed throughout March - July,
-#' 500 [2] (26.8% [3]) were blocked (i.e. not available for reservations) for 
-#' all of the month of July, and 880 [4] (47.4% [5]) were blocked for a 
+#' Of the 1,750 [1] FREH listings which remained listed throughout March - July,
+#' 530 [2] (30.1% [3]) were blocked (i.e. not available for reservations) for 
+#' all of the month of July, and 910 [4] (52.1% [5]) were blocked for a 
 #' majority of the month. This is extremely rare behaviour for a dedicated STR 
 #' listing, since the summer is usually the busiest season for tourist
 #' accommodations in Vancouver. In 2019, only 9.5% [6] of listings which were 
 #' FREH in January or February were blocked for all of July, and only 18.5% [7] 
 #' were blocked for a majority of the month.
 
-#' [1] Jan-Feb FREH units still active at end of July 2020
+#' [1] Jan-Feb FREH units still active at end of August 2020
 property %>% 
-  filter(property_ID %in% FREH_in_jan_feb, scraped > "2020-07-31") %>% 
+  filter(property_ID %in% FREH_in_jan_feb, scraped > "2020-08-31") %>% 
   nrow() %>% 
   round(-1)
 
-#' [2] Jan-Feb FREH blocked all July
+#' [2] Jan-Feb FREH blocked all August
 daily %>% 
-  filter(housing, date >= "2020-07-01", date <= "2020-07-31") %>% 
+  filter(housing, date >= "2020-08-01", date <= "2020-08-31") %>% 
   group_by(property_ID) %>% 
   filter(mean(status == "B") == 1) %>% 
   pull(property_ID) %>% 
@@ -348,7 +348,7 @@ daily %>%
 
 #' [3] Percentage
 {daily %>% 
-  filter(housing, date >= "2020-07-01", date <= "2020-07-31") %>% 
+  filter(housing, date >= "2020-08-01", date <= "2020-08-31") %>% 
   group_by(property_ID) %>% 
   filter(mean(status == "B") == 1) %>% 
   pull(property_ID) %>% 
@@ -356,13 +356,13 @@ daily %>%
   {filter(property, property_ID %in% ., property_ID %in% FREH_in_jan_feb)} %>% 
   nrow() %>% 
   `/`(property %>% 
-        filter(property_ID %in% FREH_in_jan_feb, scraped > "2020-07-31") %>% 
+        filter(property_ID %in% FREH_in_jan_feb, scraped > "2020-08-31") %>% 
         nrow())} %>% 
   round(3)
 
-#' [4] Jan-Feb FREH blocked most of July
+#' [4] Jan-Feb FREH blocked most of August
 daily %>% 
-  filter(housing, date >= "2020-07-01", date <= "2020-07-31") %>% 
+  filter(housing, date >= "2020-08-01", date <= "2020-08-31") %>% 
   group_by(property_ID) %>% 
   filter(mean(status == "B") > 0.5) %>% 
   pull(property_ID) %>% 
@@ -373,7 +373,7 @@ daily %>%
 
 #' [5] Percentage
 {daily %>% 
-    filter(housing, date >= "2020-07-01", date <= "2020-07-31") %>% 
+    filter(housing, date >= "2020-08-01", date <= "2020-08-31") %>% 
     group_by(property_ID) %>% 
     filter(mean(status == "B") > 0.5) %>% 
     pull(property_ID) %>% 
@@ -381,13 +381,13 @@ daily %>%
     {filter(property, property_ID %in% ., property_ID %in% FREH_in_jan_feb)} %>% 
     nrow() %>% 
     `/`(property %>% 
-          filter(property_ID %in% FREH_in_jan_feb, scraped > "2020-07-31") %>% 
+          filter(property_ID %in% FREH_in_jan_feb, scraped > "2020-08-31") %>% 
           nrow())} %>% 
   round(3)
 
-#' [6] Jan-Feb FREH 2019 percentage blocked all July 2019
+#' [6] Jan-Feb FREH 2019 percentage blocked all August 2019
 {daily %>% 
-    filter(housing, date >= "2019-07-01", date <= "2019-07-31") %>% 
+    filter(housing, date >= "2019-08-01", date <= "2019-08-31") %>% 
     group_by(property_ID) %>% 
     filter(mean(status == "B") == 1) %>% 
     pull(property_ID) %>% 
@@ -397,13 +397,13 @@ daily %>%
     nrow() %>% 
     `/`(property %>% 
           filter(property_ID %in% FREH_in_jan_feb_2019, 
-                 scraped > "2019-07-31") %>% 
+                 scraped > "2019-08-31") %>% 
           nrow())} %>% 
   round(3)
 
-#' [7] Jan-Feb FREH 2019 percentage blocked most of July 2019
+#' [7] Jan-Feb FREH 2019 percentage blocked most of August 2019
 {daily %>% 
-    filter(housing, date >= "2019-07-01", date <= "2019-07-31") %>% 
+    filter(housing, date >= "2019-08-01", date <= "2019-08-31") %>% 
     group_by(property_ID) %>% 
     filter(mean(status == "B") > 0.5) %>% 
     pull(property_ID) %>% 
@@ -413,11 +413,11 @@ daily %>%
     nrow() %>% 
     `/`(property %>% 
           filter(property_ID %in% FREH_in_jan_feb_2019, 
-                 scraped > "2019-07-31") %>% 
+                 scraped > "2019-08-31") %>% 
           nrow())} %>% 
   round(3)
 
-#' For example, in the month of February 2020, 58.4% [1] of all reserved nights
+#' For example, in the month of February 2020, 57.6% [1] of all reserved nights
 #' were booked in these FREH properties. 
 
 #' [1] Percentage of reserved nights in FREH properties in Feb 2020
