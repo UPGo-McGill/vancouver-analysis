@@ -171,14 +171,13 @@ rm(kj, cl)
 
 # Add geometry ------------------------------------------------------------
 
-# Not updated yet!
 load("output/geometry.Rdata")
 
 ltr <- st_transform(ltr, 32610)
 
 ltr <- 
   ltr %>% 
-  st_join(LA_raw) #%>% 
+  st_join(LA) #%>% 
   #select(-dwellings)
 
 ltr <-
