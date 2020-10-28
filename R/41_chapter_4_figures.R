@@ -71,10 +71,10 @@ reservations <-
   model(x11 = feasts:::X11(n, type = "additive")) %>% 
   components()
 
-# Get March-August seasonal
-mar_aug_seasonal <- 
+# Get March-September seasonal
+mar_sep_seasonal <- 
   reservations %>% 
-  slice(39:44) %>% 
+  slice(39:45) %>% 
   pull(seasonal)
 
 # Get Feb trend
@@ -83,15 +83,15 @@ feb_trend <-
   slice(50) %>% 
   pull(trend)
 
-# Apply March-Aug seasonal component to Feb trend
+# Apply March-Sep seasonal component to Feb trend
 trends <-
   tibble(
     date = as.Date(c("2020-03-16", "2020-04-16", "2020-05-16", "2020-06-16",
-                     "2020-07-16", "2020-07-31")),
-    trend = (feb_trend + mar_aug_seasonal) / c(31, 30, 31, 30, 31, 31))
+                     "2020-07-16", "2020-07-31", "2020-08-31")),
+    trend = (feb_trend + mar_sep_seasonal) / c(31, 30, 31, 30, 31, 31, 31))
 
-# Set July 31 value to average of July and August
-trends[6,]$trend <- mean(trends[5:6,]$trend)
+# Set August 31 value to average of August and September
+trends[7,]$trend <- mean(trends[6:7,]$trend)
 
 reservations <- 
   active_by_status %>% 
@@ -121,17 +121,17 @@ figure_4_2 <-
               data = reservations, fill = col_palette[3], 
               alpha = 0.3) +
   geom_line(aes(date, value, color = name), lwd = 1) +
-  geom_text(aes(x = as.Date("2020-07-31"), 
-                y = mean(value[date == as.Date("2020-07-31")]),
+  geom_text(aes(x = as.Date("2020-08-31"), 
+                y = mean(value[date == as.Date("2020-08-31")]),
                 label = paste(
                   prettyNum(round(abs(diff(
-                    value[date == as.Date("2020-07-31")])), -1), ","),
+                    value[date == as.Date("2020-08-31")])), -1), ","),
                   "fewer", "reservations", "than", "expected", sep = "\n")), 
             inherit.aes = FALSE, hjust = 1, #family = "Futura Condensed", 
             nudge_x = -4) +
-  geom_segment(aes(x = as.Date("2020-07-31"), xend = as.Date("2020-07-31"),
-                   y = min(value[date == as.Date("2020-07-31")]),
-                   yend = max(value[date == as.Date("2020-07-31")])),
+  geom_segment(aes(x = as.Date("2020-08-31"), xend = as.Date("2020-08-31"),
+                   y = min(value[date == as.Date("2020-08-31")]),
+                   yend = max(value[date == as.Date("2020-08-31")])),
                colour = col_palette[3],
                arrow = arrow(length = unit(0.1, "cm"), ends = "both",
                              type = "open")) +
@@ -171,13 +171,13 @@ monthly_prices <-
   tsibble::index_by(yearmon = tsibble::yearmonth(date)) %>% 
   summarize(price = mean(price))
 
-# Get March-August seasonal
-mar_jul_price_seasonal <- 
+# Get March-September seasonal
+mar_sep_price_seasonal <- 
   monthly_prices %>% 
   filter(yearmon <= tsibble::yearmonth("2020-02")) %>% 
   model(x11 = feasts:::X11(price, type = "additive")) %>% 
   components() %>%
-  slice(39:43) %>% 
+  slice(39:44) %>% 
   pull(seasonal)
 
 # Get Feb trend
@@ -189,17 +189,17 @@ feb_price_trend <-
   slice(50) %>% 
   pull(trend)
 
-# Apply March-Aug seasonal component to Feb trend
-mar_jul_price_trend <- 
+# Apply March-Sep seasonal component to Feb trend
+mar_sep_price_trend <- 
   tibble(yearmon = tsibble::yearmonth(c("2020-03", "2020-04", "2020-05", 
-                                        "2020-06", "2020-07")),
-         trend = feb_price_trend + mar_jul_price_seasonal)
+                                        "2020-06", "2020-07", "2020-08")),
+         trend = feb_price_trend + mar_sep_price_seasonal)
 
 # Apply to daily averages to get trend
 average_prices <- 
   average_prices %>% 
   mutate(yearmon = tsibble::yearmonth(date)) %>% 
-  inner_join(mar_jul_price_trend) %>% 
+  inner_join(mar_sep_price_trend) %>% 
   group_by(yearmon) %>% 
   mutate(trend = price * trend / mean(price)) %>% 
   ungroup() %>% 
@@ -294,10 +294,10 @@ deactivated_2020 <-
     variable = "deactivated",
     value = c({
       FREH_2020 %>% 
-        summarize(total = sum(scraped <= "2020-07-31")) %>% 
+        summarize(total = sum(scraped <= "2020-08-31")) %>% 
         pull(total)}, {
           non_FREH_2020 %>% 
-            summarize(total = sum(scraped <= "2020-07-31")) %>% 
+            summarize(total = sum(scraped <= "2020-08-31")) %>% 
             pull(total)})
   )
 
@@ -308,16 +308,16 @@ deactivated_2019 <-
     variable = "deactivated",
     value = c({
       FREH_2019 %>% 
-        summarize(total = sum(scraped <= "2019-07-31")) %>% 
+        summarize(total = sum(scraped <= "2019-08-31")) %>% 
         pull(total)}, {
           non_FREH_2019 %>% 
-            summarize(total = sum(scraped <= "2019-07-31")) %>% 
+            summarize(total = sum(scraped <= "2019-08-31")) %>% 
             pull(total)})
   )
 
 blocked_PIDs_2020 <- 
   daily %>% 
-  filter(housing, date >= "2020-07-01", date <= "2020-07-31") %>% 
+  filter(housing, date >= "2020-08-01", date <= "2020-08-31") %>% 
   group_by(property_ID) %>% 
   filter(mean(status == "B") == 1) %>% 
   pull(property_ID) %>% 
@@ -325,7 +325,7 @@ blocked_PIDs_2020 <-
 
 blocked_PIDs_2019 <- 
   daily %>% 
-  filter(housing, date >= "2019-07-01", date <= "2019-07-31") %>% 
+  filter(housing, date >= "2019-08-01", date <= "2019-08-31") %>% 
   group_by(property_ID) %>% 
   filter(mean(status == "B") == 1) %>% 
   pull(property_ID) %>% 
@@ -443,7 +443,7 @@ fig_labels <-
     variable == "total listings" ~ paste0(label, " ", variable, "\nin Jan/Feb"),
     variable == "active" ~ paste0(label, " (", 
                                   round(label/sum(label) * 100, 1), "%) ", 
-                                  variable, "\nin July"),
+                                  variable, "\nin August"),
     TRUE ~ paste0(label, " (", round(label/sum(label) * 100, 1), "%) ",
                   variable))) %>% 
   ungroup()
