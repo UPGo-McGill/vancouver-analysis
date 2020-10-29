@@ -4,7 +4,7 @@
 #' data needs to be rebuilt from scratch.
 #' 
 #' Output:
-#' - `str_bc_raw.Rdata`
+#' - `str_bc_raw.qs`
 #' 
 #' Script dependencies:
 #' - `02_geometry_import.R`
@@ -151,26 +151,26 @@ daily_bc <-
 
 # Process the property and daily files ------------------------------------
 
+DA_CMA <-
+  cancensus::get_census(
+    dataset = "CA16", regions = list(CMA = "59933"), level = "DA",
+    geo_format = "sf") %>% 
+  st_transform(32610) %>% 
+  select(GeoUID, Dwellings) %>% 
+  set_names(c("GeoUID", "dwellings", "geometry")) %>% 
+  st_set_agr("constant")
+
 # Run raffle to assign a DA to each listing
 property_bc <-
   property_bc %>% 
   strr_as_sf(32610) %>% 
   strr_raffle(DA_CMA, GeoUID, dwellings, seed = 1)
 
-# Trim daily file
-daily_bc <- 
-  daily_bc %>% 
-  filter(property_ID %in% property_bc$property_ID)
-
-# Trim host file
-host_bc <- 
-  host_bc %>% 
-  filter(host_ID %in% property_bc$host_ID)
-
 # Add area to property file
 property_bc <-
   property_bc %>%
-  st_join(select(CMA_CSDs, -dwellings))
+  st_join(select(CMA, name)) %>% 
+  rename(CSD = name)
 
 # Add area to daily file
 daily_bc <-
@@ -180,28 +180,7 @@ daily_bc <-
   left_join(daily_bc, ., by = "property_ID")
 
 
-
-
-
-# Run raffle to assign a DA to each listing
-property <-
-  property %>% 
-  strr_raffle(DA, GeoUID, dwellings, seed = 1)
-
-# Add area to property file
-property <-
-  property %>%
-  st_join(select(LA, -dwellings))
-
-# Add area to daily file
-daily <-
-  property %>%
-  st_drop_geometry() %>%
-  select(property_ID, area) %>%
-  left_join(daily, ., by = "property_ID")
-
-
 # Save output -------------------------------------------------------------
 
-qsavem(property_bc, daily_bc, host_bc, file = "output/str_province_raw.qs",
+qsavem(property_bc, daily_bc, host_bc, file = "output/str_bc_raw.qs",
        nthreads = availableCores())

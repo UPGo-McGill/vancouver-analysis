@@ -80,7 +80,7 @@ LA <-
   arrange(area)
 
 
-# Import of skytrain shapefile --------------------------------------------
+# Import of Skytrain shapefile --------------------------------------------
 
 skytrain <- 
   read_sf("data/shapefiles/RW_STN_point.shp") %>% 
