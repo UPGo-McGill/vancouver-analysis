@@ -80,7 +80,7 @@ LA <-
   arrange(area)
 
 
-# Import of skytrain shapefile --------------------------------------------
+# Import of Skytrain shapefile --------------------------------------------
 
 skytrain <- 
   read_sf("data/shapefiles/RW_STN_point.shp") %>% 
@@ -91,43 +91,6 @@ skytrain <-
   filter(id == 1) %>% 
   select(-id) %>% 
   st_transform(32610)
-
-
-# Streets -----------------------------------------------------------------
-# 
-# streets <- 
-#   (getbb("Vancouver BC") * c(1.01, 0.99, 0.99, 1.01)) %>% 
-#   opq(timeout = 200) %>% 
-#   add_osm_feature(key = "highway") %>% 
-#   osmdata_sf()
-# 
-# streets <-
-#   rbind(
-#     streets$osm_polygons %>% st_set_agr("constant") %>% st_cast("LINESTRING"), 
-#     streets$osm_lines) %>% 
-#   as_tibble() %>% 
-#   st_as_sf() %>% 
-#   st_transform(32610) %>%
-#   st_set_agr("constant") %>%
-#   st_intersection(city)
-# 
-# streets <- 
-#   streets %>% 
-#   filter(highway %in% c("primary", "secondary")) %>% 
-#   select(osm_id, name, highway, geometry)
-# 
-# downtown_poly <- 
-#   st_polygon(list(matrix(c(490000, 5457200,
-#                            493000, 5457200,
-#                            493000, 5460500,
-#                            490000, 5460500,
-#                            490000, 5457200), 
-#                           ncol = 2, byrow = TRUE))) %>% 
-#   st_sfc(crs = 32610)
-#  
-# streets_downtown <- 
-#   streets %>% 
-#   st_intersection(downtown_poly)
 
 
 # Business licenses ------------------------------------------------------
@@ -177,5 +140,5 @@ BL_expanded <-
 
 # Save output -------------------------------------------------------------
 
-qsavem(province, CMA, DA, city, LA, BL, BL_expanded, skytrain, #streets, streets_downtown, 
-     file = "output/geometry.qs", nthreads = availableCores())
+qsavem(province, CMA, DA, city, LA, BL, BL_expanded, skytrain, 
+       file = "output/geometry.qs", nthreads = availableCores())
