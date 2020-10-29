@@ -174,16 +174,16 @@ active_listings_both %>%
            y = 135, yend = 150, curvature = .2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
   annotate("text", x = as.Date("2020-06-16"), y = 130,
-           label = "COVID-19 \nAirbnb's response", family = "Futura Condensed") +
+           label = "COVID-19 \nAirbnb's response") + #, family = "Futura Condensed"
   annotate("segment", x = key_date_regulations, xend = key_date_regulations,
            y = -Inf, yend = Inf, alpha = 0.3) +
   annotate("curve", x = as.Date("2018-12-01"), xend = key_date_regulations + days(10),
            y = 130, yend = 150, curvature = .2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
   annotate("text", x = as.Date("2018-12-01"), y = 127,
-           label = "Regulations", family = "Futura Condensed")+
+           label = "Regulations")+ #, family = "Futura Condensed"
   geom_line(lwd = 1)+
-  scale_colour_manual(name = NULL, values = col_palette[c(3, 2)])+
+  scale_colour_manual(name = NULL, values = col_palette[c(5, 1)])+
   scale_y_continuous(name = NULL) +
   scale_x_date(name = NULL)+
   theme_minimal() +
@@ -251,7 +251,7 @@ commercial_listings_both %>%
   annotate("text", x = as.Date("2018-12-01"), y = 127,
            label = "Regulations")+  #, family = "Futura Condensed"
   geom_line(lwd = 1)+
-  scale_colour_manual(name = NULL, values = col_palette[c(3, 2)])+
+  scale_colour_manual(name = NULL, values = col_palette[c(5, 1)])+
   scale_y_continuous(name = NULL) +
   scale_x_date(name = NULL)+
   theme_minimal() +
@@ -333,16 +333,16 @@ active_listings_indexed %>%
            y = 135, yend = 140, curvature = .2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
   annotate("text", x = as.Date("2020-06-16"), y = 130,
-           label = "COVID-19 \nAirbnb's response", family = "Futura Condensed") +
+           label = "COVID-19 \nAirbnb's response") + #, family = "Futura Condensed"
   annotate("segment", x = key_date_regulations, xend = key_date_regulations,
            y = -Inf, yend = Inf, alpha = 0.3) +
   annotate("curve", x = as.Date("2018-12-01"), xend = key_date_regulations + days(10),
            y = 130, yend = 130, curvature = .2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
   annotate("text", x = as.Date("2018-12-01"), y = 127,
-           label = "Regulations", family = "Futura Condensed")+
+           label = "Regulations")+ #, family = "Futura Condensed"
   geom_line(lwd = 1)+
-  scale_colour_manual(name = NULL, values = col_palette[c(3, 2)])+
+  scale_colour_manual(name = NULL, values = col_palette[c(5, 1)])+
   scale_y_continuous(name = NULL) +
   scale_x_date(name = NULL)+
   theme_minimal() +
@@ -367,7 +367,7 @@ commercial_listings_buffer_indexed %>%
   annotate("text", x = as.Date("2018-12-01"), y = 127,
            label = "Regulations")+  #, family = "Futura Condensed"
   geom_line(lwd = 1)+
-  scale_colour_manual(name = NULL, values = col_palette[c(3, 2)])+
+  scale_colour_manual(name = NULL, values = col_palette[c(5, 1)])+
   scale_y_continuous(name = NULL) +
   scale_x_date(name = NULL)+
   theme_minimal() +
@@ -389,9 +389,7 @@ FREH_buffer_indexed %>%
   theme(legend.position = "bottom", panel.grid.minor.x = element_blank())
 
 
-
-
-
+# Availabilities (R or A) for buffer ---------------------------------------------------
 # number of A and B facet_wrap
 active_listings <- 
   daily_buffer %>% 
@@ -413,8 +411,18 @@ active_listings_indexed %>%
   ggplot(aes(date, index, colour = group)) +
   annotate("segment", x = key_date_covid, xend = key_date_covid,
            y = -Inf, yend = Inf, alpha = 0.3) +
+  annotate("curve", x = as.Date("2020-07-01"), xend = key_date_covid + days(10),
+           y = 140, yend = 145, curvature = .2, lwd = 0.25,
+           arrow = arrow(length = unit(0.05, "inches"))) +
+  annotate("text", x = as.Date("2020-8-16"), y = 135,
+           label = "COVID-19 \nAirbnb's response") + #, family = "Futura Condensed"
   annotate("segment", x = key_date_regulations, xend = key_date_regulations,
-           y = -Inf, yend = Inf, alpha = 0.3)+
+           y = -Inf, yend = Inf, alpha = 0.3) +
+  annotate("curve", x = as.Date("2018-12-01"), xend = key_date_regulations + days(10),
+           y = 130, yend = 125, curvature = .2, lwd = 0.25,
+           arrow = arrow(length = unit(0.05, "inches"))) +
+  annotate("text", x = as.Date("2018-12-01"), y = 127,
+           label = "Regulations")+  #, family = "Futura Condensed"
   facet_wrap(~status)+
   geom_line(lwd = 1)+
   scale_colour_manual(name = NULL, values = col_palette[c(3, 2)])+
@@ -423,9 +431,9 @@ active_listings_indexed %>%
   theme_minimal() +
   theme(legend.position = "bottom", panel.grid.minor.x = element_blank())
   ggtitle("Availabilities (L) and reservations (A), 14 days rolling window")
-
-# Revenue for CoV and Burnaby
-
+  
+  
+# Revenue for CoV and Burnaby ---------------------------------------------------
 revenue <-
   daily_buffer %>%
   filter(housing, status == "R") %>%
@@ -444,17 +452,27 @@ revenue_indexed %>%
   ggplot(aes(date, index, colour = group)) +
   annotate("segment", x = key_date_covid, xend = key_date_covid,
            y = -Inf, yend = Inf, alpha = 0.3) +
+  annotate("curve", x = as.Date("2020-07-01"), xend = key_date_covid + days(10),
+           y = 140, yend = 145, curvature = .2, lwd = 0.25,
+           arrow = arrow(length = unit(0.05, "inches"))) +
+  annotate("text", x = as.Date("2020-8-16"), y = 135,
+           label = "COVID-19 \nAirbnb's response") + #, family = "Futura Condensed"
   annotate("segment", x = key_date_regulations, xend = key_date_regulations,
            y = -Inf, yend = Inf, alpha = 0.3) +
+  annotate("curve", x = as.Date("2018-12-01"), xend = key_date_regulations + days(10),
+           y = 130, yend = 125, curvature = .2, lwd = 0.25,
+           arrow = arrow(length = unit(0.05, "inches"))) +
+  annotate("text", x = as.Date("2018-12-01"), y = 127,
+           label = "Regulations")+  #, family = "Futura Condensed"
   geom_line(lwd = 1)+
-  scale_colour_manual(name = NULL, values = col_palette[c(3, 2)])+
+  scale_colour_manual(name = NULL, values = col_palette[c(5, 1)])+
   scale_y_continuous(name = NULL) +
   scale_x_date(name = NULL)+
   theme_minimal() +
   theme(legend.position = "bottom", panel.grid.minor.x = element_blank())
 
-# Prices variation after regulations for Burnaby and Vancou
 
+# Prices variation after regulations for Burnaby and Vancou ---------------------------------------------------
 avg_price <-
   daily_buffer %>%
   filter(housing, status == "R") %>%
@@ -477,18 +495,24 @@ avg_price_indexed %>%
   ggplot(aes(date, index, colour = group)) +
   annotate("segment", x = key_date_covid, xend = key_date_covid,
            y = -Inf, yend = Inf, alpha = 0.3) +
+  annotate("curve", x = as.Date("2020-07-01"), xend = key_date_covid + days(10),
+           y = 140, yend = 145, curvature = .2, lwd = 0.25,
+           arrow = arrow(length = unit(0.05, "inches"))) +
+  annotate("text", x = as.Date("2020-8-16"), y = 135,
+           label = "COVID-19 \nAirbnb's response") + #, family = "Futura Condensed"
   annotate("segment", x = key_date_regulations, xend = key_date_regulations,
            y = -Inf, yend = Inf, alpha = 0.3) +
+  annotate("curve", x = as.Date("2018-12-01"), xend = key_date_regulations + days(10),
+           y = 130, yend = 125, curvature = .2, lwd = 0.25,
+           arrow = arrow(length = unit(0.05, "inches"))) +
+  annotate("text", x = as.Date("2018-12-01"), y = 127,
+           label = "Regulations")+  #, family = "Futura Condensed"
   geom_line(lwd = 1)+
-  scale_colour_manual(name = NULL, values = col_palette[c(3, 2)])+
+  scale_colour_manual(name = NULL, values = col_palette[c(5, 1)])+
   scale_y_continuous(name = NULL) +
   scale_x_date(name = NULL)+
   theme_minimal() +
   theme(legend.position = "bottom", panel.grid.minor.x = element_blank())
-
-
-
-
 # 
 # 
 # 
