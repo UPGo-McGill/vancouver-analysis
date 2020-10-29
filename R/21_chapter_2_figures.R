@@ -21,6 +21,8 @@
 #'   `01_startup.R`
 
 source("R/01_startup.R")
+library(feasts)
+library(fabletools)
 
 load("output/str_processed.Rdata")
 load("output/geometry.Rdata")
@@ -518,6 +520,95 @@ ggsave("output/figures/figure_2_8.pdf", plot = figure_2_8, width = 8,
        height = 5, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_2_8.pdf")
+
+# Figure 2.9 Actual and trend commercialization after regulations -----------------
+
+commercial_listings <- 
+  daily %>% 
+  filter(status != "B", date >= "2016-01-01") %>% 
+  mutate(commercial = if_else(FREH_3 < 0.5 & !multi, FALSE, TRUE)) %>% 
+  count(date, commercial)
+
+# Create and decompose reservations time series
+commercial_operations <- 
+  commercial_listings %>% 
+  filter(commercial) %>% 
+  tsibble::as_tsibble() %>% 
+  tsibble::index_by(yearmon = tsibble::yearmonth(date)) %>% 
+  summarize(n = sum(n)) %>% 
+  filter(yearmon <= tsibble::yearmonth("2020-02")) %>% 
+  model(x11 = feasts:::X11(n, type = "additive")) %>% 
+  components()
+
+# Get August 2017 - July 2018 seasonal
+aug_jul_seasonal <- 
+  commercial_operations %>%
+  slice(20:34) %>% 
+  pull(seasonal)
+
+# Get July trend
+jul_trend <- 
+  commercial_operations %>% 
+  slice(31) %>% 
+  pull(trend)
+
+# Apply March-Sep seasonal component to Feb trend
+trends <-
+  tibble(
+    date = as.Date(c("2018-08-23", "2018-09-16", "2018-10-16", "2018-11-16",
+                     "2018-12-16", "2019-01-16", "2019-02-16", "2019-03-16",
+                     "2019-04-16", "2019-05-16", "2019-06-16", "2019-07-16",
+                     "2019-08-16", "2019-09-16", "2019-10-16")),
+    trend = (jul_trend + aug_jul_seasonal) / c(31, 30, 31, 30, 31, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31))
+
+# Set August 31 value to average of August and September
+# trends[7,]$trend <- mean(trends[6:7,]$trend)
+
+commercial_operations <- 
+  commercial_listings %>% 
+  filter(commercial) %>% 
+  mutate(n = slide_dbl(n, mean, .before = 6)) %>% 
+  filter(date >= "2016-01-01") %>% 
+  left_join(trends) %>% 
+  select(-commercial) %>% 
+  mutate(trend = if_else(date == "2018-08-01", n, trend)) %>%
+  filter(date >= "2018-08-23", date <= "2019-10-16") %>%
+  mutate(trend = zoo::na.approx(trend))
+
+commercial_operations <- 
+  commercial_listings %>% 
+  filter(commercial) %>% 
+  mutate(n = slide_dbl(n, mean, .before = 6)) %>% 
+  filter(date >= "2016-01-01", date <= "2019-10-31") %>% 
+  select(-commercial) %>% 
+  bind_rows(commercial_operations) 
+
+# figure_2_9 <-
+  commercial_operations %>%
+  pivot_longer(-date) %>% 
+  filter(!is.na(value)) %>%
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = n, ymax = trend, group = 1),
+              data = filter(commercial_operations, !is.na(trend)), fill = col_palette[3], 
+              alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 1) +
+  scale_x_date(name = NULL) +
+  scale_y_continuous(name = NULL) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual commercialization", "Expected commercialization"), 
+                     values = col_palette[c(1, 5)]) +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        panel.grid.minor.x = element_blank(),
+        text = element_text(face = "plain"), #, family = "Futura"
+        legend.title = element_text(face = "bold", #, family = "Futura"
+                                    size = 10),
+        legend.text = element_text( size = 10))#, family = "Futura"
+
+ggsave("output/figures/figure_2_9.pdf", plot = figure_2_9, width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_2_9.pdf")
 
 
 # Clean up ----------------------------------------------------------------
