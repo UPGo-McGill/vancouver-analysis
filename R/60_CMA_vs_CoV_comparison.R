@@ -1,12 +1,29 @@
+#### CoV vs CMA CHAPTER ANALYSIS #####################################################
+
+#' This script produces the tables and facts for chapter 2. It runs quickly.
+#' 
+#' Output:
+#' - None
+#' 
+#' Script dependencies:
+#' - `02_geometry_import.R`
+#' - `09_str_processing.R`
+#' - `12_FREH_model.R`
+#' 
+#' External dependencies:
+#' - None
+
 source("R/01_startup.R")
 
-load("output/str_province.Rdata")
-load("output/str_processed.Rdata")
-load("output/geometry.Rdata")
+qload("output/str_processed.qs", nthreads = availableCores())
+qload("output/FREH_model.qs", nthreads = availableCores())
+qload("output/str_bc_processed.qs", nthreads = availableCores())
+qload("output/geometry.qs", nthreads = availableCores())
 
 
-### Active listings for BC and Vancou ##############################
+# Prepare new objects -----------------------------------------------------
 
+# Active listings Vancouver
 active_listings <-
   daily %>%
   filter(housing, status != "B") %>%
@@ -24,6 +41,7 @@ active_listings <-
   bind_rows(active_listings) %>%
   arrange(date, listing_type)
 
+# Active listings BC
 active_listings_bc <-
   daily_bc %>%
   filter(housing, status != "B") %>%
@@ -41,6 +59,7 @@ active_listings_bc <-
   bind_rows(active_listings_bc) %>%
   arrange(date, listing_type)
 
+# Active listings indexed
 active_listings_indexed <-
   active_listings %>%
   filter(date >= key_date_regulations - years(1)) %>%
@@ -55,6 +74,96 @@ active_listings_bc_indexed <-
 
 active_listings_both <-
 rbind(active_listings_indexed, active_listings_bc_indexed)
+
+# Revenue 
+revenue <-
+  daily %>%
+  filter(housing, status == "R") %>%
+  group_by(date) %>%
+  summarize(revenue = sum(price))
+
+revenue_bc <-
+  daily_bc %>%
+  filter(housing, status == "R") %>%
+  group_by(date) %>%
+  summarize(revenue = sum(price))
+
+# Revenue indexed
+revenue_indexed <-
+  revenue %>%
+  mutate(revenue = slide_dbl(revenue, mean, .before = 6, .complete = TRUE)) %>%
+  filter(date >= key_date_regulations - years(1)) %>%
+  mutate(index = 100*revenue/revenue[date == key_date_regulations]) %>%
+  mutate(group = "CoV")
+
+revenue_bc_indexed <-
+  revenue_bc %>%
+  mutate(revenue = slide_dbl(revenue, mean, .before = 6, .complete = TRUE)) %>%
+  filter(date >= key_date_regulations - years(1)) %>%
+  mutate(index = 100*revenue/revenue[date == key_date_regulations]) %>%
+  mutate(group = "CMA")
+
+revenue_both <-
+  rbind(revenue_indexed, revenue_bc_indexed)
+
+# FREH indexed 
+FREH_indexed <- 
+  daily %>% 
+  filter(date >= key_date_regulations - years(1)) %>%
+  group_by(date) %>% 
+  summarize(n=sum(FREH_3)) %>% 
+  mutate(index = 100*n/n[date == key_date_regulations]) %>%
+  mutate(group = "CoV")
+
+FREH_bc_indexed <- 
+  daily_bc %>% 
+  filter(date >= key_date_regulations - years(1)) %>%
+  group_by(date) %>% 
+  summarize(n=sum(FREH_3)) %>% 
+  mutate(index = 100*n/n[date == key_date_regulations]) %>%
+  mutate(group = "CMA")
+
+FREH_both <- 
+  rbind(FREH_indexed, FREH_bc_indexed)
+
+# Commercial listings indexed
+commercial_listings <- 
+  daily %>% 
+  filter(status != "B", date >= "2016-01-01") %>% 
+  mutate(commercial = if_else(FREH_3 < 0.5 & !multi, FALSE, TRUE)) %>% 
+  count(date, commercial) %>% 
+  group_by(commercial) %>% 
+  mutate(n = slide_dbl(n, mean, .before = 6)) %>% 
+  ungroup()
+
+commercial_listings_indexed <-
+  commercial_listings %>% 
+  filter(date >= key_date_regulations - years(1)) %>%
+  filter(commercial == TRUE) %>% 
+  mutate(index = 100*n/n[date == key_date_regulations]) %>%
+  mutate(group = "CoV")
+
+commercial_listings_bc <- 
+  daily_bc %>% 
+  filter(status != "B", date >= "2016-01-01") %>% 
+  mutate(commercial = if_else(FREH_3 < 0.5 & !multi, FALSE, TRUE)) %>% 
+  count(date, commercial) %>% 
+  group_by(commercial) %>% 
+  mutate(n = slide_dbl(n, mean, .before = 6)) %>% 
+  ungroup()
+
+commercial_listings_bc_indexed <-
+  commercial_listings_bc %>% 
+  filter(date >= key_date_regulations - years(1)) %>%
+  filter(commercial == TRUE) %>% 
+  mutate(index = 100*n/n[date == key_date_regulations]) %>%
+  mutate(group = "CMA")
+
+commercial_listings_both <- 
+  rbind(commercial_listings_indexed, commercial_listings_bc_indexed)
+
+
+# Active daily listings Cov vs CMA, indexed ---------------------------------------------------
 
 active_listings_both %>%
   filter(listing_type == "All listings") %>%
@@ -80,36 +189,8 @@ active_listings_both %>%
   theme_minimal() +
   theme(legend.position = "bottom", panel.grid.minor.x = element_blank())
 
-# Revenue for CoV and CMA
 
-revenue <-
-  daily %>%
-  filter(housing, status == "R") %>%
-  group_by(date) %>%
-  summarize(revenue = sum(price))
-
-revenue_bc <-
-  daily_bc %>%
-  filter(housing, status == "R") %>%
-  group_by(date) %>%
-  summarize(revenue = sum(price))
-
-revenue_indexed <-
-  revenue %>%
-  mutate(revenue = slide_dbl(revenue, mean, .before = 6, .complete = TRUE)) %>%
-  filter(date >= key_date_regulations - years(1)) %>%
-  mutate(index = 100*revenue/revenue[date == key_date_regulations]) %>%
-  mutate(group = "CoV")
-
-revenue_bc_indexed <-
-  revenue_bc %>%
-  mutate(revenue = slide_dbl(revenue, mean, .before = 6, .complete = TRUE)) %>%
-  filter(date >= key_date_regulations - years(1)) %>%
-  mutate(index = 100*revenue/revenue[date == key_date_regulations]) %>%
-  mutate(group = "CMA")
-
-revenue_both <-
-  rbind(revenue_indexed, revenue_bc_indexed)
+# Revenue Cov vs CMA, indexed ---------------------------------------------------
 
 revenue_both %>%
   ggplot(aes(date, index, colour = group)) +
@@ -125,7 +206,59 @@ revenue_both %>%
   theme(legend.position = "bottom", panel.grid.minor.x = element_blank())
 
 
-### Spatial comparisons both sides of easter boundary #######################
+# FREH Cov vs CMA, indexed ---------------------------------------------------
+
+FREH_both %>%
+  ggplot(aes(date, index, colour = group)) +
+  annotate("segment", x = key_date_covid, xend = key_date_covid,
+           y = -Inf, yend = Inf, alpha = 0.3) +
+  annotate("curve", x = as.Date("2020-07-01"), xend = key_date_covid + days(10),
+           y = 140, yend = 145, curvature = .2, lwd = 0.25,
+           arrow = arrow(length = unit(0.05, "inches"))) +
+  annotate("text", x = as.Date("2020-06-16"), y = 135,
+           label = "COVID-19 \nAirbnb's response") + #, family = "Futura Condensed"
+  annotate("segment", x = key_date_regulations, xend = key_date_regulations,
+           y = -Inf, yend = Inf, alpha = 0.3) +
+  annotate("curve", x = as.Date("2018-12-01"), xend = key_date_regulations + days(10),
+           y = 130, yend = 130, curvature = .2, lwd = 0.25,
+           arrow = arrow(length = unit(0.05, "inches"))) +
+  annotate("text", x = as.Date("2018-12-01"), y = 127,
+           label = "Regulations")+  #, family = "Futura Condensed"
+  geom_line(lwd = 1)+
+  scale_colour_manual(name = NULL, values = col_palette[c(3, 2)])+
+  scale_y_continuous(name = NULL) +
+  scale_x_date(name = NULL)+
+  theme_minimal() +
+  theme(legend.position = "bottom", panel.grid.minor.x = element_blank())
+
+
+# Commercial listings Cov vs CMA, indexed ---------------------------------------------------
+
+commercial_listings_both %>%
+  ggplot(aes(date, index, colour = group)) +
+  annotate("segment", x = key_date_covid, xend = key_date_covid,
+           y = -Inf, yend = Inf, alpha = 0.3) +
+  annotate("curve", x = as.Date("2020-07-01"), xend = key_date_covid + days(10),
+           y = 140, yend = 145, curvature = .2, lwd = 0.25,
+           arrow = arrow(length = unit(0.05, "inches"))) +
+  annotate("text", x = as.Date("2020-06-16"), y = 135,
+           label = "COVID-19 \nAirbnb's response") + #, family = "Futura Condensed"
+  annotate("segment", x = key_date_regulations, xend = key_date_regulations,
+           y = -Inf, yend = Inf, alpha = 0.3) +
+  annotate("curve", x = as.Date("2018-12-01"), xend = key_date_regulations + days(10),
+           y = 130, yend = 125, curvature = .2, lwd = 0.25,
+           arrow = arrow(length = unit(0.05, "inches"))) +
+  annotate("text", x = as.Date("2018-12-01"), y = 127,
+           label = "Regulations")+  #, family = "Futura Condensed"
+  geom_line(lwd = 1)+
+  scale_colour_manual(name = NULL, values = col_palette[c(3, 2)])+
+  scale_y_continuous(name = NULL) +
+  scale_x_date(name = NULL)+
+  theme_minimal() +
+  theme(legend.position = "bottom", panel.grid.minor.x = element_blank())
+
+
+# Spatial comparisons both sides of eastern boundary ---------------------------------------------------
 
 buffer_all_CoV <- st_buffer(st_cast(city,"MULTILINESTRING"),
                             1000, joinStyle = "MITRE", mitreLimit = 3)
@@ -147,9 +280,9 @@ property_buffer <-
 
 daily_buffer <- 
   rbind(select(daily,
-               property_ID, date, status, price, listing_type, housing), 
+               property_ID, date, status, price, listing_type, housing, multi, FREH_3), 
         select(daily_bc,
-               property_ID, date, status, price, listing_type, housing)) %>% 
+               property_ID, date, status, price, listing_type, housing, multi, FREH_3)) %>% 
   inner_join(st_drop_geometry(property_buffer))
 
 
@@ -167,7 +300,31 @@ active_listings_indexed <-
   group_by(group) %>% 
   mutate(index = 100*n/n[date == key_date_regulations])
 
+commercial_listings_buffer <- 
+  daily_buffer %>% 
+  filter(status != "B", date >= "2016-01-01") %>% 
+  mutate(commercial = if_else(FREH_3 < 0.5 & !multi, FALSE, TRUE)) %>% 
+  count(date, commercial, group) %>% 
+  group_by(commercial, group) %>% 
+  mutate(n = slide_dbl(n, mean, .before = 6)) %>% 
+  ungroup()
 
+commercial_listings_buffer_indexed <-
+  commercial_listings_buffer %>% 
+  filter(date >= key_date_regulations - years(1)) %>%
+  filter(commercial == TRUE) %>% 
+  mutate(index = 100*n/n[date == key_date_regulations])
+
+FREH_buffer_indexed <- 
+  daily_buffer %>% 
+  filter(date >= key_date_regulations - years(1)) %>%
+  group_by(date, group) %>% 
+  summarize(n=sum(FREH_3)) %>% 
+  group_by(group) %>% 
+  mutate(index = 100*n/n[date == key_date_regulations]) 
+
+
+# Active listings buffer, indexed ---------------------------------------------------
 active_listings_indexed %>% 
   ggplot(aes(date, index, colour = group)) +
   annotate("segment", x = key_date_covid, xend = key_date_covid,
@@ -190,6 +347,48 @@ active_listings_indexed %>%
   scale_x_date(name = NULL)+
   theme_minimal() +
   theme(legend.position = "bottom", panel.grid.minor.x = element_blank())
+
+
+# Commercial listings buffer, indexed ---------------------------------------------------
+commercial_listings_buffer_indexed %>%
+  ggplot(aes(date, index, colour = group)) +
+  annotate("segment", x = key_date_covid, xend = key_date_covid,
+           y = -Inf, yend = Inf, alpha = 0.3) +
+  annotate("curve", x = as.Date("2020-07-01"), xend = key_date_covid + days(10),
+           y = 140, yend = 145, curvature = .2, lwd = 0.25,
+           arrow = arrow(length = unit(0.05, "inches"))) +
+  annotate("text", x = as.Date("2020-06-16"), y = 135,
+           label = "COVID-19 \nAirbnb's response") + #, family = "Futura Condensed"
+  annotate("segment", x = key_date_regulations, xend = key_date_regulations,
+           y = -Inf, yend = Inf, alpha = 0.3) +
+  annotate("curve", x = as.Date("2018-12-01"), xend = key_date_regulations + days(10),
+           y = 130, yend = 125, curvature = .2, lwd = 0.25,
+           arrow = arrow(length = unit(0.05, "inches"))) +
+  annotate("text", x = as.Date("2018-12-01"), y = 127,
+           label = "Regulations")+  #, family = "Futura Condensed"
+  geom_line(lwd = 1)+
+  scale_colour_manual(name = NULL, values = col_palette[c(3, 2)])+
+  scale_y_continuous(name = NULL) +
+  scale_x_date(name = NULL)+
+  theme_minimal() +
+  theme(legend.position = "bottom", panel.grid.minor.x = element_blank())
+
+
+# FREH buffer, indexed ---------------------------------------------------
+FREH_buffer_indexed %>%
+  ggplot(aes(date, index, colour = group)) +
+  annotate("segment", x = key_date_covid, xend = key_date_covid,
+           y = -Inf, yend = Inf, alpha = 0.3) +
+  annotate("segment", x = key_date_regulations, xend = key_date_regulations,
+           y = -Inf, yend = Inf, alpha = 0.3) +
+  geom_line(lwd = 1)+
+  scale_colour_manual(name = NULL, values = col_palette[c(3, 2)])+
+  scale_y_continuous(name = NULL) +
+  scale_x_date(name = NULL)+
+  theme_minimal() +
+  theme(legend.position = "bottom", panel.grid.minor.x = element_blank())
+
+
 
 
 
