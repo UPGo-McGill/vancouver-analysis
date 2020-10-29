@@ -4,9 +4,11 @@
 #' has changed.
 #' 
 #' Output:
-#' - `str_processed.Rdata` (updated)
+#' - `str_processed.qs` (updated)
+#' - `str_bc_processed.qs`
 #' 
 #' Script dependencies:
+#' - `04_str_bc_import.R`
 #' - `08_str_listing_match.R`
 #' 
 #' External dependencies:
@@ -19,7 +21,8 @@ doParallel::registerDoParallel()
 
 # Load previous data ------------------------------------------------------
 
-load("output/str_processed.Rdata")
+qload("output/str_processed.qs", nthreads = availableCores())
+qload("output/str_bc_raw.qs", nthreads = availableCores())
 
 
 # Recalculate active date -------------------------------------------------
@@ -54,6 +57,11 @@ daily <-
 daily <- 
   daily %>% 
   strr_multi(host) %>% 
+  as_tibble()
+
+daily_bc <- 
+  daily_bc %>% 
+  strr_multi(host_bc) %>% 
   as_tibble()
 
 
@@ -119,4 +127,7 @@ rm(GH_daily)
 # Save output -------------------------------------------------------------
 
 qsavem(property, daily, GH, file = "output/str_processed.qs",
+       nthreads = availableCores())
+
+qsavem(property_bc, daily_bc, file = "output/str_bc_processed.qs",
        nthreads = availableCores())

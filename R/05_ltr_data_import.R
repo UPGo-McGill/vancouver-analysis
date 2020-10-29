@@ -4,7 +4,7 @@
 #' needs to be rebuilt from scratch.
 #' 
 #' Output:
-#' - `ltr_raw.Rdata`
+#' - `ltr_raw.qs`
 #' 
 #' Script dependencies:
 #' - None
@@ -18,8 +18,13 @@ source("R/01_startup.R")
 
 # Load and filter data ----------------------------------------------------
 
-kj <- qread("data/ltr/kj.qs") %>% filter(city == "Vancouver")
-cl <- qread("data/ltr/cl.qs") %>% filter(city == "vancouver")
+kj <- 
+  qread("data/ltr/kj.qs", nthreads = availableCores()) %>% 
+  filter(city == "Vancouver")
+
+cl <- 
+  qread("data/ltr/cl.qs", nthreads = availableCores()) %>% 
+  filter(city == "vancouver")
 
 
 # Get geometry from KJ listings -------------------------------------------
@@ -45,19 +50,15 @@ kj_new_geography <-
 if (nrow(kj_new_geography) > 0) {
   
   to_geocode <- kj_new_geography$location %>% unique()
-  
   output <- ggmap::geocode(to_geocode)
-  
-  output <- tibble(location = to_geocode,
-                   lon = output$lon,
-                   lat = output$lat)
+  output <- tibble(location = to_geocode, lon = output$lon, lat = output$lat)
   
   kj_new_geography <- 
     kj_new_geography %>% 
     left_join(output, by = "location")
   
-} else kj_new_geography <- 
-  mutate(kj_new_geography, lon = numeric(), lat = numeric())
+} else kj_new_geography <- mutate(kj_new_geography, lon = numeric(), 
+                                  lat = numeric())
 
 locations_new <- 
   kj_new_geography %>% 
@@ -78,8 +79,7 @@ upgo_disconnect()
 kj <- bind_rows(kj_old_geography, kj_new_geography)
 
 suppressWarnings(rm(processed_addresses, kj_old_geography, kj_new_geography, 
-   rclalq_old_geography, rclalq_new_geography, locations_new, output,
-   to_geocode))
+   locations_new, output, to_geocode))
 
 
 # Clean up KJ file --------------------------------------------------------
@@ -175,6 +175,7 @@ load("output/geometry.Rdata")
 
 ltr <- st_transform(ltr, 32610)
 
+### NEED TO CHECK THIS WHEN FINAL LTR DATA ARRIVES
 ltr <- 
   ltr %>% 
   st_join(LA) #%>% 
