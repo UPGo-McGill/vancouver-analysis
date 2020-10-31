@@ -1,4 +1,4 @@
-#### 09 STR PROCESSING #########################################################
+#### 10 STR PROCESSING #########################################################
 
 #' This script is very time-consuming to run, and should be rerun when STR data 
 #' has changed.

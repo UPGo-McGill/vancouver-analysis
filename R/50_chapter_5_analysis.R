@@ -18,7 +18,7 @@
 source("R/01_startup.R")
 
 qload("output/str_processed.qs", nthreads = availableCores())
-load("output/geometry.Rdata")
+qload("output/geometry.qs", nthreads = availableCores())
 ltr <- qread("output/ltr_processed.qs", nthreads = availableCores())
 qload("output/cmhc.qs", nthreads = availableCores())
 

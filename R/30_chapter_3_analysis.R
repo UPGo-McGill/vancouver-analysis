@@ -245,7 +245,8 @@ city_vacancy %>%
 
 #' [2] Le Sud-Ouest 2019 vacancy
 annual_vacancy %>% 
-  filter(date == 2019, dwelling_type == "Total", bedroom == "Total", quality == "a") %>% # I added quality a, if not we have 2 southeast vancouver
+  # I added quality a, if not we have 2 southeast vancouver
+  filter(date == 2019, dwelling_type == "Total", bedroom == "Total", quality == "a") %>% 
   filter(vacancy <= 0.03)
 
 #' [3] Total rental units in Downtown

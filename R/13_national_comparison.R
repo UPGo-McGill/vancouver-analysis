@@ -1,10 +1,10 @@
-#### 10 NATIONAL COMPARISON ####################################################
+#### 13 NATIONAL COMPARISON ####################################################
 
 #' This script is time-consuming to run, so it should only be rerun when STR 
 #' data needs to be rebuilt from scratch.
 #' 
 #' Output:
-#' - `national_comparison.Rdata`
+#' - `national_comparison.qs`
 #' 
 #' Script dependencies:
 #' - None
@@ -83,6 +83,73 @@ national_comparison <-
   mutate(revenue_per_listing = revenue / active_daily_listings)
 
 
+# Get Montreal and Toronto CMAs -------------------------------------------
+
+CMA_montreal <- 
+  get_census("CA16", list(CMA = "24462"), "CSD", geo_format = "sf") %>% 
+  st_transform(32618)
+
+CMA_toronto <- 
+  get_census("CA16", list(CMA = "35535"), "CSD", geo_format = "sf") %>% 
+  st_transform(32617)
+
+property_montreal <- 
+  property_remote %>% 
+  filter(country == "Canada", region == "Québec") %>% 
+  collect() %>% 
+  strr_as_sf(32618) %>% 
+  st_filter(CMA_montreal)
+
+property_montreal <- 
+  property_montreal %>% 
+  mutate(central = as.logical(st_intersects(
+    geometry, 
+    CMA_montreal[CMA_montreal$name == "Montréal (V)",]$geometry))) %>% 
+  mutate(central = if_else(is.na(central), FALSE, central))
+
+property_toronto <- 
+  property_remote %>% 
+  filter(country == "Canada", region == "Ontario") %>% 
+  collect() %>% 
+  strr_as_sf(32617) %>% 
+  st_filter(CMA_toronto)
+
+property_toronto <- 
+  property_toronto %>% 
+  mutate(central = as.logical(st_intersects(
+    geometry, 
+    CMA_toronto[CMA_toronto$name == "Toronto (CY)",]$geometry))) %>% 
+  mutate(central = if_else(is.na(central), FALSE, central))
+
+daily_montreal <- 
+  daily_remote %>% 
+  filter(property_ID %in% !!property_montreal$property_ID) %>% 
+  collect() %>% 
+  strr_expand()
+
+daily_montreal <- 
+  property_montreal %>% 
+  st_drop_geometry() %>% 
+  select(property_ID, central) %>% 
+  left_join(daily_montreal, .)
+
+daily_toronto <- 
+  daily_remote %>% 
+  filter(property_ID %in% !!property_toronto$property_ID) %>% 
+  collect() %>% 
+  strr_expand()
+
+daily_toronto <- 
+  property_toronto %>% 
+  st_drop_geometry() %>% 
+  select(property_ID, central) %>% 
+  left_join(daily_toronto, .)
+
+
 # Save output -------------------------------------------------------------
 
-save(national_comparison, file = "output/national_comparison.Rdata")
+qsave(national_comparison, file = "output/national_comparison.qs",
+      nthreads = availableCores())
+
+qsavem(property_montreal, property_toronto, daily_montreal, daily_toronto,
+       file = "output/cma_comparison.qs", nthreads = availableCores())

@@ -195,9 +195,9 @@ daily <-
   
 daily_bc <-
   daily_bc %>% 
-  left_join(select(monthly, property_ID, year, month, FREH),
+  left_join(select(monthly_bc, property_ID, year, month, FREH),
             by = c("property_ID", "year", "month")) %>% 
-  left_join(select(model_12_results, property_ID:month, prob = FREH),
+  left_join(select(model_12_results_bc, property_ID:month, prob = FREH),
             by = c("property_ID", "year", "month")) %>% 
   mutate(FREH = case_when(
     !is.na(prob) ~ prob,
@@ -300,7 +300,7 @@ daily <- daily %>% select(-year, -month)
 
 daily_bc <-
   daily_bc %>% 
-  left_join(select(model_3_results, property_ID, year, month, FREH_3),
+  left_join(select(model_3_results_bc, property_ID, year, month, FREH_3),
             by = c("property_ID", "year", "month")) %>% 
   mutate(FREH_3 = if_else(is.na(FREH_3), 0, FREH_3))
 

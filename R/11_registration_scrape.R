@@ -1,39 +1,38 @@
-library(upgo)
-rm(daily, host, exchange_rates)
+#### 11 REGISTRATION SCRAPE ####################################################
+
+#' This script should be rerun when new STR listings are added to the dataset.
+#' 
+#' Output:
+#' - `str_processed.qs` (updated)
+#' 
+#' Script dependencies:
+#' - `10_str_processing.R`
+#' 
+#' External dependencies:
+#' - Access to the UPGo database
+
+source("R/01_startup.R")
 
 
+# Load previous data ------------------------------------------------------
 
-test2 <- 
-  property %>% 
-  slice(1:100) %>% 
-  upgo_scrape_ab_registration(.proxy_list, 10)
+qload("output/str_processed.qs", nthreads = availableCores())
 
-test2 %>% 
-  count(registration)
 
-# test2 %>% 
-property %>% 
-  slice(1:100) %>% 
-  filter(property_ID == "ab-359942")
+# Get existing registration scrapes from server ---------------------------
 
-test3 <- 
-  property %>% 
-  slice(1:100) %>% 
-  upgo_scrape_ab_registration(.proxy_list, 10)
+upgo_connect(registration = TRUE)
 
-test3 %>% 
-  count(registration)
+registration_old <- 
+  registration_remote %>% 
+  filter(property_ID %in% !!property$property_ID) %>% 
+  collect()
 
-registration_1 <- 
-  property %>%
-  slice(1:5000) %>% 
-  upgo_scrape_ab_registration(.proxy_list, 10)
+registration <- registration_old
 
-registration <- registration_1
 
-save(registration, file = "output/registration.Rdata")
+# Scrape new properties ---------------------------------------------------
 
-load("output/registration.Rdata")
 upgo_scrape_connect()
 
 n <- 1
@@ -51,11 +50,40 @@ while (nrow(filter(property, !property_ID %in% registration$property_ID)) > 0 &&
   
   registration <- 
     registration %>% 
-    rbind(new_scrape)
+    bind_rows(new_scrape)
   
-  save(registration, file = "output/registration.Rdata")  
+  qsave(registration, file = "output/registration.qs",
+        nthreads = availableCores())  
   
 }
 
 
+# Add new scrapes to server -----------------------------------------------
 
+registration_new <- 
+  registration %>% 
+  anti_join(registration_old)
+
+RPostgres::dbWriteTable(.con, "registration", registration_new, append = TRUE)
+
+upgo_disconnect()
+
+
+# Add results to property table -------------------------------------------
+
+if (!is.null(property$registration)) property$registration <- NULL
+
+property <- 
+  registration %>% 
+  group_by(property_ID) %>% 
+  filter(date == max(date)) %>% 
+  slice(1) %>% 
+  ungroup() %>% 
+  select(-date) %>% 
+  left_join(property, .)
+
+
+# Save output -------------------------------------------------------------
+
+qsavem(property, daily, GH, file = "output/str_processed.qs",
+       nthreads = availableCores())
