@@ -148,7 +148,7 @@ active_listings_trend %>%
            y = 4850, yend = 4700, curvature = -.2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
   annotate("text", x = as.Date("2019-05-01"), y = 5000,
-           label = "COVID-19 \nAirbnb's response", family = "Futura Condensed")+
+           label = "Regulations", family = "Futura Condensed")+
   geom_ribbon(aes(x = date, ymin = n, ymax = trend, group = 1),
               data = filter(active_listings_trend, !is.na(trend)), fill = col_palette[6], 
               alpha = 0.3) +
