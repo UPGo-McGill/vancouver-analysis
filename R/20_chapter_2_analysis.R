@@ -110,7 +110,7 @@ prettyNum(round(mean(revenue_2019$revenue_LTM), digit = -2), ",")
 
 #' [7] Average revenue per all hosts
 revenue_2019 %>% 
-  # st_drop_geometry() %>% 
+  st_drop_geometry() %>%
   filter(!is.na(host_ID)) %>%
   group_by(host_ID) %>% 
   summarize("host_rev" = sum(revenue_LTM)) %>% 
