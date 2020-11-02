@@ -1,0 +1,13 @@
+---
+title: "Short-term Rentals in Vancouver: Market Overview and Regulatory Impact Analysis"
+author: "David Wachsmuth, Maxime Bélanger De Blois and Cloé St-Hilaire"
+output: bookdown::gitbook
+---
+
+# Executive summary {-}
+
+
+# Table of contents {-}
+
+
+# Introduction {-}
