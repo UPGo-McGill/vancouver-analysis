@@ -50,13 +50,11 @@ host <-
 upgo_disconnect()
 
 
-# Manually fix wonky created dates ----------------------------------------
+# Clip to city boundaries -------------------------------------------------
 
-property <-
+property <- 
   property %>% 
-  mutate(created = if_else(is.na(created), first_active, created),
-         scrpaed = if_else(is.na(scraped), last_active, scraped)) %>% 
-  filter(!is.na(created))
+  st_filter(city)
 
 daily <-
   daily %>% 
@@ -65,6 +63,15 @@ daily <-
 host <- 
   host %>% 
   filter(host_ID %in% property$host_ID)
+
+
+# Manually fix wonky created dates ----------------------------------------
+
+property <-
+  property %>% 
+  mutate(created = if_else(is.na(created), first_active, created),
+         scraped = if_else(is.na(scraped), last_active, scraped)) %>% 
+  filter(!is.na(created))
 
 
 # Manually fix January scraped date issue ---------------------------------
@@ -103,7 +110,7 @@ still_active <- new_scrape %>% filter(!is.na(country))
 property <- 
   property %>% 
   mutate(scraped = if_else(property_ID %in% still_active$property_ID,
-                           as.Date("2020-09-01"), scraped))
+                           as.Date("2020-09-30"), scraped))
 
 # Get inactives
 inactives <-
