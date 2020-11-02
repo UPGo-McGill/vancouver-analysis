@@ -15,7 +15,7 @@
 
 source("R/01_startup.R")
 
-load("output/str_processed.Rdata")
+qload("output/str_processed.qs", nthreads = availableCores())
 load("output/geometry.Rdata")
 load("output/registration.Rdata")
 
@@ -325,3 +325,44 @@ property_lucrativity %>%
   geom_text(aes(registration_analyzed, nights_reserved, label = label), vjust=1.6, color="white")+
   theme_minimal()
 
+### Commercial listings compliance ---------------------------------
+
+commercial_2020 <- 
+daily %>% 
+  filter(date >= "2020-01-01", # because current registration IDs starts at beginning of year
+         FREH_3 >= 0.5 | multi) %>% 
+  pull(property_ID) %>% unique()
+
+conformity_status %>% 
+  filter(property_ID %in% commercial_2020, 
+         active >= max(active, na.rm = T) - days(30),
+         registration_analyzed != "Inactive listing") %>% nrow()
+
+conformity_status %>% 
+  filter(property_ID %in% commercial_2020, 
+         active >= max(active, na.rm = T) - days(30),
+         registration_analyzed != "Inactive listing") %>% nrow()/
+  conformity_status %>% 
+  filter(active >= max(active, na.rm = T) - days(30),
+         registration_analyzed != "Inactive listing") %>% nrow()
+
+conformity_status %>% 
+  st_drop_geometry() %>% 
+  filter(property_ID %in% commercial_2020, 
+         active >= max(active, na.rm = T) - days(30),
+         registration_analyzed != "Inactive listing") %>% 
+  count(registration_analyzed) %>% 
+  mutate(per = n/sum(n))
+
+conformity_status %>% 
+  st_drop_geometry() %>% 
+  filter(property_ID %in% commercial_2020, 
+         active >= max(active, na.rm = T) - days(30),
+         registration_analyzed != "Inactive listing") %>% 
+ggplot()+
+  geom_histogram(stat = "count", aes(registration_analyzed, fill = registration_analyzed))+
+  xlab("")+
+  ylab("Number of listings")+
+  guides(x = guide_axis(angle = 10))+
+  scale_fill_manual(name = "Registration conformity", values = col_palette[c(4,2,3,6)])+
+  theme_minimal()
