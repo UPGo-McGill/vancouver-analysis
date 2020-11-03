@@ -113,7 +113,9 @@ BL <-
       str_glue("{expired_year}-01-01", 
                expired_year = {str_extract(expired, "^\\d{4}")}), 
       substr(issued, 1, 10)),
-    issued = as.Date(issued))
+    issued = as.Date(issued)) %>% 
+  arrange(desc(issued)) %>% 
+  distinct(registration, .keep_all = T)
 
 BL_expanded <- copy(BL)
 
