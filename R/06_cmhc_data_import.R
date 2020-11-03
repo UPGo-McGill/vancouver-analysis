@@ -1,11 +1,11 @@
-#### 05 CMHC DATA IMPORT #######################################################
+#### 06 CMHC DATA IMPORT #######################################################
 
 #' This script should only be rerun when CMHC data needs to be rebuilt from 
 #' scratch. The necessary XLSX files can be downloaded with lines 24-100 of the 
 #' script on first run.
 #' 
 #' Output:
-#' - `cmhc.Rdata`
+#' - `cmhc.qsm`
 #' 
 #' Script dependencies:
 #' - None
@@ -414,5 +414,5 @@ rm(DA_CMA, import_annual_avg_rent, import_annual_units, import_annual_vacancy,
    import_web_table, zones)
 
 qsavem(annual_avg_rent, annual_units, annual_vacancy, 
-       city_avg_rent, city_units, city_vacancy, cmhc, file = "output/cmhc.qs",
+       city_avg_rent, city_units, city_vacancy, cmhc, file = "output/cmhc.qsm",
        nthreads = availableCores())
