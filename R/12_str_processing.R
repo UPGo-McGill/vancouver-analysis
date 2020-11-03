@@ -1,15 +1,15 @@
-#### 10 STR PROCESSING #########################################################
+#### 12 STR PROCESSING #########################################################
 
 #' This script is very time-consuming to run, and should be rerun when STR data 
 #' has changed.
 #' 
 #' Output:
-#' - `str_processed.qs` (updated)
-#' - `str_bc_processed.qs`
+#' - `str_processed.qsm` (updated)
+#' - `str_bc_processed.qsm`
 #' 
 #' Script dependencies:
-#' - `04_str_bc_import.R`
-#' - `08_str_listing_match.R`
+#' - `04_str_bc_data_import.R`
+#' - `11_str_listing_match.R`
 #' 
 #' External dependencies:
 #' - None
@@ -21,8 +21,8 @@ doParallel::registerDoParallel()
 
 # Load previous data ------------------------------------------------------
 
-qload("output/str_processed.qs", nthreads = availableCores())
-qload("output/str_bc_raw.qs", nthreads = availableCores())
+qload("output/str_processed.qsm", nthreads = availableCores())
+qload("output/str_bc_raw.qsm", nthreads = availableCores())
 
 
 # Recalculate active date -------------------------------------------------
@@ -126,8 +126,8 @@ rm(GH_daily)
 
 # Save output -------------------------------------------------------------
 
-qsavem(property, daily, GH, file = "output/str_processed.qs",
+qsavem(property, daily, GH, file = "output/str_processed.qsm",
        nthreads = availableCores())
 
-qsavem(property_bc, daily_bc, file = "output/str_bc_processed.qs",
+qsavem(property_bc, daily_bc, file = "output/str_bc_processed.qsm",
        nthreads = availableCores())

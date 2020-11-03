@@ -1,14 +1,14 @@
-#### 08 STR LISTING MATCH ######################################################
+#### 11 STR LISTING MATCH ######################################################
 
 #' This script is moderately time-consuming to run, and should be rerun when STR 
 #' data or image data has changed.
 #' 
 #' Output:
-#' - `str_processed.Rdata` (updated)
-#' - `ltr_processed.Rdata` (updated)
+#' - `str_processed.qsm` (updated)
+#' - `ltr_processed.qs` (updated)
 #' 
 #' Script dependencies:
-#' - `07_ltr_listing_match.R`
+#' - `10_ltr_listing_match.R`
 #' 
 #' External dependencies:
 #' - None
@@ -18,7 +18,7 @@ source("R/01_startup.R")
 
 # Load previous data ------------------------------------------------------
 
-qload("output/str_processed.qs", nthreads = availableCores())
+qload("output/str_processed.qsm", nthreads = availableCores())
 ltr <- qread("output/ltr_processed.qs", nthreads = availableCores())
 qload("output/matches_processed.qs", nthreads = availableCores())
 dl_location <- "/Volumes/Data 2/Scrape photos/vancouver"

@@ -1,15 +1,15 @@
-#### 11 FREH MODEL #############################################################
+#### 13 FREH MODEL #############################################################
 
 #' This script is moderately time-consuming to run; it should be rerun whenever 
 #' STR data changes.
 #' 
 #' Output:
-#' - `str_processed.qs` (updated)
-#' - `str_bc_processed.qs` (updated)
-#' - `FREH_model.qs`
+#' - `str_processed.qsm` (updated)
+#' - `str_bc_processed.qsm` (updated)
+#' - `FREH_model.qsm`
 #' 
 #' Script dependencies:
-#' - `09_str_processing.R`
+#' - `12_str_processing.R`
 #' 
 #' External dependencies:
 #' - None
@@ -20,11 +20,11 @@ library(caret)
 
 # Load data ---------------------------------------------------------------
 
-qload("output/str_processed.qs", nthreads = availableCores())
-qload("output/str_bc_processed.qs", nthreads = availableCores())
+qload("output/str_processed.qsm", nthreads = availableCores())
+qload("output/str_bc_processed.qsm", nthreads = availableCores())
 
 
-# Prepare daily file ------------------------------------------------------
+# Prepare daily files -----------------------------------------------------
 
 daily <- 
   daily %>% 
@@ -224,7 +224,7 @@ daily_bc <-
 # probabilities_12 <- model_12_test %>% predict(test_data_12, type = "response")
 # predicted_classes_12 <- ifelse(probabilities_12 > 0.5, "TRUE", "FALSE")
 # mean(predicted_classes_12 == test_data_12$FREH)
-# # Outcome: 0.863
+# # Outcome: 0.865
 
 
 # Model based on last 3 months --------------------------------------------
@@ -324,18 +324,18 @@ daily_bc <- daily_bc %>% select(-year, -month)
 # probabilities_3 <- model_3_test %>% predict(test_data_3, type = "response")
 # predicted_classes_3 <- ifelse(probabilities_3 > 0.5, "TRUE", "FALSE")
 # mean(predicted_classes_3 == test_data_3$FREH)
-# # Outcome: 0.844
+# # Outcome: 0.846
 
 
 # Save output -------------------------------------------------------------
 
-qsavem(property, daily, GH, file = "output/str_processed.qs",
+qsavem(property, daily, GH, file = "output/str_processed.qsm",
        nthreads = availableCores())
 
-qsavem(property_bc, daily_bc, file = "output/str_bc_processed.qs",
+qsavem(property_bc, daily_bc, file = "output/str_bc_processed.qsm",
        nthreads = availableCores())
 
 qsavem(FREH, FREH_bc, monthly, monthly_bc, first_year, first_year_bc, model_12, 
        model_12_results, model_12_results_bc, after_one_year, after_one_year_bc,
        model_3, model_3_results, model_3_results_bc, 
-       file = "output/FREH_model.qs", nthreads = availableCores())
+       file = "output/FREH_model.qsm", nthreads = availableCores())
