@@ -3,10 +3,10 @@
 #' This script should be rerun when new STR listings are added to the dataset.
 #' 
 #' Output:
-#' - `str_processed.qs` (updated)
+#' - `str_raw.qsm` (updated)
 #' 
 #' Script dependencies:
-#' - `10_str_processing.R`
+#' - `03_str_data_import.R`
 #' 
 #' External dependencies:
 #' - Access to the UPGo database
@@ -16,7 +16,7 @@ source("R/01_startup.R")
 
 # Load previous data ------------------------------------------------------
 
-qload("output/str_processed.qs", nthreads = availableCores())
+qload("output/str_raw.qsm", nthreads = availableCores())
 
 
 # Get existing registration scrapes from server ---------------------------
@@ -26,7 +26,10 @@ upgo_connect(registration = TRUE)
 registration_old <- 
   registration_remote %>% 
   filter(property_ID %in% !!property$property_ID) %>% 
-  collect()
+  collect() %>% 
+  group_by(property_ID) %>% 
+  filter(date == max(date)) %>% 
+  ungroup()
 
 registration <- registration_old
 
@@ -43,7 +46,8 @@ while (nrow(filter(property, !property_ID %in% registration$property_ID)) > 0 &&
   n <- n + 1
   
   new_scrape <- 
-    property %>% 
+    property %>%
+    st_drop_geometry() %>% 
     filter(!property_ID %in% registration$property_ID) %>% 
     dplyr::slice(1:2000) %>% 
     upgo_scrape_ab_registration(proxies = .proxy_list, cores = 10)
@@ -58,15 +62,58 @@ while (nrow(filter(property, !property_ID %in% registration$property_ID)) > 0 &&
 }
 
 
+# Recheck NA scrapes ------------------------------------------------------
+
+NA_scrapes <- 
+  registration %>% 
+  filter(is.na(registration))
+
+NA_scrapes_checked <- NA_scrapes[0,]
+
+while (nrow(filter(NA_scrapes, 
+                   !property_ID %in% NA_scrapes_checked$property_ID)) > 0 && 
+       n < 20) {
+  
+  n <- n + 1
+  
+  new_scrape <- 
+    NA_scrapes %>%
+    filter(!property_ID %in% NA_scrapes_checked$property_ID) %>% 
+    dplyr::slice(1:2000) %>% 
+    upgo_scrape_ab_registration(proxies = .proxy_list, cores = 10)
+  
+  NA_scrapes_checked <- 
+    NA_scrapes_checked %>% 
+    bind_rows(new_scrape)
+  
+}
+
+
 # Add new scrapes to server -----------------------------------------------
 
 registration_new <- 
   registration %>% 
   anti_join(registration_old)
 
-RPostgres::dbWriteTable(.con, "registration", registration_new, append = TRUE)
+NA_scrapes_new <- 
+  NA_scrapes_checked %>% 
+  anti_join(registration, by = c("property_ID", "date"))
 
-upgo_disconnect()
+RPostgres::dbWriteTable(.con, "registration", registration_new, append = TRUE)
+RPostgres::dbWriteTable(.con, "registration", NA_scrapes_new, append = TRUE)
+
+upgo_scrape_disconnect()
+
+
+# Consolidate output ------------------------------------------------------
+
+registration <- 
+  registration %>% 
+  bind_rows(NA_scrapes_new) %>% 
+  arrange(property_ID, date) %>% 
+  group_by(property_ID) %>% 
+  filter(date == max(date)) %>% 
+  ungroup()
 
 
 # Add results to property table -------------------------------------------
@@ -75,15 +122,11 @@ if (!is.null(property$registration)) property$registration <- NULL
 
 property <- 
   registration %>% 
-  group_by(property_ID) %>% 
-  filter(date == max(date)) %>% 
-  slice(1) %>% 
-  ungroup() %>% 
   select(-date) %>% 
   left_join(property, .)
 
 
 # Save output -------------------------------------------------------------
 
-qsavem(property, daily, GH, file = "output/str_processed.qs",
+qsavem(property, daily, host, exchange_rates, file = "output/str_raw.qsm",
        nthreads = availableCores())

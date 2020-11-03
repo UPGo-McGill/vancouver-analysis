@@ -4,7 +4,7 @@
 #' data needs to be rebuilt from scratch.
 #' 
 #' Output:
-#' - `str_raw.Rdata`
+#' - `str_raw.qsm`
 #' 
 #' Script dependencies:
 #' - `02_geometry_import.R`
@@ -15,6 +15,10 @@
 #'   dates
 
 source("R/01_startup.R")
+
+
+# Load previous data ------------------------------------------------------
+
 qload("output/geometry.qsm", nthreads = availableCores())
 
 
@@ -166,5 +170,5 @@ daily <-
 
 # Save output -------------------------------------------------------------
 
-qsavem(property, daily, host, exchange_rates, file = "output/str_raw.qs",
+qsavem(property, daily, host, exchange_rates, file = "output/str_raw.qsm",
        nthreads = availableCores())
