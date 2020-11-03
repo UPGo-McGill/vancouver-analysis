@@ -1,17 +1,17 @@
-#### 07 LTR LISTING MATCH ######################################################
+#### 10 LTR LISTING MATCH ######################################################
 
 #' This script runs relatively quickly, and should be rerun anytime the raw STR, 
 #' LTR or image matching data changes.
 #' 
 #' Output:
-#' - `str_processed.Rdata`
-#' - `ltr_processed.Rdata`
-#' - `matches_processed.Rdata`
+#' - `str_processed.qsm`
+#' - `ltr_processed.qs`
+#' - `matches_processed.qsm`
 #' 
 #' Script dependencies:
-#' - `03_str_data_import.R`
-#' - `04_ltr_data_import.R`
-#' - `06_image_match.R`
+#' - `07_registration_scrape.R`
+#' - `08_ltr_data_import.R`
+#' - `09_image_match.R`
 #' 
 #' External dependencies:
 #' - None
@@ -21,8 +21,8 @@ source("R/01_startup.R")
 
 # Load previous data ------------------------------------------------------
 
-qload("output/str_raw.qs", nthreads = availableCores())
-load("output/matches_raw.Rdata")
+qload("output/str_raw.qsm", nthreads = availableCores())
+qload("output/matches_raw.qsm", nthreads = availableCores())
 ltr <- qread("output/ltr_raw.qs", nthreads = availableCores())
 dl_location <- "/Volumes/Data 2/Scrape photos/vancouver"
 
@@ -95,9 +95,9 @@ rm(property_nest, ltr_nest)
 
 # Save output -------------------------------------------------------------
 
-qsavem(property, daily, host, file = "output/str_processed.qs",
+qsavem(property, daily, host, file = "output/str_processed.qsm",
        nthreads = availableCores())
 qsave(ltr, file = "output/ltr_processed.qs",
       nthreads = availableCores())
-qsavem(matches, ab_matches, file = "output/matches_processed.qs",
+qsavem(matches, ab_matches, file = "output/matches_processed.qsm",
        nthreads = availableCores())
