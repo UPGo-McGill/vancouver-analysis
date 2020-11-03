@@ -33,6 +33,8 @@ registration_old <-
 
 registration <- registration_old
 
+if (!is.null(property$registration)) property$registration <- NULL
+
 
 # Scrape new properties ---------------------------------------------------
 
@@ -107,7 +109,7 @@ upgo_scrape_disconnect()
 
 # Consolidate output ------------------------------------------------------
 
-registration <- 
+registration_table <- 
   registration %>% 
   bind_rows(NA_scrapes_new) %>% 
   arrange(property_ID, date) %>% 
@@ -115,13 +117,35 @@ registration <-
   filter(date == max(date)) %>% 
   ungroup()
 
+rm(registration)
+
+
+# Clean output ------------------------------------------------------------
+
+registration_table <-
+  registration_table %>%
+  mutate(registration = case_when(
+    is.na(registration) ~ NA_character_,
+    registration == "NO LISTING" ~ "NO LISTING",
+    registration == "HOMEAWAY" ~ "HOMEAWAY",
+    str_detect(registration, '(E|e)xempt') ~ "EXEMPT",
+    {registration %>% 
+        str_remove_all("\\D") %>% 
+        nchar()} == 8L ~ str_remove_all(registration, "\\D"),
+    TRUE ~ "INVALID"
+  )) %>% 
+  mutate(registration = if_else(str_starts(registration, "\\D|18|19|20"),
+                                registration, "INVALID")) %>% 
+  mutate(registration = if_else(str_detect(registration, "[:digit:]"),
+                                paste0(substr(registration, 1, 2), "-",
+                                       substr(registration, 3, 8)),
+                                registration))
+
 
 # Add results to property table -------------------------------------------
 
-if (!is.null(property$registration)) property$registration <- NULL
-
 property <- 
-  registration %>% 
+  registration_table %>% 
   select(-date) %>% 
   left_join(property, .)
 
