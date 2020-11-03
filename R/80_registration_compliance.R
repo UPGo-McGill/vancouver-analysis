@@ -15,8 +15,8 @@
 
 source("R/01_startup.R")
 
-qload("output/str_processed.qs", nthreads = availableCores())
-load("output/geometry.Rdata")
+qload("output/str_processed.qsm", nthreads = availableCores())
+qload("output/geometry.qsm", nthreads = availableCores())
 load("output/registration.Rdata")
 
 
@@ -91,6 +91,7 @@ registration %>%
   mutate(registration = ifelse(!str_detect(registration, "\\d{2}-\\d{6}") &
                                !registration == "NO LISTING" &
                                !registration == "HOMEAWAY" &
+                               !registration == "Exempt" &
                                !is.na(registration), NA, registration))
 
 # Joining data about business licence to registration df
@@ -119,19 +120,21 @@ conformity_status <-
                                         "Conform", registration_analyzed),
          registration_analyzed = ifelse(registration == "NO LISTING", 
                                         "Inactive listing", registration_analyzed),
+         registration_analyzed = ifelse(registration == "Exempt", 
+                                        "Exempt", registration_analyzed),
          registration_analyzed = ifelse(is.na(registration), 
                                         "Operating without licence", registration_analyzed)) 
 
 # Graphing the conformity status of active listings
 conformity_status %>% 
   filter(active >= max(active, na.rm = T) - days(30),
-         registration_analyzed != "Inactive listing") %>%
+         registration_analyzed != "Inactive listing") %>% 
   ggplot()+
   geom_histogram(stat = "count", aes(registration_analyzed, fill = registration_analyzed))+
   xlab("")+
   ylab("Number of listings")+
   guides(x = guide_axis(angle = 10))+
-  scale_fill_manual(name = "Registration conformity", values = col_palette[c(4,2,3,6)])+
+  scale_fill_manual(name = "Registration conformity", values = col_palette[c(4, 1, 2, 3, 6)])+
   theme_minimal()
 
 # percentage of non-conform active listings
@@ -162,7 +165,7 @@ conformity_status %>%
   xlab("")+
   ylab("Number of listings")+
   guides(x = guide_axis(angle = 10))+
-  scale_fill_manual(name = "Registration conformity", values = col_palette[c(4, 2, 3, 6)])+
+  scale_fill_manual(name = "Registration conformity", values = col_palette[c(4, 1, 2, 3, 6)])+
   theme_minimal()
 
 
@@ -236,7 +239,7 @@ property_lucrativity %>%
   ylab("Average daily revenue")+
   ggtitle("Average daily revenue since COVID-19, per registration conformity")+
   guides(x = guide_axis(angle = 10))+
-  scale_fill_manual(name = "Registration conformity", values = col_palette[c(4, 2, 3, 6)])+
+  scale_fill_manual(name = "Registration conformity", values = col_palette[c(4, 1, 2, 3, 6)])+
   geom_text(aes(registration_analyzed, `Revenue per day`, label = label), vjust=1.6, color="white")+
   theme_minimal()
 
@@ -271,7 +274,7 @@ property_lucrativity %>%
   ylab("Average daily revenue ($)")+
   ggtitle("Average daily revenue since regulation, per registration conformity")+
   guides(x = guide_axis(angle = 10))+
-  scale_fill_manual(name = "Registration conformity", values = col_palette[c(4, 2, 3, 6)])+
+  scale_fill_manual(name = "Registration conformity", values = col_palette[c(4, 1, 2, 3, 6)])+
   geom_text(aes(registration_analyzed, `Revenue per day`, label = label), vjust=1.6, color="white")+
   theme_minimal()
 
@@ -296,7 +299,7 @@ property_lucrativity %>%
   ylab("Average nights available (%)")+
   ggtitle("Percentage of nights available since COVID-19, per registration conformity")+
   guides(x = guide_axis(angle = 10))+
-  scale_fill_manual(name = "Registration conformity", values = col_palette[c(4, 2, 3, 6)])+
+  scale_fill_manual(name = "Registration conformity", values = col_palette[c(4, 1, 2, 3, 6)])+
   geom_text(aes(registration_analyzed, nights_available, label = label), vjust=1.6, color="white")+
   theme_minimal()
 
@@ -321,7 +324,7 @@ property_lucrativity %>%
   ylab("Average nights available (%)")+
   ggtitle("Percentage of nights reserved since COVID-19, per registration conformity")+
   guides(x = guide_axis(angle = 10))+
-  scale_fill_manual(name = "Registration conformity", values = col_palette[c(4, 2, 3, 6)])+
+  scale_fill_manual(name = "Registration conformity", values = col_palette[c(4, 1, 2, 3, 6)])+
   geom_text(aes(registration_analyzed, nights_reserved, label = label), vjust=1.6, color="white")+
   theme_minimal()
 
@@ -364,5 +367,5 @@ ggplot()+
   xlab("")+
   ylab("Number of listings")+
   guides(x = guide_axis(angle = 10))+
-  scale_fill_manual(name = "Registration conformity", values = col_palette[c(4,2,3,6)])+
+  scale_fill_manual(name = "Registration conformity", values = col_palette[c(4, 1, 2, 3, 6)])+
   theme_minimal()
