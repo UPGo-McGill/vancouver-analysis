@@ -7,12 +7,16 @@
 #' - `national_comparison.qs`
 #' 
 #' Script dependencies:
-#' - None
+#' - `13_FREH_model.R`
 #' 
 #' External dependencies:
 #' - Access to the UPGo database
 
 source("R/01_startup.R")
+
+# Load data ---------------------------------------------------------------
+
+qload("output/str_processed.qsm", nthreads = availableCores())
 
 
 # Get geometries for 10 biggest cities ------------------------------------
@@ -50,6 +54,21 @@ daily_CA <-
   left_join(select(st_drop_geometry(property_CA), property_ID, country:city))
 
 upgo_disconnect()
+
+
+# Replace Vancouver data with processed results ---------------------------
+
+property <- 
+  property_CA %>% 
+  filter(city != "Vancouver") %>% 
+  rbind(select(st_transform(property, 4326), 
+               -c(GeoUID, area, registration, ltr_ID, active)))
+
+daily_CA <- 
+  daily_CA %>% 
+  filter(city != "Vancouver") %>% 
+  rbind(select(daily, -c(area, multi, GH, FREH, FREH_3))) %>% 
+  filter(date >= "2019-01-01", date <= "2019-12-31")
 
 
 # Calculate figures -------------------------------------------------------
