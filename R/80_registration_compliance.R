@@ -156,6 +156,24 @@ conformity_status %>%
   count(registration_analyzed) %>% 
   mutate(per = n/sum(n))
 
+# How many of the conform listings use a licence used by multiple listings
+conformity_status %>% 
+  st_drop_geometry() %>% 
+  filter(registration_analyzed == "Conform",
+         active >= max(active, na.rm = T) - days(30)) %>% 
+  filter(listing_type == "Entire home/apt") %>% 
+  count(registration) %>% 
+  arrange(desc(n)) %>% 
+  filter(n>1) %>% 
+  summarize(sum(n)) %>% pull() /
+  conformity_status %>% 
+  st_drop_geometry() %>% 
+  filter(registration_analyzed == "Conform",
+         active >= max(active, na.rm = T) - days(30)) %>% 
+  filter(listing_type == "Entire home/apt") %>% 
+  count(registration) %>% 
+  summarize(sum(n)) %>% pull()
+
 
 # Graphing the conformity status of displayed listings
 conformity_status %>% 
@@ -209,6 +227,10 @@ LA %>%
   theme_void()+
   geom_sf_text(aes(label = n), colour = "black")+
   ggtitle("      Percentage of non-conform listings (gradient) and\n      number of non-conform listings (numerical) per local area")
+
+
+
+
 
 
 ### Non-conformity lucrativity ----------------------------------------------
@@ -369,3 +391,99 @@ ggplot()+
   guides(x = guide_axis(angle = 10))+
   scale_fill_manual(name = "Registration conformity", values = col_palette[c(4, 1, 2, 3, 6)])+
   theme_minimal()
+
+
+
+
+
+
+
+
+
+
+### Non-conformity lucrativity table ------------------------------------------
+entire_home_conformity <- 
+  conformity_status %>% 
+  st_drop_geometry() %>% 
+  filter(registration_analyzed != "Inactive listing",
+         active >= max(active, na.rm = T) - days(30)) %>% 
+  filter(listing_type == "Entire home/apt") %>% 
+  select(property_ID, registration_analyzed)
+
+daily_status <- 
+daily %>% 
+  filter(date >= key_date_covid,
+         property_ID %in% property_lucrativity$property_ID) %>%
+  group_by(property_ID) %>% 
+  count(status) %>% 
+  mutate(sum_status = sum(n)) %>% 
+  ungroup() %>% 
+  pivot_wider(id_cols = c("property_ID", "sum_status"), names_from = "status", values_from = "n") %>% 
+  mutate(A = ifelse(is.na(A), 0, A),
+         R = ifelse(is.na(R), 0, R),
+         B = ifelse(is.na(B), 0, B),
+         per_A = A/sum_status,
+         per_R = R/sum_status,
+         per_B = B/sum_status) %>% 
+  select(-sum_status, -A, -R, -B)
+
+conformity_table <- 
+  left_join(entire_home_conformity, daily_status)
+
+revenue_covid <- 
+  daily %>% 
+  filter(status == "R", date >= key_date_covid,
+         property_ID %in% property_lucrativity$property_ID) %>%
+  group_by(property_ID) %>% 
+  summarize(revenue = sum(price)) %>% 
+  left_join(st_drop_geometry(select(conformity_status, property_ID, created))) %>% 
+  mutate(created_or_covid = as.Date(ifelse(created <= key_date_covid, key_date_covid, created), origin = "1970-01-01")) %>% 
+  mutate(revenue = revenue / as.numeric(max(daily$date) - created_or_covid)) %>% 
+  filter(revenue != Inf) %>% 
+  select(property_ID, revenue)
+  
+conformity_table <- 
+left_join(conformity_table, revenue_covid) %>% 
+  mutate(revenue = ifelse(is.na(revenue), 0, revenue))
+
+revenue_regulations <- 
+  daily %>% 
+  filter(status == "R", date >= key_date_regulations,
+         property_ID %in% property_lucrativity$property_ID) %>%
+  group_by(property_ID) %>% 
+  summarize(revenue = sum(price)) %>% 
+  left_join(st_drop_geometry(select(conformity_status, property_ID, created))) %>% 
+  mutate(created_or_regulations = as.Date(ifelse(created <= key_date_regulations, key_date_regulations, created), origin = "1970-01-01")) %>% 
+  mutate(revenue = revenue / as.numeric(max(daily$date) - created_or_regulations)) %>% 
+  filter(revenue != Inf) %>% 
+  select(property_ID, revenue_reg = revenue)
+
+conformity_table <- 
+  left_join(conformity_table, revenue_regulations) %>% 
+  mutate(revenue_reg = ifelse(is.na(revenue_reg), 0, revenue_reg))
+
+non_conform <- 
+conformity_table %>% 
+  filter(registration_analyzed != "Conform", registration_analyzed != "Exempt") %>% 
+  summarize(n = n(), across(per_A:revenue_reg, mean)) %>% 
+  mutate(registration_analyzed = "Non-Conform")
+
+conformity_table <- 
+conformity_table %>% 
+  group_by(registration_analyzed) %>%
+  summarize(n = n(), across(per_A:revenue_reg, mean)) %>% 
+  rbind(non_conform)
+
+
+conformity_table %>% 
+  set_names(c("Conformity status", "Number of listings", "Available", 
+              "Reserved", "Blocked", "Revenue since COVID-19", 
+              "Revenue since regulations")) %>% 
+  gt() %>% 
+  fmt_currency(
+    columns = 6:7,
+    currency = "CAD"
+  ) %>% 
+  fmt_percent(
+    columns = 3:5)
+
