@@ -4,7 +4,7 @@
 #' scratch.
 #' 
 #' Output:
-#' - `geometry.Rdata`
+#' - `geometry.qsm`
 #' 
 #' Script dependencies:
 #' - None
@@ -141,4 +141,4 @@ BL_expanded <-
 # Save output -------------------------------------------------------------
 
 qsavem(province, CMA, DA, city, LA, BL, BL_expanded, skytrain, 
-       file = "output/geometry.qs", nthreads = availableCores())
+       file = "output/geometry.qsm", nthreads = availableCores())

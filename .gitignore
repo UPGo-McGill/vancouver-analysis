@@ -40,11 +40,16 @@ vignettes/*.pdf
 
 # Other
 .DS_Store
+*.Rproj
 
 # Data files
+output/cm*
 output/FREH*
 output/geom*
+output/img*
+output/match*
 output/ltr*
+output/nat*
+output/re*
 output/str*
 data/ltr*
-data/shape

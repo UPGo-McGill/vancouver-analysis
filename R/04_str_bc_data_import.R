@@ -15,7 +15,7 @@
 #'   dates
 
 source("R/01_startup.R")
-qload("output/geometry.qs", nthreads = availableCores())
+qload("output/geometry.qsm", nthreads = availableCores())
 
 
 # Get data ----------------------------------------------------------------
@@ -33,23 +33,20 @@ property_bc <-
 daily_bc <- 
   daily_remote %>% 
   filter(property_ID %in% !!property_bc$property_ID) %>% 
-  collect()
-
-daily_bc <- daily_bc %>% strr_expand()
+  collect() %>% 
+  strr_expand()
 
 daily_inactive_bc <- 
   daily_inactive_remote %>% 
   filter(property_ID %in% !!property_bc$property_ID) %>% 
-  collect()
-
-daily_inactive_bc <- daily_inactive_bc %>% strr_expand()
+  collect() %>% 
+  strr_expand()
 
 host_bc <- 
   host_remote %>% 
   filter(host_ID %in% !!property_bc$host_ID) %>% 
-  collect()
-
-host_bc <- host_bc %>% strr_expand()
+  collect() %>% 
+  strr_expand()
 
 upgo_disconnect()
 
@@ -59,16 +56,8 @@ upgo_disconnect()
 property_bc <- 
   property_bc %>% 
   mutate(created = if_else(is.na(created), first_active, created),
-         scrpaed = if_else(is.na(scraped), last_active, scraped)) %>% 
+         scraped = if_else(is.na(scraped), last_active, scraped)) %>% 
   filter(!is.na(created))
-
-daily_bc <- 
-  daily_bc %>% 
-  filter(property_ID %in% property_bc$property_ID)
-
-host_bc <- 
-  host_bc %>% 
-  filter(host_ID %in% property_bc$host_ID)
 
 
 # Manually fix January scraped date issue ---------------------------------
@@ -100,25 +89,25 @@ property_bc <-
 to_scrape_bc <- jan_fix_bc %>% filter(old_scraped >= "2020-05-01")
 upgo_scrape_connect()
 new_scrape_bc <- 
-  to_scrape_bx %>% upgo_scrape_ab(proxies = .proxy_list, cores = 10)
+  to_scrape_bc %>% upgo_scrape_ab(proxies = .proxy_list, cores = 10)
 upgo_scrape_disconnect()
-still_active_bx <- new_scrape_bc %>% filter(!is.na(country))
+still_active_bc <- new_scrape_bc %>% filter(!is.na(country))
 
 # Update scraped dates for active listings
 property_bc <- 
   property_bc %>% 
-  mutate(scraped = if_else(property_ID %in% still_active_2$property_ID,
-                           as.Date("2020-09-01"), scraped))
+  mutate(scraped = if_else(property_ID %in% still_active_bc$property_ID,
+                           as.Date("2020-09-30"), scraped))
 
 # Get inactives
 inactives_bc <-
-  daily_inactive %>% 
+  daily_inactive_bc %>% 
   filter(property_ID %in% jan_fix_bc$property_ID)
 
 # Add inactive rows to daily file
 daily_bc <- 
   inactives_bc %>% 
-  left_join(select(st_drop_geometry(property), 
+  left_join(select(st_drop_geometry(property_bc), 
                    property_ID, created, scraped)) %>%
   filter(date >= created, date <= scraped) %>%
   select(-created, -scraped) %>% 
@@ -133,13 +122,6 @@ rm(prop_04, jan_fix_bc, to_scrape_bc, new_scrape_bc, still_active_bc,
 exchange_rates <- 
   convert_currency(start_date = min(daily$date), 
                    end_date = max(daily$date))
-
-daily <- 
-  daily %>% 
-  mutate(year_month = substr(date, 1, 7)) %>% 
-  left_join(exchange_rates) %>% 
-  mutate(price = price * exchange_rate) %>% 
-  select(-year_month, -exchange_rate)
 
 daily_bc <- 
   daily_bc %>% 
@@ -160,11 +142,10 @@ DA_CMA <-
   set_names(c("GeoUID", "dwellings", "geometry")) %>% 
   st_set_agr("constant")
 
-# Run raffle to assign a DA to each listing
-property_bc <-
-  property_bc %>% 
-  strr_as_sf(32610) %>% 
-  strr_raffle(DA_CMA, GeoUID, dwellings, seed = 1)
+# # Run raffle to assign a DA to each listing
+# property_bc <-
+#   property_bc %>% 
+#   strr_raffle(DA_CMA, GeoUID, dwellings, seed = 1)
 
 # Add area to property file
 property_bc <-
@@ -182,5 +163,5 @@ daily_bc <-
 
 # Save output -------------------------------------------------------------
 
-qsavem(property_bc, daily_bc, host_bc, file = "output/str_bc_raw.qs",
+qsavem(property_bc, daily_bc, host_bc, file = "output/str_bc_raw.qsm",
        nthreads = availableCores())
