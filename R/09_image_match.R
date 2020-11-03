@@ -1,4 +1,4 @@
-#### 06 IMAGE MATCH ############################################################
+#### 09 IMAGE MATCH ############################################################
 
 #' This script is extremely time-consuming and memory-intensive to run, so it 
 #' should only be rerun when image matching needs to be rebuilt from scratch. In 
@@ -6,13 +6,13 @@
 #' folder, so it requires approximately 50 GB of free storage space.
 #' 
 #' Output:
-#' - `img_sigs.Rdata`
-#' - `matches_raw.Rdata`
-#' - `match_changes.Rdata`
+#' - `img_sigs.qsm`
+#' - `matches_raw.qsm`
+#' - `match_changes.qsm`
 #' 
 #' Script dependencies:
-#' - `03_str_data_import.R`
-#' - `04_ltr_data_import.R`
+#' - `07_registration_scrape.R`
+#' - `08_ltr_data_import.R`
 #' 
 #' External dependencies:
 #' - Access to the UPGo database
@@ -26,9 +26,9 @@ library(furrr)
 
 # Load previous data ------------------------------------------------------
 
-load("output/str_raw.Rdata")
-load("output/ltr_raw.Rdata")
-rm(daily, host)
+qload("output/str_raw.qsm", nthreads = availableCores())
+ltr <- qread("output/ltr_raw.qs", nthreads = availableCores())
+rm(daily, host, exchange_rates)
 
 
 # Specify location on drive to download photos ----------------------------
@@ -36,7 +36,7 @@ rm(daily, host)
 dl_location <- "/Volumes/Data 2/Scrape photos/vancouver"
 
 
-# Get image URLs ----------------------------------------------------------
+# Get AB image URLs -------------------------------------------------------
 
 # Get AB urls
 ab_urls <- 
@@ -55,6 +55,9 @@ ab_paths <-
 
 ab_urls <- ab_urls[!ab_ids %in% ab_paths]
 ab_ids <- ab_ids[!ab_ids %in% ab_paths]
+
+
+# Get KJ image urls -------------------------------------------------------
 
 # Get KJ urls
 kj_urls <-
@@ -76,6 +79,18 @@ kj_ids <-
   ungroup() %>% 
   pull(id)
 
+# Remove already downloaded images
+kj_paths <- 
+  list.files(paste0(dl_location, "/kj")) %>% 
+  str_remove(".(jpg|jpeg|JPG|JPEG)") %>% 
+  str_remove("-[:digit:]$")
+
+kj_urls <- kj_urls[!kj_ids %in% kj_paths]
+kj_ids <- kj_ids[!kj_ids %in% kj_paths]
+
+
+# Get CL image urls -------------------------------------------------------
+
 # Get CL urls
 cl_urls <-
   ltr %>% 
@@ -95,6 +110,15 @@ cl_ids <-
   slice(1) %>% 
   ungroup() %>% 
   pull(id)
+
+# Remove already downloaded images
+cl_paths <- 
+  list.files(paste0(dl_location, "/cl")) %>% 
+  str_remove(".(jpg|jpeg|JPG|JPEG)") %>% 
+  str_remove("-[:digit:]$")
+
+cl_urls <- cl_urls[!cl_ids %in% cl_paths]
+cl_ids <- cl_ids[!cl_ids %in% cl_paths]
 
 rm(property, ltr)
 
@@ -147,26 +171,29 @@ rm(dl_location, ab_urls, ab_ids, cl_urls, cl_ids, kj_urls, kj_ids)
 # Get signatures ----------------------------------------------------------
 
 ab_sigs <- identify_image(ab_paths, batch_size = 1000)
-save(ab_sigs, file = "output/img_sigs.Rdata")
+qsavem(ab_sigs, file = "output/img_sigs.qsm", nthreads = availableCores())
 
 cl_sigs <- identify_image(cl_paths, batch_size = 5000)
 
 cl_sigs_1 <- identify_image(cl_paths[1:100000], batch_size = 5000)
-save(ab_sigs, cl_sigs_1, file = "output/img_sigs.Rdata")
+qsavem(ab_sigs, cl_sigs_1, file = "output/img_sigs.qsm", 
+       nthreads = availableCores())
 
 cl_sigs_2 <- identify_image(cl_paths[100001:200000], batch_size = 5000)
-save(ab_sigs, cl_sigs_1, cl_sigs_2, file = "output/img_sigs.Rdata")
+qsavem(ab_sigs, cl_sigs_1, cl_sigs_2, file = "output/img_sigs.qsm", 
+       nthreads = availableCores())
 
 cl_sigs_3 <- identify_image(cl_paths[200001:300000], batch_size = 5000)
-save(ab_sigs, cl_sigs_1, cl_sigs_2, cl_sigs_3, file = "output/img_sigs.Rdata")
+qsavem(ab_sigs, cl_sigs_1, cl_sigs_2, cl_sigs_3, file = "output/img_sigs.qsm", 
+       nthreads = availableCores())
 
 cl_sigs_4 <- identify_image(cl_paths[300001:400000], batch_size = 5000)
-save(ab_sigs, cl_sigs_1, cl_sigs_2, cl_sigs_3, cl_sigs_4, 
-     file = "output/img_sigs.Rdata")
+qsavem(ab_sigs, cl_sigs_1, cl_sigs_2, cl_sigs_3, cl_sigs_4, 
+       file = "output/img_sigs.qsm", nthreads = availableCores())
 
 cl_sigs_5 <- identify_image(cl_paths[400001:500000], batch_size = 5000)
-save(ab_sigs, cl_sigs_1, cl_sigs_2, cl_sigs_3, cl_sigs_4, cl_sigs_5,
-     file = "output/img_sigs.Rdata")
+qsavem(ab_sigs, cl_sigs_1, cl_sigs_2, cl_sigs_3, cl_sigs_4, cl_sigs_5,
+       file = "output/img_sigs.qsm", nthreads = availableCores())
 
 cl_sigs_6 <- identify_image(cl_paths[500001:596118], batch_size = 5000)
 
@@ -174,12 +201,23 @@ cl_sigs <- new_matchr_sig_list(
   c(unclass(cl_sigs_1), unclass(cl_sigs_2), unclass(cl_sigs_3),
     unclass(cl_sigs_4), unclass(cl_sigs_5), unclass(cl_sigs_6)))
 
-save(ab_sigs, cl_sigs, file = "output/img_sigs.Rdata")
+qsavem(ab_sigs, cl_sigs, file = "output/img_sigs.qsm", 
+       threads = availableCores())
 
 kj_sigs <- identify_image(kj_paths, batch_size = 5000)
-save(ab_sigs, cl_sigs, kj_sigs, file = "output/img_sigs.Rdata")
+qsavem(ab_sigs, cl_sigs, kj_sigs, file = "output/img_sigs.qsm", 
+       nthreads = availableCores())
 
 rm(ab_paths, cl_paths, kj_paths)
+
+
+# Get new signatures if necessary -----------------------------------------
+
+ab_sigs_2 <- 
+  ab_paths[!ab_paths %in% map_chr(ab_sigs, attr, "file")] %>% 
+  identify_image(batch_size = 1000)
+
+ab_sigs <- new_matchr_sig_list(c(unclass(ab_sigs), unclass(ab_sigs_2)))
 
 
 # Match images ------------------------------------------------------------
@@ -205,7 +243,41 @@ cl_changes <- compare_images(cl_matches)
 cl_matches <- integrate_changes(cl_matches, cl_changes)
 
 
+# Do extra matches for update ---------------------------------------------
+
+ab_matrix_2 <- match_signatures(ab_sigs, ab_sigs_2)
+ab_matches_2 <- identify_matches(ab_matrix_2)
+ab_matches_2 <- confirm_matches(ab_matches_2)
+# Temporarily need to remove duplicates!
+ab_matches_2 <- ab_matches_2 %>% filter(x_name != y_name)
+ab_changes_2 <- compare_images(ab_matches_2)
+ab_matches_2 <- integrate_changes(ab_matches_2, ab_changes_2)
+
+ab_matches <- bind_rows(ab_matches, ab_matches_2)
+ab_changes <- bind_rows(ab_changes, ab_changes_2)
+
+kj_matrix_2 <- match_signatures(ab_sigs_2, kj_sigs)
+kj_matches_2 <- identify_matches(kj_matrix_2)
+kj_matches_2 <- confirm_matches(kj_matches_2)
+kj_changes_2 <- compare_images(kj_matches_2)
+kj_matches_2 <- integrate_changes(kj_matches_2, kj_changes_2)
+
+kj_matches <- bind_rows(kj_matches, kj_matches_2)
+kj_changes <- bind_rows(kj_changes, kj_changes_2)
+
+cl_matrix_2 <- match_signatures(ab_sigs_2, cl_sigs)
+cl_matches_2 <- identify_matches(cl_matrix_2)
+cl_matches_2 <- confirm_matches(cl_matches_2)
+cl_changes_2 <- compare_images(cl_matches_2)
+cl_matches_2 <- integrate_changes(cl_matches_2, cl_changes_2)
+
+cl_matches <- bind_rows(cl_matches, cl_matches_2)
+cl_changes <- bind_rows(cl_changes, cl_changes_2)
+
+
 # Save output -------------------------------------------------------------
 
-save(ab_matches, cl_matches, kj_matches, file = "output/matches_raw.Rdata")
-save(ab_changes, cl_changes, kj_changes, file = "output/match_changes.Rdata")
+qsavem(ab_matches, cl_matches, kj_matches, file = "output/matches_raw.qsm",
+       nthreads = availableCores())
+qsavem(ab_changes, cl_changes, kj_changes, file = "output/match_changes.qsm",
+       nthreads = availableCores())

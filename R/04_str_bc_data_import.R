@@ -163,5 +163,5 @@ daily_bc <-
 
 # Save output -------------------------------------------------------------
 
-qsavem(property_bc, daily_bc, host_bc, file = "output/str_bc_raw.qs",
+qsavem(property_bc, daily_bc, host_bc, file = "output/str_bc_raw.qsm",
        nthreads = availableCores())
