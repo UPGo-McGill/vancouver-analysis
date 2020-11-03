@@ -1,4 +1,4 @@
-#### 04 KJ/CL DATA IMPORT ######################################################
+#### 06 LTR DATA IMPORT ########################################################
 
 #' This script should only be rerun when new KJ/CL data arrives or it otherwise
 #' needs to be rebuilt from scratch.
@@ -18,12 +18,10 @@ source("R/01_startup.R")
 
 # Load and filter data ----------------------------------------------------
 
-kj <- 
-  qread("data/ltr/kj.qs", nthreads = availableCores()) %>% 
+kj <- qread("data/ltr/kj.qs", nthreads = availableCores()) %>% 
   filter(city == "Vancouver")
 
-cl <- 
-  qread("data/ltr/cl.qs", nthreads = availableCores()) %>% 
+cl <- qread("data/ltr/cl.qs", nthreads = availableCores()) %>% 
   filter(city == "vancouver")
 
 
@@ -171,24 +169,22 @@ rm(kj, cl)
 
 # Add geometry ------------------------------------------------------------
 
-load("output/geometry.Rdata")
+qload("output/geometry.qsm", nthreads = availableCores())
 
 ltr <- st_transform(ltr, 32610)
 
-### NEED TO CHECK THIS WHEN FINAL LTR DATA ARRIVES
 ltr <- 
   ltr %>% 
-  st_join(LA) #%>% 
-  #select(-dwellings)
+  st_join(LA) %>% 
+  select(-dwellings)
 
 ltr <-
   ltr %>% 
   st_join(DA) %>% 
   as_tibble() %>% 
-  st_as_sf() #%>% 
-  #select(-CMA_UID, -population)
+  st_as_sf()
 
-rm(LA, LA_raw, city, DA, province)
+rm(BL, BL_expanded, city, CMA, DA, LA, province, skytrain)
 
 
 # Save output -------------------------------------------------------------

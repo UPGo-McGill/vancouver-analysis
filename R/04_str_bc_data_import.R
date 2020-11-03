@@ -15,7 +15,7 @@
 #'   dates
 
 source("R/01_startup.R")
-qload("output/geometry.qs", nthreads = availableCores())
+qload("output/geometry.qsm", nthreads = availableCores())
 
 
 # Get data ----------------------------------------------------------------
