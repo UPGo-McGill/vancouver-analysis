@@ -309,6 +309,12 @@ rent_increase %>%
   {. - 1} %>% 
   round(3)
 
+# Or this way? TKTK
+rent_increase %>% 
+  filter(!is.na(rent_increase)) %>% 
+  summarize(total = prod(1 + rent_increase)) %>% 
+  pull(total)
+
 #' [2] Average rent increase
 city_avg_rent %>% 
   filter(bedroom == "Total") %>% 

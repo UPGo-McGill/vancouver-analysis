@@ -3,11 +3,11 @@
 #' This script is fast to run; it should be rerun whenever STR data changes.
 
 #' Output:
-#' - `rent_increases.Rdata`
+#' - `rent_increases.qsm`
 #' 
 #' Script dependencies:
-#' - `05_cmhc_data_import.R`
-#' - `09_str_processing.R`
+#' - `06_cmhc_data_import.R`
+#' - `12_str_processing.R`
 #' 
 #' External dependencies:
 #' - None
@@ -17,8 +17,8 @@ source("R/01_startup.R")
 
 # Load data ---------------------------------------------------------------
 
-qload("output/cmhc.qs", nthreads = availableCores())
-qload("output/str_processed.qs", nthreads = availableCores())
+qload("output/cmhc.qsm", nthreads = availableCores())
+qload("output/str_processed.qsm", nthreads = availableCores())
 
 # The magic value derived from Barron et al.
 magic_value <- 0.00651547619
@@ -26,8 +26,7 @@ magic_value <- 0.00651547619
 
 # Table for entire city ---------------------------------------------------
 
-# Calculate rent increase as the magic number * the proportion of total listings
-# created in a given year
+# Calculate rent increase as magic value * % total listings created in a year
 rent_increase <-
   property %>% 
   st_drop_geometry() %>% 
@@ -43,12 +42,6 @@ rent_increase <-
       magic_value * .x[length(.x)] / sum(.x[-length(.x)])}, .before = n() - 1),
     rent_increase = if_else(is.infinite(rent_increase), NA_real_, rent_increase)
     )
-
-# Cumulative rent increase, 2016-2019
-rent_increase %>% 
-  filter(!is.na(rent_increase)) %>% 
-  summarize(total = prod(1 + rent_increase)) %>% 
-  pull(total)
 
 
 # Table for CMHC zones ----------------------------------------------------
@@ -75,6 +68,5 @@ rent_increase_zone <-
 
 # Save output -------------------------------------------------------------
 
-rm(magic_value)
-qsavem(rent_increase, rent_increase_zone, file = "output/rent_increases.qs",
+qsavem(rent_increase, rent_increase_zone, file = "output/rent_increases.qsm",
        nthreads = availableCores())
