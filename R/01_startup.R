@@ -30,7 +30,8 @@ library(qs)
 
 # Set global variables ----------------------------------------------------
 
-if (Sys.info()["sysname"] != "Windows") {plan(multiprocess)}
+if (Sys.info()["sysname"] != "Windows") plan(multicore, 
+                                             workers = availableCores())
 key_date_covid <- as.Date("2020-03-14")
 key_date_regulations <- as.Date("2018-08-23")
 LTM_start_date <- as.Date("2019-01-01")

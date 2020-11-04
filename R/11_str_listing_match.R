@@ -14,6 +14,7 @@
 #' - None
 
 source("R/01_startup.R")
+library(furrr)
 
 
 # Load previous data ------------------------------------------------------
@@ -111,6 +112,7 @@ property <-
   filter(status != "B") %>% 
   group_by(property_ID) %>% 
   filter(date == max(date)) %>% 
+  slice(1) %>% 
   ungroup() %>% 
   select(property_ID, active = date) %>% 
   left_join(property, .) %>% 
@@ -203,18 +205,19 @@ property_map <-
 
 ltr <- 
   ltr %>% 
-  mutate(property_ID = map(property_ID, ~{
-    tibble(all_PIDs = .x) %>% 
-      left_join(property_map, by = "all_PIDs") %>% 
-      mutate(property_ID = if_else(is.na(property_ID), all_PIDs, 
-                                   property_ID)) %>% 
-      pull(property_ID) %>% 
-      unique()
-  }))
+  mutate(property_ID = 
+           future_map(property_ID, ~{
+             tibble(all_PIDs = .x) %>% 
+               left_join(property_map, by = "all_PIDs") %>% 
+               mutate(property_ID = if_else(is.na(property_ID), all_PIDs, 
+                                            property_ID)) %>% 
+               pull(property_ID) %>% 
+               unique()
+             }, .progress = TRUE))
 
 
 # Save output -------------------------------------------------------------
 
-qsavem(property, daily, host, file = "output/str_processed.qs",
+qsavem(property, daily, host, file = "output/str_processed.qsm",
        nthreads = availableCores())
 qsave(ltr, file = "output/ltr_processed.qs", nthreads = availableCores())
