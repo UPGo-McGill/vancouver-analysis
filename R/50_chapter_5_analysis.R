@@ -17,10 +17,10 @@
 
 source("R/01_startup.R")
 
-qload("output/str_processed.qs", nthreads = availableCores())
-qload("output/geometry.qs", nthreads = availableCores())
+qload("output/str_processed.qsm", nthreads = availableCores())
+qload("output/geometry.qsm", nthreads = availableCores())
 ltr <- qread("output/ltr_processed.qs", nthreads = availableCores())
-qload("output/cmhc.qs", nthreads = availableCores())
+qload("output/cmhc.qsm", nthreads = availableCores())
 
 
 # Prepare new objects -----------------------------------------------------
