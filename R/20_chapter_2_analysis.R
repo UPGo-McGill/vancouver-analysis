@@ -16,11 +16,10 @@
 
 source("R/01_startup.R")
 
-qload("output/str_processed.qs", nthreads = availableCores())
+qload("output/str_processed.qsm", nthreads = availableCores())
 load("output/national_comparison.Rdata")
-load("output/geometry.Rdata")
-qload("output/FREH_model.qs", nthreads = availableCores())
-# load("output/condo_analysis.Rdata")
+qload("output/geometry.qsm", nthreads = availableCores())
+qload("output/FREH_model.qsm", nthreads = availableCores())
 
 
 # Prepare new objects -----------------------------------------------------
@@ -298,7 +297,7 @@ LA_breakdown <-
 
 LA_breakdown %>% 
   arrange(desc(active_listings)) %>% 
-  ggplot()+
+  ggplot() +
   geom_line(aes(active_listings, active_growth))
 
 #' STR activity in Vancouver is mostly concentrated in the area of Downtown (Table 2.2). 
@@ -314,7 +313,7 @@ LA_breakdown %>%
 
 #' [1] Figures for Downtown
 LA_breakdown %>% 
-  slice(c(2))
+  slice(2)
 
 #' [2] Figures for Kitsilano and West End
 LA_breakdown %>% 

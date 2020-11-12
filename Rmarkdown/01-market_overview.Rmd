@@ -15,28 +15,34 @@ output:
 }
 </style>
 
+<br>
+
 ---
 
-# Short-term rentals in the City of Vancouver: Market overview and housing impacts
+# Short-term rentals in the City of Vancouver: Market overview
 
 ```{r setup, include = FALSE, echo = FALSE}
+
+library(here)
+source(here("R", "01_startup.R"))
 
 knitr::opts_chunk$set(echo = FALSE)
 knitr::opts_chunk$set(include = FALSE)
 knitr::opts_chunk$set(message = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
 
-library(here)
-source(here("R", "01_startup.R"))
+# Function for checking file modifications
+mtime <- function(files) lapply(Sys.glob(files), function(x) file.info(x)$mtime)
 
 # Set this to TRUE to output PDF figures
 build_figures <- TRUE
 
 ```
 
-```{r new_objects, cache = TRUE, cache.lazy = FALSE}
+```{r new_objects, cache = TRUE, cache.lazy = FALSE, cache.extra = mtime(here("output", "str_processed.qsm"))}
 
 qload(here("output", "str_processed.qsm"), nthreads = availableCores())
+qload(here("output", "geometry.qsm"), nthreads = availableCores())
 
 # 2019 active
 active_2019 <- 
@@ -88,11 +94,60 @@ daily_variation <-
   ungroup() %>% 
   filter(date >= "2017-05-01")
 
-rm(property, daily, GH)
+# LA breakdown
+LA_breakdown <- 
+  daily %>% 
+  filter(housing, status != "B", date >= LTM_start_date - years(1), 
+         date <= LTM_end_date) %>% 
+  group_by(date, area) %>% 
+  summarize(n = n(),
+            revenue = sum(price[status == "R"])) %>% 
+  left_join(st_drop_geometry(LA)) %>% 
+  group_by(area, dwellings) %>% 
+  summarize(active_listings = mean(n[date >= LTM_start_date]),
+            active_2018 = mean(n[date < LTM_start_date]),
+            active_growth = (active_listings - active_2018) / active_2018,
+            annual_rev = sum(revenue[date >= LTM_start_date]),
+            rev_2018 = sum(revenue[date < LTM_start_date]),
+            rev_growth = (annual_rev - rev_2018) / rev_2018,
+            .groups = "drop") %>% 
+  mutate(listings_pct = active_listings / sum(active_listings, na.rm = TRUE),
+         listings_pct_dwellings = active_listings / dwellings,
+         rev_pct = annual_rev / sum(annual_rev)) %>% 
+  select(area, active_listings, active_growth, listings_pct,
+         listings_pct_dwellings, annual_rev, rev_pct, rev_growth)
+
+# Active listings by LA
+active_area <-
+  daily %>%
+  filter(housing, status != "B", date >= LTM_start_date, 
+         date <= LTM_end_date) %>%
+  count(area, date) %>% 
+  group_by(area) %>% 
+  summarize(n = mean(n, na.rm = TRUE)) %>%
+  left_join(LA, .) %>% 
+  mutate(percentage = n / dwellings, n = round(n, digit = -1)) %>% 
+  select(area, n, dwellings, percentage)
+
+# Active listings by DA
+active_DA <-
+  daily %>%
+  filter(housing, status != "B", date >= LTM_start_date,
+         date <= LTM_end_date) %>%
+  left_join(select(st_drop_geometry(property), property_ID, GeoUID)) %>% 
+  count(GeoUID, date) %>% 
+  group_by(GeoUID) %>% 
+  summarize(n = mean(n, na.rm = TRUE)) %>%
+  left_join(DA, .) %>% 
+  mutate(percentage = n / dwellings, n = round(n, digit = -1),
+         percentage = if_else(dwellings <= 4, NA_real_, percentage)) %>% 
+  relocate(geometry, .after = last_col())
+
+rm(property, daily, GH, CMA, DA, city, BL, BL_expanded, skytrain)
 
 ```
 
-```{r exec_summ, cache = TRUE, cache.lazy = FALSE}
+```{r exec_summ, cache = TRUE, cache.lazy = FALSE, cache.extra = mtime(here("output", "str_processed.qsm"))}
 
 qload(here("output", "str_processed.qsm"), nthreads = availableCores())
 
@@ -123,11 +178,11 @@ rm(property, daily, GH)
 
 **There were `r avg_listings_active` active STR listings in Vancouver housing units in 2019, which collectively earned `r annual_rev`.**
 
----
+<br>
 
 ## Active daily listings and annual revenue
 
-```{r para_1, cache = TRUE, cache.lazy = FALSE}
+```{r para_1, cache = TRUE, cache.lazy = FALSE, cache.extra = mtime(here("output", "str_processed.qsm"))}
 
 qload(here("output", "str_processed.qsm"), nthreads = availableCores())
 
@@ -215,7 +270,7 @@ figure_1_1_fun <- function(regular = "", condensed = "") {
            arrow = arrow(length = unit(0.05, "inches"))) +
   annotate("text", x = as.Date("2018-02-01"), y = 5200,
            label = "Regulations", family = condensed)+
-  geom_line() +
+  geom_line(na.rm = TRUE) +
   scale_y_continuous(name = NULL, label = scales::comma) +
   scale_x_date(name = NULL, limits = c(as.Date("2016-01-01"), NA)) +
   scale_colour_manual(name = NULL, values = col_palette[c(5, 1:3)],
@@ -249,7 +304,7 @@ figure_1_1_fun()
 
 (ref:fig-1-1) _Active daily STRs in the City of Vancouver (7-day average)_
 
-``` {r para_2, cache = TRUE, cache.lazy = FALSE}
+``` {r para_2, cache = TRUE, cache.lazy = FALSE, cache.extra = mtime(here("output", "str_processed.qsm"))}
 
 qload(here("output", "str_processed.qsm"), nthreads = availableCores())
 
@@ -277,7 +332,7 @@ avg_revenue_all_hosts <-
   pull(avg_host_rev) %>% 
   paste0("$", .)
 
-#' [8] Non-housing active listings
+# Non-housing active listings
 non_housing_listings <- 
   daily %>% 
   filter(!housing, status != "B", date >= LTM_start_date, 
@@ -293,7 +348,7 @@ rm(property, daily, GH)
 
 There was also a daily average of `r avg_listings_blocked` listings which were visible on the Airbnb and VRBO websites but were blocked by the host from receiving reservations. The presence of these listings can erroneously suggest that a city’s STR market is larger than it is. When these blocked but inactive listings are included, the average listing earned `r avg_revenue_all_listings` last year, and the average host earned `r avg_revenue_all_hosts`. Finally, there was a daily average of `r non_housing_listings` listings that were not located in private housing units (B&Bs, hotels, etc.), which have been excluded from the analysis in this report. All the figures which follow, therefore, pertain to short-term rentals located in Vancouver’s traditional residential housing stock.
 
-``` {r para_3, cache = TRUE, cache.lazy = FALSE}
+``` {r para_3, cache = TRUE, cache.lazy = FALSE, cache.extra = mtime(here("output", "str_processed.qsm"))}
 
 qload(here("output", "str_processed.qsm"), nthreads = availableCores())
 
@@ -341,11 +396,12 @@ rm(property, daily, GH)
 Active daily listings peaked in `r highest_activity_date` at `r highest_activity_amount`, and have since declined. There were  `r active_yoy_listings` fewer listings active on average in 2019 than in 2018. However, host revenue followed the opposite pattern, increasing by `r active_yoy_revenue` between 2018 and 2019. The regulations succeeded in reducing the number of active listings, however listings which remained on the platforms are earning a slightly higher revenue than during the previous year.
 
 In general, the number of STR listings available in the City of Vancouver peaks during late summer and winter holidays and falling in between these periods (Figure \@ref(fig:fig-1-1)). There are two major exceptions to this pattern: the sharp drop in activity in the second half of 2018 after the City's STR regulations began to be enforced, and the March to September 2020 period, where activity has been sharply below the seasonal trend because of the Covid-19 pandemic.
-
+  
+<br>
 
 ## STR growth rates
 
-``` {r make_fig_1_2, cache = TRUE, cache.lazy = FALSE}
+``` {r make_fig_1_2}
 
 figure_1_2_fun <- function(regular = "", condensed = "") {
   
@@ -356,7 +412,7 @@ figure_1_2_fun <- function(regular = "", condensed = "") {
            y = -Inf, yend = Inf, alpha = 0.3) +
   annotate("segment", x = key_date_regulations, xend = key_date_regulations,
            y = -Inf, yend = Inf, alpha = 0.3) +
-  geom_line(lwd = 1) +
+  geom_line(lwd = 1, na.rm = TRUE) +
   scale_x_date(name = NULL) +
   scale_y_continuous(name = NULL, limits = c(-1, NA), 
                      labels = scales::percent) +
@@ -388,7 +444,7 @@ figure_1_2_fun()
 (ref:fig-1-2) _Change in daily active listings and host revenue compared to one year earlier (14-day average)_
 
 
-``` {r para_4, cache = TRUE, cache.lazy = FALSE}
+``` {r para_4, cache = TRUE, cache.lazy = FALSE, cache.extra = mtime(here("output", "str_processed.qsm"))}
 
 qload(here("output", "str_processed.qsm"), nthreads = availableCores())
 
@@ -451,7 +507,7 @@ rm(property, daily, GH)
 
 Overall, the year-over-year change in average active listings from 2016 to 2017 (12 months) was `r listing_growth_2017`, the year-over-year change from 2017 to 2018 was `r listing_growth_2018`, and the year-over-year change from 2018 to 2019 was `r listing_growth_2019`. In 2020, active listings fell faster thanks to the Covid-19 pandemic. The year-over-year change in active daily listings for 2020 so far (January to `r end_month`) is `r listing_growth_2020`.
 
-``` {r para_5, cache = TRUE, cache.lazy = FALSE}
+``` {r para_5, cache = TRUE, cache.lazy = FALSE, cache.extra = mtime(here("output", "str_processed.qsm"))}
 
 qload(here("output", "str_processed.qsm"), nthreads = availableCores())
 
@@ -498,34 +554,365 @@ rm(property, daily, GH)
 
 The growth rate of reservations and host revenue tells a different story. Despite there being fewer active listings in 2019 than in 2018, the number of reserved nights increased by `r reservation_change_2019`, from `r reservation_count_2019[1]` reserved nights to `r reservation_count_2019[2]` reserved nights, while revenue increased `r active_yoy_revenue`. Due to the Covid-19 pandemic, revenue from January to `r end_month` 2020 is down `r active_yoy_revenue_2020` compared to the same time last year.
 
-Until mid-2018, when the City's STR regulations came into effect, the growth rate of active listings was always positive but weaker than revenue growth, which implies that both total listings and revenue per listing were growing. Both indicates fell sharply through the second half of 2018, and in fact became negative. STR listing and revenue growth resumed in Fall 2019, and revenue growth in particular reached record highs in late 2019 and early 2020, until the Covid-19 pandemic caused both listing and revenue growth to collapse. Neither has yet recovered.
+Until mid-2018, when the City's STR regulations came into effect, the growth rate of active listings was always positive but weaker than revenue growth, which indicates that both total listings and revenue per listing were growing. Both rates fell sharply through the second half of 2018, and in fact became negative, as the City's regulations reduced the size of Vancouver's STR market. STR listing and revenue growth resumed in Fall 2019, and revenue growth in particular reached record highs in late 2019 and early 2020, until the Covid-19 pandemic caused both listing and revenue growth to collapse. Neither has yet recovered.
+  
+<br>
 
 ## Vancouver in comparison with other major Canadian cities
 
-In 2019, Vancouver had the third largest STR market in the country by both active listing numbers (`r avg_listings_active`) and host revenue (`r annual_rev`), falling in both cases behind Toronto and Vancouver (Table \@ref(tab:tab-1)). However, in relative terms, Vancouver stands considerably ahead of both Vancouver and Toronto. Vancouver had the most active listings per 1000 households (12.7 compared to 10.7 in Vancouver) and the most revenue per listing ($38,700 compared to $27,200 in Toronto).
+``` {r para_6, cache = TRUE, cache.lazy = FALSE, cache.extra = mtime(here("output", "national_comparison.qs"))}
 
-``` {r tab-1, include = TRUE}
+national_comparison <- qread(here("output", "national_comparison.qs"),
+                             nthreads = availableCores())
 
-load(here("output", "national_comparison.Rdata"))
+van_active_per_1000 <- 
+  national_comparison %>% 
+  filter(city == "Vancouver") %>% 
+  pull(listings_per_1000) %>% 
+  round(1) %>% 
+  prettyNum(",")
 
-national_comparison %>% 
-  mutate(active_daily_listings = prettyNum(round(active_daily_listings, -1), ","),
-         listings_per_1000 = round(listings_per_1000, 1),
-         revenue = scales::dollar(revenue, 0.1, 1/1000000),
-         revenue_per_listing = scales::dollar(revenue_per_listing, 100)) %>% 
-  set_names(c("City", "Active listings", "Listings per 1000 households",
-              "Annual revenue (million)", "Revenue per listing")) %>% 
-  knitr::kable(
-    caption = "2019 STR activity in the largest ten Canadian municipalities"
-  )
-  
+mtl_active_per_1000 <- 
+  national_comparison %>% 
+  filter(city == "Montreal") %>% 
+  pull(listings_per_1000) %>% 
+  round(1) %>% 
+  prettyNum(",")
+
+van_rev_per_listing <- 
+  national_comparison %>% 
+  filter(city == "Vancouver") %>% 
+  pull(revenue_per_listing) %>% 
+  round(-2) %>% 
+  scales::dollar()
+
+to_rev_per_listing <- 
+  national_comparison %>% 
+  filter(city == "Toronto") %>% 
+  pull(revenue_per_listing) %>% 
+  round(-2) %>% 
+  scales::dollar()
 
 ```
 
+In 2019, Vancouver had the third largest STR market in the country by both active listing numbers (`r avg_listings_active`) and host revenue (`r annual_rev`), falling in both cases behind Toronto and Montreal (Table \@ref(tab:tab-1-1)). However, in relative terms, Vancouver stands considerably ahead of both Montreal and Toronto. Vancouver had the most active listings per 1000 households (`r van_active_per_1000` compared to `r mtl_active_per_1000` in Montreal) and the most revenue per listing (`r van_rev_per_listing` compared to `r to_rev_per_listing` in Toronto).
+
+``` {r tab-1-1, include = TRUE}
+
+library(kableExtra)
+
+national_comparison <- qread(here("output", "national_comparison.qs"),
+                             nthreads = availableCores())
+
+national_comparison %>% 
+  transmute(
+    city, 
+    active_daily_listings = prettyNum(round(active_daily_listings, -1), ","),
+    listings_per_1000 = round(listings_per_1000, 1),
+    revenue = scales::dollar(revenue, 0.1, 1/1000000),
+    revenue_per_listing = scales::dollar(revenue_per_listing, 100)) %>% 
+  set_names(c("City", "Active listings", "Listings per 1000 households",
+              "Annual revenue (million)", "Revenue per listing")) %>% 
+  kbl(caption = "2019 STR activity in the largest ten Canadian municipalities",
+      align = "lrrrr") %>%
+  kable_styling() %>%
+  row_spec(9, background = paste0(col_palette[2], "50"))
+  
+```
+
+<br>
+
 ## Location of STR listings and revenue
 
-STR activity in Vancouver is mostly concentrated in the area of Downtown (Table 2.2). This area accounts for 25.4% of all listings in 2019, and even higher shares of host revenue (32.8%). The area with the next highest percentage of average number of daily active listings is Kitsilano (7.9%), followed by West End (6.7%). The former accounts for 8.9% of annual STR revenue in the city and the latter 7.7%.
+``` {r para_7}
 
-When measured in per-capita terms, areas are fairly distributed. Downtown is showing the highest figure of active STR listings on total housing units at 2.5%. At second place, active STR listings account for 2.3% of Riley Park’s housing units, while all the other area’s figures are under 2%.
+downtown_listing_pct <- 
+  LA_breakdown %>% 
+  filter(area == "Downtown") %>% 
+  pull(listings_pct) %>% 
+  scales::percent(0.1)
 
-While current STR activity is more concentrated Downtown, new STR growth is occurring in other areas. In Table 2.2, entries are orange if the area's value is higher than the Vancouver average, and blue if it is lower. The table reveals an overall inverse relationship between current STR activity and growth trends; while for example Downtown accounts for most existing listings and revenue, both listing and revenue growth is substantially higher in the farther areas (Marpole and Dunbar-Southlands for example). This pattern points to an ongoing decentralization of STR activity in Vancouver. 
+downtown_rev_pct <- 
+  LA_breakdown %>% 
+  filter(area == "Downtown") %>% 
+  pull(rev_pct) %>% 
+  scales::percent(0.1)
+
+kits_listing_pct <- 
+  LA_breakdown %>% 
+  filter(area == "Kitsilano") %>% 
+  pull(listings_pct) %>% 
+  scales::percent(0.1)
+
+kits_rev_pct <- 
+  LA_breakdown %>% 
+  filter(area == "Kitsilano") %>% 
+  pull(rev_pct) %>% 
+  scales::percent(0.1)
+
+west_listing_pct <- 
+  LA_breakdown %>% 
+  filter(area == "West End") %>% 
+  pull(listings_pct) %>% 
+  scales::percent(0.1)
+
+west_rev_pct <- 
+  LA_breakdown %>% 
+  filter(area == "West End") %>% 
+  pull(rev_pct) %>% 
+  scales::percent(0.1)
+
+downtown_per_cap <- 
+  LA_breakdown %>% 
+  filter(area == "Downtown") %>% 
+  pull(listings_pct) %>% 
+  scales::percent(0.1)
+
+riley_per_cap <- 
+  LA_breakdown %>% 
+  filter(area == "Riley Park") %>% 
+  pull(listings_pct) %>% 
+  scales::percent(0.1)
+
+min_per_cap <- 
+  LA_breakdown %>% 
+  filter(active_listings > 100) %>% 
+  pull(listings_pct) %>% 
+  min() %>% 
+  scales::percent(0.1)
+
+max_per_cap <- 
+  LA_breakdown %>% 
+  filter(active_listings > 100, 
+         !active_listings %in% c("Downtown", "Riley Park")) %>% 
+  pull(listings_pct) %>% 
+  max() %>% 
+  scales::percent(0.1)
+
+```
+
+``` {r make_fig_1_3}
+
+figure_1_3_fun <- function(regular = "", condensed = "") {
+  
+  left_map <- 
+    active_area %>% 
+    ggplot() +
+    geom_sf(data = province, colour = "transparent", fill = "grey93") +
+    geom_sf(aes(fill = percentage), colour = "white") +
+    scale_fill_gradientn(colors = col_palette[c(5, 3, 1)], na.value = "grey80",
+                         limits = c(0, 0.05), oob = scales::squish, 
+                         labels = scales::percent)  +
+    guides(fill = guide_colourbar(title = "STRs/\ndwelling",
+                                  title.vjust = 1)) + 
+    gg_bbox(active_area) +
+    theme_void() +
+    theme(text = element_text(family = regular, face = "plain"),
+          legend.title = element_text(family = regular, face = "bold",
+                                      size = 7),
+          legend.title.align = 0.9,
+          legend.text = element_text(family = regular, size = 5),
+          panel.border = element_rect(colour = "white", size = 2))
+  
+  right_map <- 
+    active_DA %>% 
+    ggplot() +
+    geom_sf(data = province, colour = "transparent", fill = "grey93") +
+    geom_sf(aes(fill = percentage), colour = "transparent") +
+    scale_fill_gradientn(colors = col_palette[c(5, 3, 1)], na.value = "grey80",
+                         limits = c(0, 0.05), oob = scales::squish, 
+                         labels = scales::percent)  +
+    guides(fill = guide_colourbar(title = "STRs/\ndwelling",
+                                  title.vjust = 1)) + 
+    gg_bbox(active_DA) +
+    theme_void() +
+    theme(text = element_text(family = regular, face = "plain"),
+          legend.title = element_text(family = regular, face = "bold",
+                                      size = 7),
+          legend.title.align = 0.9,
+          legend.text = element_text(family = regular, size = 5),
+          panel.border = element_rect(colour = "white", size = 2))
+  
+  left_map + right_map + plot_layout(guide = "collect") & 
+    theme(legend.position = "bottom", legend.key.width = unit(1.8, "lines"))
+
+}
+
+if (build_figures) {
+  ggsave(here("output", "figures", "figure_1_3.pdf"), 
+         plot = figure_1_3_fun("Futura", "Futura Condensed"), 
+         width = 8, height = 4.2, units = "in", useDingbats = FALSE)
+  
+  extrafont::embed_fonts(here("output", "figures", "figure_1_3.pdf"))
+}
+
+```
+
+STR activity in Vancouver is highly concentrated in the Downtown (Figure \@ref(fig:fig-1-3)). This area accounts for `r downtown_listing_pct` of all listings in 2019, and an even higher share of host revenue (`r downtown_rev_pct`). Downtown is followed by Kitsilano (`r kits_listing_pct` of active listings and `r kits_rev_pct` of revenue) and the West End (`r west_listing_pct` of active listings and `r west_rev_pct` of revenue). When measured in per-capita terms, Downtown and Riley Park have the highest concentrations of STRs, at `r downtown_per_cap` and `r riley_per_cap` respectively. In all other areas STRs account for between `r min_per_cap` and `r max_per_cap` of total dwellings.
+
+
+``` {r fig-1-3, include = TRUE, fig.cap = '(ref:fig-1-3)', fig.align = "center"}
+
+figure_1_3_fun()
+
+```
+
+(ref:fig-1-3) _Active STRs as a share of all dwelling units in Vancouver, by local area (L) and dissemination area (R)_
+
+While current STR activity is more concentrated Downtown, new STR growth is occurring in other areas. In Table \@ref(tab:tab-1-2), entries are orange if the area's value is higher than the City average, and blue if it is lower (TKTK NOT CURRENTLY IMPLEMENTED). The table reveals an overall inverse relationship between current STR activity and growth trends; while for example Downtown accounts for a plurality of existing listings and revenue, both listing and revenue growth is substantially higher in outlying areas (Marpole and Dunbar-Southlands, for example). This pattern points to an ongoing decentralization of STR activity in Vancouver. 
+
+``` {r tab-1-2, include = TRUE}
+
+library(kableExtra)
+
+LA_breakdown %>% 
+  select(area, active_listings, active_growth, listings_pct_dwellings,
+         annual_rev, rev_growth) %>% 
+  filter(active_listings > 100) %>% 
+  arrange(-active_listings) %>% 
+  mutate(active_listings = prettyNum(round(active_listings, -1), ","),
+         active_growth = scales::percent(active_growth, 0.1),
+         listings_pct_dwellings = scales::percent(listings_pct_dwellings, 0.1),
+         annual_rev = scales::dollar(annual_rev, 0.1, scale = 1 / 1000000),
+         rev_growth = scales::percent(rev_growth, 0.1)) %>%
+  add_row(area = "City of Vancouver",
+          active_listings = avg_listings_active,
+          active_growth = paste0("-", active_yoy_listings),
+          listings_pct_dwellings = {
+            avg_listings_active %>% 
+              parse_number() %>% 
+              {. / sum(LA$dwellings)} %>% 
+              scales::percent(0.1)},
+          annual_rev = str_remove(annual_rev, " million"),
+          rev_growth = active_yoy_revenue,
+          .before = 1) %>% 
+  set_names(c("Area", 
+              "Active listings",
+              "Active listing growth (year-over-year)",
+              "Active listings as % of dwellings",
+              "Annual revenue (million)",
+              "Annual revenue growth (year-over-year)")) %>% 
+  kbl(caption = "Local areas with at least 100 daily active listings in 2019",
+               align = "lrrrrr") %>% 
+  kable_styling() %>% 
+  row_spec(1, background = paste0(col_palette[2], "50"))
+
+  
+```
+
+<br>
+
+## Listing types and sizes
+
+STRs listed on Airbnb can be one of four types: entire homes or apartments, private rooms, shared rooms, and hotel rooms. We have excluded the latter from our analysis, since we focus only on STRs located in housing units. Most policy attention has been focused on entire-home listings, both because these listings are most likely to generate harmful negative externalities, including housing loss and neighbourhood nuisance, and because entire-home listings tend to be the most common. 
+
+``` {r para_8, cache = TRUE, cache.lazy = FALSE, cache.extra = mtime(here("output", "str_processed.qsm"))}
+
+qload(here("output", "str_processed.qsm"), nthreads = availableCores())
+
+listing_type_breakdown <- 
+  daily %>% 
+  filter(housing, status != "B", date >= LTM_start_date,
+         date <= LTM_end_date) %>% 
+  group_by(listing_type) %>% 
+  summarize(
+    active_listings = n() / 365,
+    revenue = sum(price[status == "R"]),
+    .groups = "drop") %>% 
+  mutate(pct_of_listings = active_listings / sum(active_listings),
+         pct_of_revenue = revenue / sum(revenue))
+
+listing_type_breakdown <- 
+  daily %>% 
+  filter(housing, status != "B", date >= LTM_start_date - years(1), 
+         date <= LTM_end_date - years(1)) %>% 
+  group_by(listing_type) %>% 
+  summarize(active_2018 = n() / 365) %>% 
+  left_join(listing_type_breakdown, .) %>% 
+  mutate(pct_listing_growth = (active_listings - active_2018) / active_2018) %>% 
+  select(-active_2018)
+
+bedrooms <- 
+  property %>% 
+  st_drop_geometry() %>% 
+  filter(property_ID %in% active_2019, listing_type == "Entire home/apt") %>% 
+  mutate(bedrooms = if_else(bedrooms >= 3, "3+", as.character(bedrooms))) %>% 
+  count(bedrooms) %>% 
+  mutate(percentage = n / sum(n))
+
+one_bedrooms <- 
+  bedrooms %>% 
+  filter(bedrooms == "1") %>% 
+  pull(percentage) %>% 
+  scales::percent(0.1)
+
+two_bedrooms <- 
+  bedrooms %>% 
+  filter(bedrooms == "2") %>% 
+  pull(percentage) %>% 
+  scales::percent(0.1)
+
+three_bedrooms <- 
+  bedrooms %>% 
+  filter(bedrooms == "3+") %>% 
+  pull(percentage) %>% 
+  scales::percent(0.1)
+
+studios <- 
+  bedrooms %>% 
+  filter(bedrooms == "0") %>% 
+  pull(percentage) %>% 
+  scales::percent(0.1)
+
+eh_listings <- 
+  listing_type_breakdown %>% 
+  filter(listing_type == "Entire home/apt") %>% 
+  pull(pct_of_listings) %>% 
+  scales::percent(0.1)
+
+eh_revenue <- 
+  listing_type_breakdown %>% 
+  filter(listing_type == "Entire home/apt") %>% 
+  pull(pct_of_revenue) %>% 
+  scales::percent(0.1)
+
+rm(property, daily, GH)
+
+```
+
+Table \@ref(tab:tab-1-3) provides the distribution of the listings by listing type in 2019. The majority of STRs in Vancouver are entire homes, a category which includes single-family homes, townhouses, apartments and condominiums. `r one_bedrooms` of these were one-bedroom housing units, and a third (`r two_bedrooms`) were two-bedrooms units. Almost a fifth of these listings (`r three_bedrooms`) were 3 or more bedrooms housing units, and `r studios` were studios. In general, studios and one-bedroom units are overrepresented on STR platforms in comparison with the City’s overall housing stock.
+
+In 2019 entire-home listings accounted for `r eh_listings` of all daily active listings, and `r eh_revenue` of total host revenue. (Private rooms accounted for nearly all of the remainder.) Moreover, the dominance of entire-home listings in Vancouver’s STR market is increasing over time; while there were fewer active listings among all listing types in 2019 when compared to 2018, active daily entire-home listings declined by a much smaller proportion than the other listing types.
+
+<br>
+
+## Revenue distribution among STR hosts
+
+A crucial distinction for understanding the structure of an STR market is the distinction between casual STRs (“home-sharing”) and dedicated STRs (“commercial operations”). One way to capture this distinction is to examine the distribution of revenue among STR hosts. Is revenue widely distributed between many part-time hosts of single listings, or concentrated among a small number of commercial operators who control many full-time listings?
+
+While hosts are identified on Airbnb or VRBO with unique accounts, these accounts are not necessarily an accurate guide to the individuals or companies which operate STR listings, since a given person or group of people can create as many host accounts as they wish, and split their listings among these accounts. What may appear superficially as a large number of small STR operators could thus be in reality a much smaller number of operators controlling many accounts each. To address this possibility, we use image recognition software to identify photographs which are used across multiple listings, and thereby construct groups of host accounts which are either a single operator or a network of operators working in collaboration.
+
+We identified one network of hosts whose 580 listings earned approximately $4.1 million in 2019. An investigation into a sample of the host accounts which make up this network suggests links between numerous property management companies and third party operators. Through time, several individual host accounts seem to have merged into a cluster of larger hosts. The image-matching algorithm also merged hosts that use both Airbnb and VRBO, allowing for more accurate revenue calculations. Without interviewing actors associated with this host network, it is impossible to describe the level of connection and coordination between the various host accounts, but an operation of this scale would not be unprecedented. Reports from Chicago, USA and London, UK have identified similar host networks behind which were property management companies and realty groups (Conti, 2019). 
+
+Among all the STR hosts who earned revenue in the City of Vancouver last year, the median revenue was $15,700, while the top host network earned roughly $4.1 million (Table 1.6.1). Throughout the City of Vancouver, there were 27 hosts that earned more than $250,000 in 2019. Figure 1.6.1 shows the percentage of the total $151.8 million in STR revenue which accrued to each decile of hosts. x The revenue concentration is even steeper among the top 10%: the top 5% earned 30.5% of revenue, while the top 1% of hosts earned 13.6% of all revenue. 
+
+There is a high degree of STR revenue concentration among hosts, which indicates a market dominated by a small number of larger-scale commercial operators. However, Vancouver’s STR market is less commercialized than other major Canadian cities (As source of comparison, Montreal’s top 10% earned 68.8% of all revenue in 2019.).
+
+<br>
+
+## The commercialization of Vancouver’s STR market
+
+Some hosts operate multiple STR units, which can be an indication of a commercial operator rather than a casual home sharer. To take the simplest case, for example, a host with two or more entire-home listings on the same day cannot be operating both listings out of their principal residence, regardless of the frequency they are rented throughout the year. This means that these operators are not respecting the by-law, which prevents a person from operating a STR outside their principal residence.
+
+We consider entire-homes to be multilistings if they are operated by hosts who are simultaneously operating other entire-home listings. We define private-room multilistings as cases where a host has three or more private-room listings operating on the same day. Since 94.0% of entire-home listings have three or fewer bedrooms, there will be extremely few cases where a host operating three private-room STR listings in a dwelling unit has not converted the entire unit into a dedicated STR. 
+
+In 2019, 34.6% of active listings in Vancouver were multilistings, earning 30.3% of total host revenue. Multilistings had been growing steadily since 2017, both in terms of listings and revenue percentage, until Airbnb’s mass removal of listings without licence numbers. Since then, the proportion of multilistings and their share of overall revenue has been decreasing. The percentage of multilistings reached an all-time high right after the passing of the regulation in April, which could indicate that the steep decline in listings on STR platforms was caused mainly by operators with single listings that did not intend to acquire a permit to pursue their STR operations, causing the multilistings percentage to inflate. Figure 1.7.1 also highlights that amidst the generally declining STR activity during the COVID-19 pandemic, multilistings earned a bit more than 1 out of every 4 dollars on STR platforms in Vancouver. Intuitively, multilistings that are still operating since April 2018 are in great majority non-compliant to the City’s regulation. It is impossible for a host holding five listings to be operating them all out of its principal residence, which is one of the regulation’s requirements. Multilistings are thus one indicator of the level of non-compliance of STR hosts.
+
+These figures should be taken as highly conservative estimates. Many commercial operators will use different Airbnb or VRBO accounts to manage their listings, making it difficult to determine whether two accounts belong to the same person. Moreover, many STR commercial operators only operate a single listing, but operate it on a full-time basis. A house owner with a secondary suite, or the owner of an investment condo who operates a STR in it, are clearly commercial operators running listings which are not their principal residences, but they would not be counted by this method.
+
+In fact, when multilistings and listings which are operated frequently throughout the year (discussed in more detail in the next section) are aggregated, they dramatically outnumber casual, “home sharing” STRs. The ongoing relative increase in the commercial share of Vancouver’s STR market, when combined with the fact that the total number of active listings in Vancouver has been varying seasonally but remained overall similar leads to a striking conclusion: the number of actual “home sharing” STRs in Vancouver—part-time STRs located in a host’s principal residence—has been plummeting in both relative and absolute terms.
+
+The regulation of 2018 led to a decrease of both non-commercial and commercial listings, but the impact looks more seasonal than durable (explained in detail in the next section), taking in account that non-commercial listings have been declining since the beginning of 2018 and have never reached pre-2018 levels again. A decrease in both relative and absolute numbers of non-commercial listings is a phenomenon observable in other Canadian cities (Montreal), where the market is experiencing increasing commercialization. In Vancouver, the peak in the number of commercial listings in 2018 was 2,920 in August, and this figure was surpassed a little over a year later at 3,040 in January 2020.
+
+Beginning in 2017, every single year has seen fewer “home sharing” STRs operated in Vancouver than the previous year. Previous research has demonstrated that larger STR commercial operations use their economies of scale to lower STR prices and drive casual operators out of the market (Deboosere et al. 2019). The trajectory of Vancouver’s STR market offers a clear example of this pattern.
+
