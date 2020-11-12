@@ -882,21 +882,225 @@ rm(property, daily, GH)
 
 Table \@ref(tab:tab-1-3) provides the distribution of the listings by listing type in 2019. The majority of STRs in Vancouver are entire homes, a category which includes single-family homes, townhouses, apartments and condominiums. `r one_bedrooms` of these were one-bedroom housing units, and a third (`r two_bedrooms`) were two-bedrooms units. Almost a fifth of these listings (`r three_bedrooms`) were 3 or more bedrooms housing units, and `r studios` were studios. In general, studios and one-bedroom units are overrepresented on STR platforms in comparison with the City’s overall housing stock.
 
+``` {r tab-1-3, include = TRUE}
+
+library(kableExtra)
+
+listing_type_breakdown %>%
+  mutate(active_listings = prettyNum(round(active_listings, digits = -1), ","),
+         revenue = scales::dollar(revenue, 0.1, 1 / 1000000),
+         pct_of_listings = scales::percent(pct_of_listings, 0.1),
+         pct_of_revenue = scales::percent(pct_of_revenue, 0.1),
+         pct_listing_growth = scales::percent(pct_listing_growth, 0.1)) %>% 
+  rename(`Listing type` = listing_type,
+         `Active listings` = active_listings,
+         `Annual revenue (million)` = revenue,
+         `Share of all active listings` = pct_of_listings,
+         `Share of all annual revenue` = pct_of_revenue,
+         `Average daily listing growth (year-over-year)` = pct_listing_growth
+         ) %>% 
+  kbl(caption = "Listing type prevalence in the City of Vancouver",
+               align = "lrrrrr") %>% 
+  kable_styling()
+
+```
+
 In 2019 entire-home listings accounted for `r eh_listings` of all daily active listings, and `r eh_revenue` of total host revenue. (Private rooms accounted for nearly all of the remainder.) Moreover, the dominance of entire-home listings in Vancouver’s STR market is increasing over time; while there were fewer active listings among all listing types in 2019 when compared to 2018, active daily entire-home listings declined by a much smaller proportion than the other listing types.
 
 <br>
 
 ## Revenue distribution among STR hosts
 
-A crucial distinction for understanding the structure of an STR market is the distinction between casual STRs (“home-sharing”) and dedicated STRs (“commercial operations”). One way to capture this distinction is to examine the distribution of revenue among STR hosts. Is revenue widely distributed between many part-time hosts of single listings, or concentrated among a small number of commercial operators who control many full-time listings?
+A crucial concept for understanding the structure of an STR market is the distinction between casual STRs (“home sharing”) and dedicated STRs (“commercial operations”). One way to capture this distinction is to examine the distribution of revenue among STR hosts. Is revenue widely distributed between many part-time hosts of single listings, or concentrated among a small number of commercial operators who control many full-time listings?
 
-While hosts are identified on Airbnb or VRBO with unique accounts, these accounts are not necessarily an accurate guide to the individuals or companies which operate STR listings, since a given person or group of people can create as many host accounts as they wish, and split their listings among these accounts. What may appear superficially as a large number of small STR operators could thus be in reality a much smaller number of operators controlling many accounts each. To address this possibility, we use image recognition software to identify photographs which are used across multiple listings, and thereby construct groups of host accounts which are either a single operator or a network of operators working in collaboration.
+While hosts are identified on Airbnb or VRBO with unique accounts, these accounts are not necessarily an accurate guide to the individuals or companies which operate STR listings, since a given person or group of people can create as many host accounts as they wish, and split their listings among these accounts. What may appear superficially as a large number of small STR operators could thus be in reality a much smaller number of operators controlling many accounts each. To address this possibility, we use custom image recognition software to identify identical photographs which are used across multiple listings, and thereby construct groups of host accounts which are either a single operator or a network of operators working in collaboration. If multiple, apparently separate host accounts use the identical photo on the webpages of their STR listings, this is very strong evidence that these accounts are 
 
-We identified one network of hosts whose 580 listings earned approximately $4.1 million in 2019. An investigation into a sample of the host accounts which make up this network suggests links between numerous property management companies and third party operators. Through time, several individual host accounts seem to have merged into a cluster of larger hosts. The image-matching algorithm also merged hosts that use both Airbnb and VRBO, allowing for more accurate revenue calculations. Without interviewing actors associated with this host network, it is impossible to describe the level of connection and coordination between the various host accounts, but an operation of this scale would not be unprecedented. Reports from Chicago, USA and London, UK have identified similar host networks behind which were property management companies and realty groups (Conti, 2019). 
+``` {r para_9, cache = TRUE, cache.lazy = FALSE, cache.extra = mtime(here("output", "str_processed.qsm"))}
 
-Among all the STR hosts who earned revenue in the City of Vancouver last year, the median revenue was $15,700, while the top host network earned roughly $4.1 million (Table 1.6.1). Throughout the City of Vancouver, there were 27 hosts that earned more than $250,000 in 2019. Figure 1.6.1 shows the percentage of the total $151.8 million in STR revenue which accrued to each decile of hosts. x The revenue concentration is even steeper among the top 10%: the top 5% earned 30.5% of revenue, while the top 1% of hosts earned 13.6% of all revenue. 
+qload(here("output", "str_processed.qsm"), nthreads = availableCores())
 
-There is a high degree of STR revenue concentration among hosts, which indicates a market dominated by a small number of larger-scale commercial operators. However, Vancouver’s STR market is less commercialized than other major Canadian cities (As source of comparison, Montreal’s top 10% earned 68.8% of all revenue in 2019.).
+# Host revenue table for calculations and table
+host_rev <-
+  daily %>%
+  filter(housing, date >= LTM_start_date, date <= LTM_end_date, 
+         status == "R", !is.na(host_ID)) %>%
+  group_by(host_ID) %>%
+  summarize(rev = sum(price))
+
+# Host deciles table for figure
+host_deciles <-
+  daily %>%
+  filter(housing, date >= LTM_start_date, date <= LTM_end_date, 
+         status == "R", !is.na(host_ID)) %>%
+  group_by(host_ID) %>%
+  summarize(rev = sum(price)) %>% 
+  summarize(all = sum(rev),
+            top_10 = sum(rev[rev > quantile(rev, c(0.90))] / all),
+            top_20 = sum(rev[rev > quantile(rev, c(0.80))] / all) - 
+              sum(rev[rev > quantile(rev, c(0.90))] / all),
+            top_30 = sum(rev[rev > quantile(rev, c(0.70))] / all) - 
+              sum(rev[rev > quantile(rev, c(0.80))] / all),
+            top_40 = sum(rev[rev > quantile(rev, c(0.60))] / all) - 
+              sum(rev[rev > quantile(rev, c(0.70))] / all),
+            top_50 = sum(rev[rev > quantile(rev, c(0.50))] / all) - 
+              sum(rev[rev > quantile(rev, c(0.60))] / all),
+            top_60 = sum(rev[rev > quantile(rev, c(0.40))] / all) - 
+              sum(rev[rev > quantile(rev, c(0.50))] / all),
+            top_70 = sum(rev[rev > quantile(rev, c(0.30))] / all) - 
+              sum(rev[rev > quantile(rev, c(0.40))] / all),
+            top_80 = sum(rev[rev > quantile(rev, c(0.20))] / all) - 
+              sum(rev[rev > quantile(rev, c(0.30))] / all),
+            top_90 = sum(rev[rev > quantile(rev, c(0.10))] / all) - 
+              sum(rev[rev > quantile(rev, c(0.20))] / all),
+            top_100 = sum(rev[rev > quantile(rev, c(0.00))] / all) - 
+              sum(rev[rev > quantile(rev, c(0.10))] / all)) %>% 
+  select(-all) %>% 
+  pivot_longer(everything(), names_to = "percentile", values_to = "value") %>% 
+  mutate(percentile = factor(percentile, levels = paste0("top_", 1:10 * 10))) %>% 
+  mutate(perfect_distribution = 0.1,
+         decile = 1:10,
+         dummy_1 = perfect_distribution,
+         dummy_2 = value) %>%  
+  rename("0" = perfect_distribution, "1" = value, "0.25" = dummy_1, 
+         "0.75" = dummy_2) %>%
+  pivot_longer(c("0","0.25", "0.75", "1"), names_to = "position") %>% 
+  mutate(position = as.numeric(position),
+         display_val = scales::percent(value, .1)) %>% 
+  group_by(position) %>% 
+  mutate(absolute_val = slide_dbl(value, ~{.x[1] / 2 + sum(.x[-1])}, 
+                                  .after = 9)) %>% 
+  ungroup() %>% 
+  mutate(
+    display_val = paste0("earned ", display_val, "\nof revenue"),
+    display_percentile = case_when(
+      percentile == "top_10" ~ "Top 10% of hosts...",
+      percentile == "top_20" ~ "Next 10% of hosts...",
+      TRUE ~ NA_character_))
+
+top_host_listings <- 
+  property %>% 
+  filter(host_ID == host_rev[which.max(host_rev$rev),]$host_ID) %>% 
+  nrow()
+
+top_host_rev <- 
+  host_rev %>% 
+  filter(rev == max(rev)) %>% 
+  pull(rev) %>% 
+  scales::dollar(accuracy = 0.1, scale = 1 / 1000000, suffix = " million")
+
+median_host_rev <- 
+  median(host_rev$rev) %>%
+  scales::dollar(accuracy = 100)
+
+n_hosts_over_250 <- 
+  host_rev %>% 
+  filter(rev >= 250000) %>% 
+  nrow()
+
+host_rev_top_10 <- 
+  host_rev %>% 
+  summarize(top_10 = sum(rev[rev > quantile(rev, .9)]) / sum(rev)) %>% 
+  pull(top_10) %>% 
+  scales::percent(0.1)
+
+host_rev_top_5 <- 
+  host_rev %>% 
+  summarize(top_5 = sum(rev[rev > quantile(rev, .95)]) / sum(rev)) %>% 
+  pull(top_5) %>% 
+  scales::percent(0.1)
+
+
+host_rev_top_1 <- 
+  host_rev %>% 
+  summarize(top_1 = sum(rev[rev > quantile(rev, .99)]) / sum(rev)) %>% 
+  pull(top_1) %>% 
+  scales::percent(0.1)
+
+rm(property, daily, GH)
+
+```
+
+We identified one network of hosts which has operated `r top_host_listings` listings in Vancouver over the last several years, and which earned approximately `r top_host_rev` in 2019. An investigation into a sample of the host accounts which make up this network suggests links between numerous property management companies and third party operators. Through time, several individual host accounts seem to have merged into a cluster of larger hosts. The image-matching algorithm also merged hosts that use both Airbnb and VRBO, allowing for more accurate revenue calculations. Without interviewing actors associated with this host network, it is impossible to describe the level of connection and coordination between the various host accounts, but an operation of this scale would not be unprecedented. Reports from Chicago, USA and London, UK have identified similar host networks behind which were property management companies and realty groups (Conti, 2019). 
+
+``` {r make_fig_1_4}
+
+figure_1_4_fun <- function(regular = "", condensed = "") {
+  
+  revenue_colour <- colorRampPalette(col_palette[c(1, 3, 6, 4, 2, 5)])(10)
+
+  host_deciles %>% 
+  ggplot(aes(position, value, group = decile, fill = decile)) +
+  geom_area(colour = "white", lwd = 1.2) +
+  geom_text(aes(x = 0.02, y = absolute_val, label = display_percentile), 
+            data = filter(host_deciles, position == 0, decile <= 2),
+            family = regular, 
+            hjust = 0) +
+  geom_text(aes(x = 0.98, y = absolute_val, label = display_val), 
+            data = filter(host_deciles, position == 1, decile <= 2),
+            family = regular, 
+            hjust = 1) +
+  scale_y_continuous(name = "Host decile", label = scales::label_percent(1),
+                     breaks = seq(0, 1, by = 0.1), limits = c(0, 1),
+                     sec.axis = sec_axis(~., 
+                                         name = "% of total revenue",
+                                         labels = derive(), 
+                                         breaks = derive())) +
+  scale_fill_gradientn(colours = revenue_colour) +
+  theme_void() +
+  theme(legend.position = "none",
+        text = element_text(family = regular),
+        axis.text.y = element_text(hjust = 1),
+        axis.title.y.left = element_text(
+          angle = 90, margin = margin(0, 10, 0, 0)),
+        axis.title.y.right = element_text(
+          angle = 270, margin = margin(0, 0, 0, 10)),
+        axis.title.x = element_blank(), 
+        axis.text.x = element_blank())
+
+}
+
+if (build_figures) {
+  ggsave(here("output", "figures", "figure_1_4.pdf"), 
+         plot = figure_1_4_fun("Futura", "Futura Condensed"), 
+         width = 8, height = 5, units = "in", useDingbats = FALSE)
+  
+  extrafont::embed_fonts(here("output", "figures", "figure_1_4.pdf"))
+}
+
+```
+
+Among all the STR hosts who earned revenue in the City of Vancouver last year, the median revenue was `r median_host_rev` (Table \@ref(tab:tab-host-rev)). Throughout the City of Vancouver, there were `r n_hosts_over_250` hosts that earned more than $250,000 in 2019. Figure \@ref(fig:fig-1-4) shows the percentage of the total `r annual_rev` in STR revenue which accrued to each decile of hosts. The figure shows that revenue is disproportionately concentrated among a small number of hosts; the top 10% earned `r host_rev_top_10`: the top 5% earned `r host_rev_top_5` of revenue, while the top 1% of hosts earned `r host_rev_top_1` of all revenue. As high as these numbers are, however, they are lower than other large cities in Canada. Montreal’s top 10% of STR hosts earned 68.8% of all revenue in 2019, for example. This indicates that Vancouver's STR market is less dominated by commercial operators than that of its peer cities.
+
+``` {r tab-host-rev, include = TRUE}
+
+library(kableExtra)
+
+host_rev %>% 
+  pull(rev) %>% 
+  quantile() %>% 
+  as.list() %>% 
+  as_tibble() %>% 
+  select(-`0%`) %>% 
+  set_names(c("25th percentile", "Median", "75th percentile", 
+              "100th percentile")) %>% 
+  mutate(across(1:3, scales::dollar, accuracy = 1000, big.mark = ",")) %>% 
+  mutate(`100th percentile` = scales::dollar(`100th percentile`, 0.1, 
+                                             scale = 1 / 1000000, 
+                                             suffix = " million")) %>% 
+  pivot_longer(everything(), names_to = "Host percentile", 
+               values_to = "Annual revenue") %>% 
+  kbl(caption = "Vancouver STR host revenue", align = "lr") %>% 
+  kable_styling()
+
+```
+
+``` {r fig-1-4, include = TRUE, fig.cap = '(ref:fig-1-4)', fig.align = "center"}
+
+figure_1_4_fun()
+
+```
+
+(ref:fig-1-4) _STR host revenue distribution in the City of Vancouver_
 
 <br>
 

@@ -410,17 +410,17 @@ listing_type_breakdown %>%
 
 #' Table 2.3
 listing_type_breakdown %>%
-  mutate(active_listings = round(active_listings, digits = -1),
-         revenue = round(revenue, digits = -5),
-         pct_of_listings = round(pct_of_listings, digits = 3),
-         pct_of_revenue = round(pct_of_revenue, digits = 3),
-         pct_listing_growth = round(pct_listing_growth, digits = 3)) %>% 
+  mutate(active_listings = prettyNum(round(active_listings, digits = -1), ","),
+         revenue = scales::dollar(revenue, 0.1, 1 / 1000000),
+         pct_of_listings = scales::percent(pct_of_listings, 0.1),
+         pct_of_revenue = scales::percent(pct_of_revenue, 0.1),
+         pct_listing_growth = scales::percent(pct_listing_growth, 0.1)) %>% 
   rename(`Listing type` = listing_type,
-         `Daily active listings (average)` = active_listings,
-         `Annual revenue (CAD)` = revenue,
-         `% of active listings` = pct_of_listings,
-         `% of annual revenue` = pct_of_revenue,
-         `% average daily listing growth (YOY 2018-2019)` = pct_listing_growth
+         `Active listings` = active_listings,
+         `Annual revenue (million)` = revenue,
+         `Share of all active listings` = pct_of_listings,
+         `Share of all annual revenue` = pct_of_revenue,
+         `Average daily listing growth (year-over-year)` = pct_listing_growth
          ) %>% 
   gt() %>% 
   tab_header(
@@ -627,8 +627,12 @@ host_rev %>%
   select(-`0%`) %>% 
   set_names(c("25th percentile", "Median", "75th percentile", 
               "100th percentile")) %>% 
-  mutate_all(round, -2) %>% 
-  drop_na() %>% 
+  mutate(across(1:3, scales::dollar, accuracy = 1000, big.mark = ",")) %>% 
+  mutate(`100th percentile` = scales::dollar(`100th percentile`, 0.1, 
+                                             scale = 1 / 1000000, 
+                                             suffix = " million")) %>% 
+  pivot_longer(everything(), names_to = "Host percentile", 
+               values_to = "Annual revenue") %>% 
   gt() %>% 
   tab_header(
     title = "Host income",
