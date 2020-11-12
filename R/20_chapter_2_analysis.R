@@ -659,7 +659,9 @@ property %>%
   filter(housing, created <= LTM_end_date, scraped >= LTM_start_date, 
          listing_type == "Entire home/apt", !is.na(bedrooms)) %>% 
   st_drop_geometry() %>% 
-  summarize(bedrooms_3_or_fewer = mean(bedrooms <= 3))
+  summarize(bed_3 = mean(bedrooms <= 3)) %>% 
+  pull(bed_3) %>% 
+  scales::percent(0.1)
 
 #' In 2019, 34.6% [1] of active listings in Vancouver were multilistings, earning 
 #' 30.3% [2] of total host revenue. Multilistings have been a steadily growing 

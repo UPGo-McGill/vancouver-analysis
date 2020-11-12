@@ -143,6 +143,37 @@ active_DA <-
          percentage = if_else(dwellings <= 4, NA_real_, percentage)) %>% 
   relocate(geometry, .after = last_col())
 
+# Listing type breakdown
+listing_type_breakdown <- 
+  daily %>% 
+  filter(housing, status != "B", date >= LTM_start_date,
+         date <= LTM_end_date) %>% 
+  group_by(listing_type) %>% 
+  summarize(
+    active_listings = n() / 365,
+    revenue = sum(price[status == "R"]),
+    .groups = "drop") %>% 
+  mutate(pct_of_listings = active_listings / sum(active_listings),
+         pct_of_revenue = revenue / sum(revenue))
+
+listing_type_breakdown <- 
+  daily %>% 
+  filter(housing, status != "B", date >= LTM_start_date - years(1), 
+         date <= LTM_end_date - years(1)) %>% 
+  group_by(listing_type) %>% 
+  summarize(active_2018 = n() / 365) %>% 
+  left_join(listing_type_breakdown, .) %>% 
+  mutate(pct_listing_growth = (active_listings - active_2018) / active_2018) %>% 
+  select(-active_2018)
+
+# Host revenue table for calculations and table
+host_rev <-
+  daily %>%
+  filter(housing, date >= LTM_start_date, date <= LTM_end_date, 
+         status == "R", !is.na(host_ID)) %>%
+  group_by(host_ID) %>%
+  summarize(rev = sum(price))
+
 rm(property, daily, GH, CMA, DA, city, BL, BL_expanded, skytrain)
 
 ```
@@ -172,11 +203,59 @@ annual_rev <-
   prettyNum(",") %>% 
   paste0("$", ., " million")
 
+# EH listings
+eh_listings <- 
+  listing_type_breakdown %>% 
+  filter(listing_type == "Entire home/apt") %>% 
+  pull(pct_of_listings) %>% 
+  scales::percent(0.1)
+
+# EH revenue
+eh_revenue <- 
+  listing_type_breakdown %>% 
+  filter(listing_type == "Entire home/apt") %>% 
+  pull(pct_of_revenue) %>% 
+  scales::percent(0.1)
+
+# Host revenue
+host_rev_top_10 <- 
+  host_rev %>% 
+  summarize(top_10 = sum(rev[rev > quantile(rev, .9)]) / sum(rev)) %>% 
+  pull(top_10) %>% 
+  scales::percent(0.1)
+
+host_rev_top_1 <- 
+  host_rev %>% 
+  summarize(top_1 = sum(rev[rev > quantile(rev, .99)]) / sum(rev)) %>% 
+  pull(top_1) %>% 
+  scales::percent(0.1)
+
+# 2019 ML listings
+ml_listings <- 
+  daily %>% 
+  filter(housing, status != "B", date >= LTM_start_date, 
+         date <= LTM_end_date) %>% 
+  count(multi) %>% 
+  summarize(ML = n[2] / sum(n)) %>% 
+  pull(ML) %>% 
+  scales::percent(0.1)
+
+# 2019 ML revenue
+ml_revenue <- 
+  daily %>% 
+  filter(housing, status == "R", date >= LTM_start_date, 
+       date <= LTM_end_date) %>% 
+  group_by(multi) %>% 
+  tally(price) %>% 
+  summarize(multi_rev = n[2] / sum(n)) %>% 
+  pull(multi_rev) %>% 
+  scales::percent(0.1)
+
 rm(property, daily, GH)
 
 ```
 
-**There were `r avg_listings_active` active STR listings in Vancouver housing units in 2019, which collectively earned `r annual_rev`.**
+**There were `r avg_listings_active` active STR listings in Vancouver housing units in 2019, which collectively earned `r annual_rev`. A quarter of all listings are in the Downtown area. More than two thirds (`r eh_listings`) of Vancouver’s STR listings are entire homes, and entire homes are responsible for `r eh_revenue` of all revenue. Revenue is concentrated unevenly among hosts, with the top 10% earning `r host_rev_top_10` of revenue, and the top 1% earning `r host_rev_top_1`, but Vancouver has much less revenue concentration than other large cities in Canada. Commercial operators who control multiple STR listings account for `r ml_listings` listings and `r ml_revenue` revenue, and those shares have been falling consistently since the introduction of the City's 2018 STR regulations.**
 
 <br>
 
@@ -810,28 +889,6 @@ STRs listed on Airbnb can be one of four types: entire homes or apartments, priv
 
 qload(here("output", "str_processed.qsm"), nthreads = availableCores())
 
-listing_type_breakdown <- 
-  daily %>% 
-  filter(housing, status != "B", date >= LTM_start_date,
-         date <= LTM_end_date) %>% 
-  group_by(listing_type) %>% 
-  summarize(
-    active_listings = n() / 365,
-    revenue = sum(price[status == "R"]),
-    .groups = "drop") %>% 
-  mutate(pct_of_listings = active_listings / sum(active_listings),
-         pct_of_revenue = revenue / sum(revenue))
-
-listing_type_breakdown <- 
-  daily %>% 
-  filter(housing, status != "B", date >= LTM_start_date - years(1), 
-         date <= LTM_end_date - years(1)) %>% 
-  group_by(listing_type) %>% 
-  summarize(active_2018 = n() / 365) %>% 
-  left_join(listing_type_breakdown, .) %>% 
-  mutate(pct_listing_growth = (active_listings - active_2018) / active_2018) %>% 
-  select(-active_2018)
-
 bedrooms <- 
   property %>% 
   st_drop_geometry() %>% 
@@ -864,16 +921,13 @@ studios <-
   pull(percentage) %>% 
   scales::percent(0.1)
 
-eh_listings <- 
-  listing_type_breakdown %>% 
-  filter(listing_type == "Entire home/apt") %>% 
-  pull(pct_of_listings) %>% 
-  scales::percent(0.1)
-
-eh_revenue <- 
-  listing_type_breakdown %>% 
-  filter(listing_type == "Entire home/apt") %>% 
-  pull(pct_of_revenue) %>% 
+eh_3_bedroom <- 
+  property %>% 
+  filter(housing, created <= LTM_end_date, scraped >= LTM_start_date, 
+         listing_type == "Entire home/apt", !is.na(bedrooms)) %>% 
+  st_drop_geometry() %>% 
+  summarize(bed_3 = mean(bedrooms <= 3)) %>% 
+  pull(bed_3) %>% 
   scales::percent(0.1)
 
 rm(property, daily, GH)
@@ -918,14 +972,6 @@ While hosts are identified on Airbnb or VRBO with unique accounts, these account
 ``` {r para_9, cache = TRUE, cache.lazy = FALSE, cache.extra = mtime(here("output", "str_processed.qsm"))}
 
 qload(here("output", "str_processed.qsm"), nthreads = availableCores())
-
-# Host revenue table for calculations and table
-host_rev <-
-  daily %>%
-  filter(housing, date >= LTM_start_date, date <= LTM_end_date, 
-         status == "R", !is.na(host_ID)) %>%
-  group_by(host_ID) %>%
-  summarize(rev = sum(price))
 
 # Host deciles table for figure
 host_deciles <-
@@ -1008,7 +1054,6 @@ host_rev_top_5 <-
   summarize(top_5 = sum(rev[rev > quantile(rev, .95)]) / sum(rev)) %>% 
   pull(top_5) %>% 
   scales::percent(0.1)
-
 
 host_rev_top_1 <- 
   host_rev %>% 
@@ -1108,15 +1153,70 @@ figure_1_4_fun()
 
 Some hosts operate multiple STR units, which can be an indication of a commercial operator rather than a casual home sharer. To take the simplest case, for example, a host with two or more entire-home listings on the same day cannot be operating both listings out of their principal residence, regardless of the frequency they are rented throughout the year. This means that these operators are not respecting the by-law, which prevents a person from operating a STR outside their principal residence.
 
-We consider entire-homes to be multilistings if they are operated by hosts who are simultaneously operating other entire-home listings. We define private-room multilistings as cases where a host has three or more private-room listings operating on the same day. Since 94.0% of entire-home listings have three or fewer bedrooms, there will be extremely few cases where a host operating three private-room STR listings in a dwelling unit has not converted the entire unit into a dedicated STR. 
+We consider entire-homes to be "multilistings" if they are operated by hosts who are simultaneously operating other entire-home listings. We define private-room multilistings as cases where a host has three or more private-room listings operating on the same day. Since `r eh_3_bedroom` of entire-home listings have three or fewer bedrooms, there will be extremely few cases where a host operating three private-room STR listings in a dwelling unit has not converted the entire unit into a dedicated STR. Intuitively, multilistings that are still operating since the City's STR regulations were enacted in April 2018 are almost certainly non-compliant. In particular, it is impossible for a host holding five listings to be operating them all out of their principal residence, which is one of the regulation’s requirements.
 
-In 2019, 34.6% of active listings in Vancouver were multilistings, earning 30.3% of total host revenue. Multilistings had been growing steadily since 2017, both in terms of listings and revenue percentage, until Airbnb’s mass removal of listings without licence numbers. Since then, the proportion of multilistings and their share of overall revenue has been decreasing. The percentage of multilistings reached an all-time high right after the passing of the regulation in April, which could indicate that the steep decline in listings on STR platforms was caused mainly by operators with single listings that did not intend to acquire a permit to pursue their STR operations, causing the multilistings percentage to inflate. Figure 1.7.1 also highlights that amidst the generally declining STR activity during the COVID-19 pandemic, multilistings earned a bit more than 1 out of every 4 dollars on STR platforms in Vancouver. Intuitively, multilistings that are still operating since April 2018 are in great majority non-compliant to the City’s regulation. It is impossible for a host holding five listings to be operating them all out of its principal residence, which is one of the regulation’s requirements. Multilistings are thus one indicator of the level of non-compliance of STR hosts.
+``` {r para_10, cache = TRUE, cache.lazy = FALSE, cache.extra = mtime(here("output", "str_processed.qsm"))}
 
-These figures should be taken as highly conservative estimates. Many commercial operators will use different Airbnb or VRBO accounts to manage their listings, making it difficult to determine whether two accounts belong to the same person. Moreover, many STR commercial operators only operate a single listing, but operate it on a full-time basis. A house owner with a secondary suite, or the owner of an investment condo who operates a STR in it, are clearly commercial operators running listings which are not their principal residences, but they would not be counted by this method.
+qload(here("output", "str_processed.qsm"), nthreads = availableCores())
 
-In fact, when multilistings and listings which are operated frequently throughout the year (discussed in more detail in the next section) are aggregated, they dramatically outnumber casual, “home sharing” STRs. The ongoing relative increase in the commercial share of Vancouver’s STR market, when combined with the fact that the total number of active listings in Vancouver has been varying seasonally but remained overall similar leads to a striking conclusion: the number of actual “home sharing” STRs in Vancouver—part-time STRs located in a host’s principal residence—has been plummeting in both relative and absolute terms.
+# ML table for figure
+ML <- 
+  daily %>% 
+  filter(status != "B") %>% 
+  group_by(date) %>% 
+  summarize(Listings = mean(multi),
+            Revenue = sum(price[status == "R" & multi], na.rm = TRUE) / 
+              sum(price[status == "R"], na.rm = TRUE)) %>% 
+  mutate(across(where(is.numeric), slide_dbl, mean, .before = 13)) %>% 
+  pivot_longer(c(Listings, Revenue), names_to = "Multilisting percentage",
+               values_to = "value")
 
-The regulation of 2018 led to a decrease of both non-commercial and commercial listings, but the impact looks more seasonal than durable (explained in detail in the next section), taking in account that non-commercial listings have been declining since the beginning of 2018 and have never reached pre-2018 levels again. A decrease in both relative and absolute numbers of non-commercial listings is a phenomenon observable in other Canadian cities (Montreal), where the market is experiencing increasing commercialization. In Vancouver, the peak in the number of commercial listings in 2018 was 2,920 in August, and this figure was surpassed a little over a year later at 3,040 in January 2020.
+rm(property, daily, GH)
 
-Beginning in 2017, every single year has seen fewer “home sharing” STRs operated in Vancouver than the previous year. Previous research has demonstrated that larger STR commercial operations use their economies of scale to lower STR prices and drive casual operators out of the market (Deboosere et al. 2019). The trajectory of Vancouver’s STR market offers a clear example of this pattern.
+```
 
+``` {r make_fig_1_5}
+
+figure_1_5_fun <- function(regular = "", condensed = "") {
+  
+  ML %>% 
+    filter(date >= "2017-01-01") %>% 
+    ggplot() +
+    geom_line(aes(date, value, colour = `Multilisting percentage`), lwd = 1) +
+    annotate("segment", x = key_date_covid, xend = key_date_covid,
+             y = -Inf, yend = Inf, alpha = 0.3) +
+    annotate("segment", x = key_date_regulations, xend = key_date_regulations,
+             y = -Inf, yend = Inf, alpha = 0.3) +
+    scale_y_continuous(name = NULL, 
+                       label = scales::percent_format(accuracy = 1)) +
+    scale_colour_manual(values = col_palette[c(5, 1)]) +
+    theme_minimal() +
+    theme(legend.position = "bottom",
+          panel.grid.minor.x = element_blank(),
+          text = element_text(family = regular, face = "plain"),
+          legend.title = element_text(family = regular, face = "bold"),
+          legend.text = element_text(family = regular))
+
+}
+
+if (build_figures) {
+  ggsave(here("output", "figures", "figure_1_5.pdf"), 
+         plot = figure_1_5_fun("Futura", "Futura Condensed"), 
+         width = 8, height = 5, units = "in", useDingbats = FALSE)
+  
+  extrafont::embed_fonts(here("output", "figures", "figure_1_5.pdf"))
+}
+
+```
+
+In 2019, `r ml_listings` of active listings in Vancouver were multilistings, earning `r ml_revenue` of total host revenue. Multilistings had been growing steadily since 2017, both in terms of listings and revenue percentage, until Airbnb’s mass removal of listings without licence numbers. Since then, the proportion of multilistings and their share of overall revenue has been decreasing. Multilisting revenue as a share of total revenue reached an all-time high right before Airbnb's August 2018 regulatory enforcement takedown, while multilisting active listings as a share of total active listings peaked several months later (Figure \@ref(fig:fig-1-5)). Both indicators have been in relatively steady decline since then, and by the end of 2019 were considerably lower than in any of the other large cities in Canada. Figure \@ref(fig:fig-1-5) also highlights that, amidst generally declining STR activity during the COVID-19 pandemic, multilistings have declined disproportionately quickly, and through the fall of 2020 were earning a bit more than 1 out of every 4 dollars on STR platforms in Vancouver. 
+
+``` {r fig-1-5, include = TRUE, fig.cap = '(ref:fig-1-5)', fig.align = "center"}
+
+figure_1_5_fun()
+
+```
+
+(ref:fig-1-5) _The percentage of active listings and revenue accounted for by multilistings in Vancouver (14-day average)_
+
+These figures should be taken as highly conservative estimates. Many commercial operators will use different Airbnb or VRBO accounts to manage their listings. If multiple listings share the same photographs then our image recognition software will be able to connect them together, but it is otherwise difficult to determine whether two accounts belong to the same person. Moreover, many STR commercial operators only operate a single listing, but operate it on a full-time basis. A house owner with a secondary suite, or the owner of an investment condo who operates a STR in it, are clearly commercial operators running listings which are not their principal residences, but they would not be counted by this method.
