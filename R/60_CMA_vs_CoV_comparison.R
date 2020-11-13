@@ -15,7 +15,7 @@
 
 source("R/01_startup.R")
 
-qload("output/str_processed.qs", nthreads = availableCores())
+qload("output/str_processed.qsm", nthreads = availableCores())
 qload("output/FREH_model.qsm", nthreads = availableCores())
 qload("output/str_bc_processed.qs", nthreads = availableCores())
 qload("output/geometry.qs", nthreads = availableCores())
@@ -372,7 +372,7 @@ CSD_breakdown %>%
 #              "Annual revenue growth")) %>% 
 #  filter(`daily_bc active listings (average)` > 100) %>% 
 #  arrange(desc(`daily_bc active listings (average)`)) %>%
-#  mutate(`daily_bc active listings (average)` = 
+#  mutate(`Active listings (average)` = 
 #           round(`daily_bc active listings (average)`, digit = -1),
 #         `Annual revenue (CAD)` = round(`Annual revenue (CAD)`),
 #         `Annual revenue (CAD)` = 
@@ -380,12 +380,21 @@ CSD_breakdown %>%
 #                  str_sub(`Annual revenue (CAD)`, -6, -6), " million")) %>%
 #  gt() %>% 
 #  tab_header(
-#    title = "CSD breakdown",
-#    subtitle = "CMA_CSDs with more than 100 daily_bc active listings average, 2019") %>%
+#    title = "Census subdivision breakdown",
+#    subtitle = "CSDs with more than 100 active listings average (except Vancouver), 2019") %>%
 #  opt_row_striping() %>% 
 #  fmt_percent(columns = c(3:4, 6), decimals = 1) %>% 
 #  fmt_number(columns = 2,
 #             decimals = 0)
+#
+## Need to add CMA of Vancouver row, with % listings per dwelling
+#daily_bc %>% 
+#  filter(housing, status != "B", date >= LTM_start_date, 
+#         date <= LTM_end_date) %>% 
+#  count(date) %>% 
+#  summarize(active_listings = round(mean(n), digit = -1)) %>% 
+#  pull(active_listings) %>% 
+#  {. / sum(CMA$dwellings)}
   
 
 # Active daily listings variation Cov vs CMA, indexed ---------------------------------------------------
