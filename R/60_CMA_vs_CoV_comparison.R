@@ -59,22 +59,6 @@ active_listings_bc <-
   bind_rows(active_listings_bc) %>%
   arrange(date, listing_type)
 
-# Active listings indexed
-active_listings_indexed <-
-  active_listings %>%
-  filter(date >= key_date_regulations - years(1)) %>%
-  mutate(index = 100*n/n[date == key_date_regulations]) %>%
-  mutate(group = "CoV")
-
-active_listings_bc_indexed <-
-  active_listings_bc %>%
-  filter(date >= key_date_regulations - years(1)) %>%
-  mutate(index = 100*n/n[date == key_date_regulations]) %>%
-  mutate(group = "CMA")
-
-active_listings_both <-
-rbind(active_listings_indexed, active_listings_bc_indexed)
-
 # Revenue 
 revenue <-
   daily %>%
@@ -88,44 +72,6 @@ revenue_bc <-
   group_by(date) %>%
   summarize(revenue = sum(price))
 
-# Revenue indexed
-revenue_indexed <-
-  revenue %>%
-  mutate(revenue = slide_dbl(revenue, mean, .before = 6, .complete = TRUE)) %>%
-  filter(date >= key_date_regulations - years(1)) %>%
-  mutate(index = 100*revenue/revenue[date == key_date_regulations]) %>%
-  mutate(group = "CoV")
-
-revenue_bc_indexed <-
-  revenue_bc %>%
-  mutate(revenue = slide_dbl(revenue, mean, .before = 6, .complete = TRUE)) %>%
-  filter(date >= key_date_regulations - years(1)) %>%
-  mutate(index = 100*revenue/revenue[date == key_date_regulations]) %>%
-  mutate(group = "CMA")
-
-revenue_both <-
-  rbind(revenue_indexed, revenue_bc_indexed)
-
-# FREH indexed 
-FREH_indexed <- 
-  daily %>% 
-  filter(date >= key_date_regulations - years(1)) %>%
-  group_by(date) %>% 
-  summarize(n=sum(FREH_3)) %>% 
-  mutate(index = 100*n/n[date == key_date_regulations]) %>%
-  mutate(group = "CoV")
-
-FREH_bc_indexed <- 
-  daily_bc %>% 
-  filter(date >= key_date_regulations - years(1)) %>%
-  group_by(date) %>% 
-  summarize(n=sum(FREH_3)) %>% 
-  mutate(index = 100*n/n[date == key_date_regulations]) %>%
-  mutate(group = "CMA")
-
-FREH_both <- 
-  rbind(FREH_indexed, FREH_bc_indexed)
-
 # Commercial listings indexed
 commercial_listings <- 
   daily %>% 
@@ -136,13 +82,6 @@ commercial_listings <-
   mutate(n = slide_dbl(n, mean, .before = 6)) %>% 
   ungroup()
 
-commercial_listings_indexed <-
-  commercial_listings %>% 
-  filter(date >= key_date_regulations - years(1)) %>%
-  filter(commercial == TRUE) %>% 
-  mutate(index = 100*n/n[date == key_date_regulations]) %>%
-  mutate(group = "CoV")
-
 commercial_listings_bc <- 
   daily_bc %>% 
   filter(status != "B", date >= "2016-01-01") %>% 
@@ -151,16 +90,6 @@ commercial_listings_bc <-
   group_by(commercial) %>% 
   mutate(n = slide_dbl(n, mean, .before = 6)) %>% 
   ungroup()
-
-commercial_listings_bc_indexed <-
-  commercial_listings_bc %>% 
-  filter(date >= key_date_regulations - years(1)) %>%
-  filter(commercial == TRUE) %>% 
-  mutate(index = 100*n/n[date == key_date_regulations]) %>%
-  mutate(group = "CMA")
-
-commercial_listings_both <- 
-  rbind(commercial_listings_indexed, commercial_listings_bc_indexed)
 
 
 # YOY listings, revenue and reservation growth ------------------------------------------------
@@ -383,11 +312,30 @@ daily %>%
   summarize(n = n() / 365) %>% 
   summarize(change = (n[2] - n[1]) / n[1])
 
-#' [9] Active listings growth 2018-2019 COV
+#' [9] Active listings by CMA region 
+active_listings_bc 
+  
 
-# Active daily listings Cov vs CMA, indexed ---------------------------------------------------
+# Active daily listings variation Cov vs CMA, indexed ---------------------------------------------------
 
-active_listings_both %>%
+# Active listings indexed
+active_listings_indexed <-
+  active_listings %>%
+  filter(date >= key_date_regulations - years(1)) %>%
+  mutate(index = 100*n/n[date == key_date_regulations]) %>%
+  mutate(group = "CoV")
+
+active_listings_bc_indexed <-
+  active_listings_bc %>%
+  filter(date >= key_date_regulations - years(1)) %>%
+  mutate(index = 100*n/n[date == key_date_regulations]) %>%
+  mutate(group = "CMA")
+
+active_listings_both <-
+  rbind(active_listings_indexed, active_listings_bc_indexed)
+
+figure_3_4_1 <- 
+  active_listings_both %>%
   filter(listing_type == "All listings") %>%
   ggplot(aes(date, index, colour = group)) +
   annotate("segment", x = key_date_covid, xend = key_date_covid,
@@ -411,67 +359,39 @@ active_listings_both %>%
   theme_minimal() +
   theme(legend.position = "bottom", panel.grid.minor.x = element_blank())
 
+ggsave("output/figures/figure_3_4_1.pdf", plot = figure_3_4_1, width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_3_4_1.pdf")
+
 
 # Revenue Cov vs CMA, indexed ---------------------------------------------------
 
-revenue_both %>%
+# Revenue indexed
+revenue_indexed <-
+  revenue %>%
+  mutate(revenue = slide_dbl(revenue, mean, .before = 6, .complete = TRUE)) %>%
+  filter(date >= key_date_regulations - years(1)) %>%
+  mutate(index = 100*revenue/revenue[date == key_date_regulations]) %>%
+  mutate(group = "CoV")
+
+revenue_bc_indexed <-
+  revenue_bc %>%
+  mutate(revenue = slide_dbl(revenue, mean, .before = 6, .complete = TRUE)) %>%
+  filter(date >= key_date_regulations - years(1)) %>%
+  mutate(index = 100*revenue/revenue[date == key_date_regulations]) %>%
+  mutate(group = "CMA")
+
+revenue_both <-
+  rbind(revenue_indexed, revenue_bc_indexed)
+
+figure_3_4_2 <- 
+  revenue_both %>%
   ggplot(aes(date, index, colour = group)) +
   annotate("segment", x = key_date_covid, xend = key_date_covid,
            y = -Inf, yend = Inf, alpha = 0.3) +
   annotate("segment", x = key_date_regulations, xend = key_date_regulations,
            y = -Inf, yend = Inf, alpha = 0.3) +
-  geom_line(lwd = 1)+
-  scale_colour_manual(name = NULL, values = col_palette[c(3, 2)])+
-  scale_y_continuous(name = NULL) +
-  scale_x_date(name = NULL)+
-  theme_minimal() +
-  theme(legend.position = "bottom", panel.grid.minor.x = element_blank())
-
-
-# FREH Cov vs CMA, indexed ---------------------------------------------------
-
-FREH_both %>%
-  ggplot(aes(date, index, colour = group)) +
-  annotate("segment", x = key_date_covid, xend = key_date_covid,
-           y = -Inf, yend = Inf, alpha = 0.3) +
-  annotate("curve", x = as.Date("2020-07-01"), xend = key_date_covid + days(10),
-           y = 140, yend = 145, curvature = .2, lwd = 0.25,
-           arrow = arrow(length = unit(0.05, "inches"))) +
-  annotate("text", x = as.Date("2020-06-16"), y = 135,
-           label = "COVID-19 \nAirbnb's response") + #, family = "Futura Condensed"
-  annotate("segment", x = key_date_regulations, xend = key_date_regulations,
-           y = -Inf, yend = Inf, alpha = 0.3) +
-  annotate("curve", x = as.Date("2018-12-01"), xend = key_date_regulations + days(10),
-           y = 130, yend = 130, curvature = .2, lwd = 0.25,
-           arrow = arrow(length = unit(0.05, "inches"))) +
-  annotate("text", x = as.Date("2018-12-01"), y = 127,
-           label = "Regulations")+  #, family = "Futura Condensed"
-  geom_line(lwd = 1)+
-  scale_colour_manual(name = NULL, values = col_palette[c(3, 2)])+
-  scale_y_continuous(name = NULL) +
-  scale_x_date(name = NULL)+
-  theme_minimal() +
-  theme(legend.position = "bottom", panel.grid.minor.x = element_blank())
-
-
-# Commercial listings Cov vs CMA, indexed ---------------------------------------------------
-
-commercial_listings_both %>%
-  ggplot(aes(date, index, colour = group)) +
-  annotate("segment", x = key_date_covid, xend = key_date_covid,
-           y = -Inf, yend = Inf, alpha = 0.3) +
-  annotate("curve", x = as.Date("2020-07-01"), xend = key_date_covid + days(10),
-           y = 140, yend = 145, curvature = .2, lwd = 0.25,
-           arrow = arrow(length = unit(0.05, "inches"))) +
-  annotate("text", x = as.Date("2020-06-16"), y = 135,
-           label = "COVID-19 \nAirbnb's response") + #, family = "Futura Condensed"
-  annotate("segment", x = key_date_regulations, xend = key_date_regulations,
-           y = -Inf, yend = Inf, alpha = 0.3) +
-  annotate("curve", x = as.Date("2018-12-01"), xend = key_date_regulations + days(10),
-           y = 130, yend = 125, curvature = .2, lwd = 0.25,
-           arrow = arrow(length = unit(0.05, "inches"))) +
-  annotate("text", x = as.Date("2018-12-01"), y = 127,
-           label = "Regulations")+  #, family = "Futura Condensed"
   geom_line(lwd = 1)+
   scale_colour_manual(name = NULL, values = col_palette[c(5, 1)])+
   scale_y_continuous(name = NULL) +
@@ -479,9 +399,91 @@ commercial_listings_both %>%
   theme_minimal() +
   theme(legend.position = "bottom", panel.grid.minor.x = element_blank())
 
+ggsave("output/figures/figure_3_4_2.pdf", plot = figure_3_4_2, width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_3_4_2.pdf")
+
+
+# FREH Cov vs CMA, indexed ---------------------------------------------------
+#
+## FREH indexed 
+#FREH_indexed <- 
+#  daily %>% 
+#  filter(date >= key_date_regulations - years(1)) %>%
+#  group_by(date) %>% 
+#  summarize(n=sum(FREH_3)) %>% 
+#  mutate(index = 100*n/n[date == key_date_regulations]) %>%
+#  mutate(group = "CoV")
+#
+#FREH_bc_indexed <- 
+#  daily_bc %>% 
+#  filter(date >= key_date_regulations - years(1)) %>%
+#  group_by(date) %>% 
+#  summarize(n=sum(FREH_3)) %>% 
+#  mutate(index = 100*n/n[date == key_date_regulations]) %>%
+#  mutate(group = "CMA")
+#
+#FREH_both <- 
+#  rbind(FREH_indexed, FREH_bc_indexed)
+#
+#FREH_both %>%
+#  ggplot(aes(date, index, colour = group)) +
+#  annotate("segment", x = key_date_covid, xend = key_date_covid,
+#           y = -Inf, yend = Inf, alpha = 0.3) +
+#  annotate("segment", x = key_date_regulations, xend = key_date_regulations,
+#           y = -Inf, yend = Inf, alpha = 0.3) +
+#  geom_line(lwd = 1)+
+#  scale_colour_manual(name = NULL, values = col_palette[c(5, 1)])+
+#  scale_y_continuous(name = NULL) +
+#  scale_x_date(name = NULL)+
+#  theme_minimal() +
+#  theme(legend.position = "bottom", panel.grid.minor.x = element_blank())
+#
+#
+# Commercial listings Cov vs CMA, indexed ---------------------------------------------------
+
+# Commercial listings indexed 
+commercial_listings_indexed <-
+  commercial_listings %>% 
+  filter(date >= key_date_regulations - years(1)) %>%
+  filter(commercial == TRUE) %>% 
+  mutate(index = 100*n/n[date == key_date_regulations]) %>%
+  mutate(group = "CoV")
+
+commercial_listings_bc_indexed <-
+  commercial_listings_bc %>% 
+  filter(date >= key_date_regulations - years(1)) %>%
+  filter(commercial == TRUE) %>% 
+  mutate(index = 100*n/n[date == key_date_regulations]) %>%
+  mutate(group = "CMA")
+
+commercial_listings_both <- 
+  rbind(commercial_listings_indexed, commercial_listings_bc_indexed)
+
+figure_3_4_3 <- 
+  commercial_listings_both %>%
+  ggplot(aes(date, index, colour = group)) +
+  annotate("segment", x = key_date_covid, xend = key_date_covid,
+           y = -Inf, yend = Inf, alpha = 0.3) +
+  annotate("segment", x = key_date_regulations, xend = key_date_regulations,
+           y = -Inf, yend = Inf, alpha = 0.3) +
+  geom_line(lwd = 1)+
+  scale_colour_manual(name = NULL, values = col_palette[c(5, 1)])+
+  scale_y_continuous(name = NULL) +
+  scale_x_date(name = NULL)+
+  theme_minimal() +
+  theme(legend.position = "bottom", panel.grid.minor.x = element_blank())
+
+ggsave("output/figures/figure_3_4_3.pdf", plot = figure_3_4_3, width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_3_4_3.pdf")
+
 
 # Spatial comparisons both sides of eastern boundary ---------------------------------------------------
 
+# Prepare new objects
 buffer_all_CoV <- st_buffer(st_cast(city,"MULTILINESTRING"),
                             1000, joinStyle = "MITRE", mitreLimit = 3)
 
@@ -491,6 +493,7 @@ buffer_VoC_Burnaby <-
   st_cast("LINESTRING") %>%
   st_buffer(dist = 1000, joinStyle="MITRE", mitreLimit=0.1)
 
+# Properties within the buffer
 property_buffer <- 
   property %>% 
   mutate(group = "CoV") %>% 
@@ -498,15 +501,13 @@ property_buffer <-
   rbind(select(mutate(property_bc, group = "Burnaby"), property_ID, group)) %>%
   st_intersection(select(buffer_VoC_Burnaby, -everything()))
 
-# Active listings for Burnaby and CoV
-
+# Active listings within the buffer
 daily_buffer <- 
   rbind(select(daily,
                property_ID, date, status, price, listing_type, housing, multi, FREH_3), 
         select(daily_bc,
                property_ID, date, status, price, listing_type, housing, multi, FREH_3)) %>% 
   inner_join(st_drop_geometry(property_buffer))
-
 
 active_listings <- 
   daily_buffer %>% 
@@ -516,38 +517,16 @@ active_listings <-
   mutate(n = slide_dbl(n, mean, .before = 6, .complete = TRUE)) %>% 
   ungroup()
 
+# Active listings for the Burnaby-Vancouver buffer, indexed --------------------------------
+
 active_listings_indexed <- 
   active_listings %>%
   filter(date >= key_date_regulations - years(1)) %>%
   group_by(group) %>% 
   mutate(index = 100*n/n[date == key_date_regulations])
 
-commercial_listings_buffer <- 
-  daily_buffer %>% 
-  filter(status != "B", date >= "2016-01-01") %>% 
-  mutate(commercial = if_else(FREH_3 < 0.5 & !multi, FALSE, TRUE)) %>% 
-  count(date, commercial, group) %>% 
-  group_by(commercial, group) %>% 
-  mutate(n = slide_dbl(n, mean, .before = 6)) %>% 
-  ungroup()
-
-commercial_listings_buffer_indexed <-
-  commercial_listings_buffer %>% 
-  filter(date >= key_date_regulations - years(1)) %>%
-  filter(commercial == TRUE) %>% 
-  mutate(index = 100*n/n[date == key_date_regulations])
-
-FREH_buffer_indexed <- 
-  daily_buffer %>% 
-  filter(date >= key_date_regulations - years(1)) %>%
-  group_by(date, group) %>% 
-  summarize(n=sum(FREH_3)) %>% 
-  group_by(group) %>% 
-  mutate(index = 100*n/n[date == key_date_regulations]) 
-
-
-# Active listings buffer, indexed ---------------------------------------------------
-active_listings_indexed %>% 
+figure_3_5_1 <- 
+  active_listings_indexed %>% 
   ggplot(aes(date, index, colour = group)) +
   annotate("segment", x = key_date_covid, xend = key_date_covid,
            y = -Inf, yend = Inf, alpha = 0.3) +
@@ -555,14 +534,14 @@ active_listings_indexed %>%
            y = 135, yend = 140, curvature = .2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
   annotate("text", x = as.Date("2020-06-16"), y = 130,
-           label = "COVID-19 \nAirbnb's response") + #, family = "Futura Condensed"
+           label = "COVID-19 \nAirbnb's response", family = "Futura Condensed") +
   annotate("segment", x = key_date_regulations, xend = key_date_regulations,
            y = -Inf, yend = Inf, alpha = 0.3) +
   annotate("curve", x = as.Date("2018-12-01"), xend = key_date_regulations + days(10),
            y = 130, yend = 130, curvature = .2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
   annotate("text", x = as.Date("2018-12-01"), y = 127,
-           label = "Regulations")+ #, family = "Futura Condensed"
+           label = "Regulations", family = "Futura Condensed")+
   geom_line(lwd = 1)+
   scale_colour_manual(name = NULL, values = col_palette[c(5, 1)])+
   scale_y_continuous(name = NULL) +
@@ -570,24 +549,45 @@ active_listings_indexed %>%
   theme_minimal() +
   theme(legend.position = "bottom", panel.grid.minor.x = element_blank())
 
+ggsave("output/figures/figure_3_5_1.pdf", plot = figure_3_5_1, width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
 
-# Commercial listings buffer, indexed ---------------------------------------------------
-commercial_listings_buffer_indexed %>%
+extrafont::embed_fonts("output/figures/figure_3_5_1.pdf")
+
+
+# Revenue for CoV and Burnaby ---------------------------------------------------
+
+revenue <-
+  daily_buffer %>%
+  filter(housing, status == "R") %>%
+  group_by(date, group) %>% 
+  summarize(revenue = sum(price)) %>% 
+  group_by(group) %>% 
+  mutate(revenue = slide_dbl(revenue, mean, .before = 6, .complete = TRUE))
+
+revenue_indexed <- 
+  revenue %>%
+  filter(date >= key_date_regulations - years(1)) %>%
+  group_by(group) %>% 
+  mutate(index = 100*revenue/revenue[date == key_date_regulations])
+
+figure_3_5_2 <- 
+  revenue_indexed %>% 
   ggplot(aes(date, index, colour = group)) +
   annotate("segment", x = key_date_covid, xend = key_date_covid,
            y = -Inf, yend = Inf, alpha = 0.3) +
   annotate("curve", x = as.Date("2020-07-01"), xend = key_date_covid + days(10),
-           y = 140, yend = 145, curvature = .2, lwd = 0.25,
+           y = 135, yend = 140, curvature = .2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
-  annotate("text", x = as.Date("2020-06-16"), y = 135,
-           label = "COVID-19 \nAirbnb's response") + #, family = "Futura Condensed"
+  annotate("text", x = as.Date("2020-06-16"), y = 130,
+           label = "COVID-19 \nAirbnb's response", family = "Futura Condensed") +
   annotate("segment", x = key_date_regulations, xend = key_date_regulations,
            y = -Inf, yend = Inf, alpha = 0.3) +
   annotate("curve", x = as.Date("2018-12-01"), xend = key_date_regulations + days(10),
-           y = 130, yend = 125, curvature = .2, lwd = 0.25,
+           y = 130, yend = 130, curvature = .2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
   annotate("text", x = as.Date("2018-12-01"), y = 127,
-           label = "Regulations")+  #, family = "Futura Condensed"
+           label = "Regulations", family = "Futura Condensed")+
   geom_line(lwd = 1)+
   scale_colour_manual(name = NULL, values = col_palette[c(5, 1)])+
   scale_y_continuous(name = NULL) +
@@ -595,24 +595,13 @@ commercial_listings_buffer_indexed %>%
   theme_minimal() +
   theme(legend.position = "bottom", panel.grid.minor.x = element_blank())
 
+ggsave("output/figures/figure_3_5_2.pdf", plot = figure_3_5_2, width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
 
-# FREH buffer, indexed ---------------------------------------------------
-FREH_buffer_indexed %>%
-  ggplot(aes(date, index, colour = group)) +
-  annotate("segment", x = key_date_covid, xend = key_date_covid,
-           y = -Inf, yend = Inf, alpha = 0.3) +
-  annotate("segment", x = key_date_regulations, xend = key_date_regulations,
-           y = -Inf, yend = Inf, alpha = 0.3) +
-  geom_line(lwd = 1)+
-  scale_colour_manual(name = NULL, values = col_palette[c(3, 2)])+
-  scale_y_continuous(name = NULL) +
-  scale_x_date(name = NULL)+
-  theme_minimal() +
-  theme(legend.position = "bottom", panel.grid.minor.x = element_blank())
-
+extrafont::embed_fonts("output/figures/figure_3_5_2.pdf")
 
 # Availabilities (R or A) for buffer ---------------------------------------------------
-# number of A and B facet_wrap
+
 active_listings <- 
   daily_buffer %>% 
   filter(housing, status != "B") %>% 
@@ -652,32 +641,34 @@ active_listings_indexed %>%
   scale_x_date(name = NULL)+
   theme_minimal() +
   theme(legend.position = "bottom", panel.grid.minor.x = element_blank())
-  ggtitle("Availabilities (L) and reservations (A), 14 days rolling window")
-  
-  
-# Revenue for CoV and Burnaby ---------------------------------------------------
-revenue <-
-  daily_buffer %>%
-  filter(housing, status == "R") %>%
-  group_by(date, group) %>% 
-  summarize(revenue = sum(price)) %>% 
-  group_by(group) %>% 
-  mutate(revenue = slide_dbl(revenue, mean, .before = 6, .complete = TRUE))
+ggtitle("Availabilities (L) and reservations (A), 14 days rolling window")
 
-revenue_indexed <- 
-  revenue %>%
+
+# Commercial listings buffer, indexed ---------------------------------------------------
+
+commercial_listings_buffer <- 
+  daily_buffer %>% 
+  filter(status != "B", date >= "2016-01-01") %>% 
+  mutate(commercial = if_else(FREH_3 < 0.5 & !multi, FALSE, TRUE)) %>% 
+  count(date, commercial, group) %>% 
+  group_by(commercial, group) %>% 
+  mutate(n = slide_dbl(n, mean, .before = 6)) %>% 
+  ungroup()
+
+commercial_listings_buffer_indexed <-
+  commercial_listings_buffer %>% 
   filter(date >= key_date_regulations - years(1)) %>%
-  group_by(group) %>% 
-  mutate(index = 100*revenue/revenue[date == key_date_regulations])
+  filter(commercial == TRUE) %>% 
+  mutate(index = 100*n/n[date == key_date_regulations])
 
-revenue_indexed %>% 
+commercial_listings_buffer_indexed %>%
   ggplot(aes(date, index, colour = group)) +
   annotate("segment", x = key_date_covid, xend = key_date_covid,
            y = -Inf, yend = Inf, alpha = 0.3) +
   annotate("curve", x = as.Date("2020-07-01"), xend = key_date_covid + days(10),
            y = 140, yend = 145, curvature = .2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
-  annotate("text", x = as.Date("2020-8-16"), y = 135,
+  annotate("text", x = as.Date("2020-06-16"), y = 135,
            label = "COVID-19 \nAirbnb's response") + #, family = "Futura Condensed"
   annotate("segment", x = key_date_regulations, xend = key_date_regulations,
            y = -Inf, yend = Inf, alpha = 0.3) +
@@ -694,6 +685,30 @@ revenue_indexed %>%
   theme(legend.position = "bottom", panel.grid.minor.x = element_blank())
 
 
+# FREH buffer, indexed ---------------------------------------------------
+#
+##FREH_buffer_indexed <- 
+#  daily_buffer %>% 
+#  filter(date >= key_date_regulations - years(1)) %>%
+#  group_by(date, group) %>% 
+#  summarize(n=sum(FREH_3)) %>% 
+#  group_by(group) %>% 
+#  mutate(index = 100*n/n[date == key_date_regulations]) 
+#
+#FREH_buffer_indexed %>%
+#  ggplot(aes(date, index, colour = group)) +
+#  annotate("segment", x = key_date_covid, xend = key_date_covid,
+#           y = -Inf, yend = Inf, alpha = 0.3) +
+#  annotate("segment", x = key_date_regulations, xend = key_date_regulations,
+#           y = -Inf, yend = Inf, alpha = 0.3) +
+#  geom_line(lwd = 1)+
+#  scale_colour_manual(name = NULL, values = col_palette[c(3, 2)])+
+#  scale_y_continuous(name = NULL) +
+#  scale_x_date(name = NULL)+
+#  theme_minimal() +
+#  theme(legend.position = "bottom", panel.grid.minor.x = element_blank())
+#
+#
 # Prices variation after regulations for Burnaby and Vancou ---------------------------------------------------
 avg_price <-
   daily_buffer %>%
