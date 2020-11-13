@@ -72,7 +72,7 @@ revenue_bc <-
   group_by(date) %>%
   summarize(revenue = sum(price))
 
-# Commercial listings indexed
+# Commercial listings
 commercial_listings <- 
   daily %>% 
   filter(status != "B", date >= "2016-01-01") %>% 
@@ -312,8 +312,80 @@ daily %>%
   summarize(n = n() / 365) %>% 
   summarize(change = (n[2] - n[1]) / n[1])
 
-#' [9] Active listings by CMA region 
-active_listings_bc 
+# Comparative analysis: Regions within the CMA ------------------------------------------------------
+
+CMA <- 
+  CMA %>% 
+  select(-Type) %>% 
+  rename(CSD=name, dwellings=Dwellings)
+
+CSD_breakdown <- 
+  daily_bc %>% 
+  filter(housing, status != "B", date >= LTM_start_date - years(1), 
+         date <= LTM_end_date) %>% 
+  group_by(date, CSD) %>% 
+  summarize(n = n(),
+            revenue = sum(price[status == "R"])) %>% 
+  left_join(st_drop_geometry(CMA)) %>% 
+  group_by(CSD, dwellings) %>% 
+  summarize(active_listings = mean(n[date >= LTM_start_date]),
+            active_2018 = mean(n[date < LTM_start_date]),
+            active_growth = (active_listings - active_2018) / active_2018,
+            annual_rev = sum(revenue[date >= LTM_start_date]),
+            rev_2018 = sum(revenue[date < LTM_start_date]),
+            rev_growth = (annual_rev - rev_2018) / rev_2018,
+            .groups = "drop") %>% 
+  mutate(listings_pct = active_listings / sum(active_listings),
+         listings_pct_dwellings = active_listings / dwellings,
+         rev_pct = annual_rev / sum(annual_rev)) %>% 
+  select(CSD, active_listings, active_growth, listings_pct,
+         listings_pct_dwellings, annual_rev, rev_pct, rev_growth)
+
+CSD_breakdown %>% 
+  left_join(select(CMA, -dwellings), by = "CSD") %>% 
+  st_as_sf() %>% 
+  ggplot()+
+  geom_sf(data=city, fill="grey75")+
+  geom_sf(aes(fill = active_listings))+
+  #geom_sf_text(aes(label = CSD), colour = "grey75", size = 3)+
+  scale_fill_gradientn(colors = col_palette[c(2, 3, 1)])+
+  theme_void() +
+  theme(legend.position = "bottom", panel.grid.minor.x = element_blank())
+
+#' [1] Figures for Burnaby and Richmond
+CSD_breakdown %>% 
+  slice(c(4, 22))
+
+#' [2] Figures for Surrey
+CSD_breakdown %>% 
+  slice(c(25))
+
+#' Table 2.2
+#CSD_breakdown %>% 
+#  select(CSD, active_listings, active_growth, listings_pct_dwellings,
+#         annual_rev, rev_growth) %>% 
+#  set_names(c("CSD",
+#              "daily_bc active listings (average)",
+#              "Active listing year-over-year growth rate",
+#              "Active listings as % of dwellings",
+#              "Annual revenue (CAD)",
+#              "Annual revenue growth")) %>% 
+#  filter(`daily_bc active listings (average)` > 100) %>% 
+#  arrange(desc(`daily_bc active listings (average)`)) %>%
+#  mutate(`daily_bc active listings (average)` = 
+#           round(`daily_bc active listings (average)`, digit = -1),
+#         `Annual revenue (CAD)` = round(`Annual revenue (CAD)`),
+#         `Annual revenue (CAD)` = 
+#           paste0("$", str_sub(`Annual revenue (CAD)`, 1, -7), ".",
+#                  str_sub(`Annual revenue (CAD)`, -6, -6), " million")) %>%
+#  gt() %>% 
+#  tab_header(
+#    title = "CSD breakdown",
+#    subtitle = "CMA_CSDs with more than 100 daily_bc active listings average, 2019") %>%
+#  opt_row_striping() %>% 
+#  fmt_percent(columns = c(3:4, 6), decimals = 1) %>% 
+#  fmt_number(columns = 2,
+#             decimals = 0)
   
 
 # Active daily listings variation Cov vs CMA, indexed ---------------------------------------------------
