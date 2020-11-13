@@ -1,0 +1,129 @@
+---
+title: "Short-term Rentals in Vancouver"
+subtitle: "Market Overview and Regulatory Impact Analysis"
+author: "David Wachsmuth, Maxime Bélanger De Blois and Cloé St-Hilaire"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output: 
+  bookdown::html_document2:
+    toc: yes
+    fig_caption: yes
+---
+
+<style type="text/css">
+  body{
+  font-family: Futura, Helvetica, Arial;
+}
+</style>
+
+<br>
+
+---
+
+# Short-term rentals in the City of Vancouver: Regulatory impacts
+
+```{r setup, include = FALSE, echo = FALSE}
+
+library(here)
+source(here("R", "01_startup.R"))
+
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(include = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+
+# Function for checking file modifications
+mtime <- function(files) lapply(Sys.glob(files), function(x) file.info(x)$mtime)
+
+# Set this to TRUE to output PDF figures
+build_figures <- TRUE
+
+```
+
+```{r new_objects, cache = TRUE, cache.lazy = FALSE, cache.extra = mtime(here("output", "str_processed.qsm"))}
+
+# qload(here("output", "str_processed.qsm"), nthreads = availableCores())
+# qload(here("output", "geometry.qsm"), nthreads = availableCores())
+
+
+rm(property, daily, GH, CMA, DA, city, BL, BL_expanded, skytrain)
+
+```
+
+```{r exec_summ, cache = TRUE, cache.lazy = FALSE, cache.extra = mtime(here("output", "str_processed.qsm"))}
+
+# qload(here("output", "str_processed.qsm"), nthreads = availableCores())
+
+
+rm(property, daily, GH)
+
+```
+
+**Regulations in the City of Vancouver came to effect on April 18th of 2018, and started to get enforced at the beginning of September. For operators, the new short-term rental by-law implied the acquisition of a business licence as well as restrictions in location of operation and length of availability. The regulation caused a significant decline in active listings the months following, but rebounded the following summer of 2019. The number of commercial listings also reached pre-regulation levels in the summer season. Compared to other geographies, however, STR growth in the City of Vancouver has been of lesser proportions. While daily active listings declined by 2.4% in 2019 (compared to 2018), they increased by 21.9% in the rest of the CMA. While reservations and revenue increased by 5.2% and 2.6% respectively in the City of Vancouver in 2019, they increased by 35.9% and 35.0% in the rest of the CMA. Taking a closer look at properties on both sides of the Vancouver-Burnaby border, we can see that, although there has been a great increase in the number of active listings on the Burnaby side of the border, it has not come with a subsequent increase in revenue nor reservations. This oversupply of listings on the Burnaby side was not accompanied by a rise in demand.**
+
+<br>
+
+## The City of Vancouver's STR regulations
+
+In April 2018, the City of Vancouver enacted regulations on the operations of short-term rentals in the City, definied as rentals offered for thirty or fewer consecutive days (City of Vancouver, 2020a). Under these regulations, each STR operator is required to obtain a license for their rental unit; these licenses are only issued for STRs operated out of a host’s principal residence, and are valid for a single calendar year. Licensed listings can either be the entire principal residence or individual rooms within the residence. Although the regulations apply to STRs listed on any platform, Airbnb is the only STR platform that agreed to require hosts in Vancouver to fill out a license field in their online listing, to engage in data sharing, and to undertake operator education (City of Vancouver, 2020b). 
+
+The regulations put in place by the City significantly constrain the type of STRs which are permitted to be operated in Vancouver. In particular, what we define as "multilistings" (listings operated by hosts who are simultaneously operating other listings) are by definition non-compliant, since multiple different listings cannot be simultaneously operated out of a principal residence. Moreover, frequently rented entire-home (FREH) listings are also highly likely to be non-compliant, since listings which are operated the majority of the year would be unlikely to also be a valid principal residence (excepting rare cases of very frequent travellers, for example).
+
+In what folows we assemble evidence about the impact which the City's regulations have had on the STR market. Given the significant restraints which the regulations impose on the market, their impacts should be highly visible if the regulations are effective. If, by contrast, few impacts can be discerned, that implies that the regulations have not been effective. We carry out this task by analyzing the trajectory of STR activity in the City of Vancouver over time, and by comparing the City with a set of peer jurisdictions. This analysis collectively demonstrates that the City’s STR regulations have been effective at reducing STR activity and growth in Vancouver, and have accomplished that reduction in part by driving incoming visits to other municipalities within Metro Vancouver. However, the most significant impacts of the regulations were relatively short lived: both total active listings and commercial listings returned to pre-regulation levels within a year of the regulations being implemented. 
+
+## Regulatory impacts: displayed listings 
+
+Unlike active listings, displayed listings additionally include listings with a blocked calendar. Independently of whether the listing is available, reserved, or blocked, not displaying a licence on Airbnb violates the regulation in place. Figure 3.2.1 shows the trends in displayed listings in the City of Vancouver since 2016. As we can see, there was a drop in displayed listings in the city following Airbnb’s removal of unlicensed listings, with an increase in displayed listings starting back before summer 2019.
+
+The picking up of STR activity as early as 2019 is also visible in Figure 3.2.2, which shows the actual active listings and the expected active listings in the City of Vancouver if regulations never occurred. Although there has been a steep decrease in active listings following Airbnb’s mass removal, discrepancy between the two lines quickly disappeared within a year, giving clues of the non-durable effect of the regulations.
+
+## Regulations’ impact on commercialization
+
+The impact of the regulations on the commercial listings seems more seasonal than durable. If a substantial amount of commercial listings was taken down by the platform, the previous peaks in the number of commercial listings was attained a year after the regulations passed.
+
+There were 1449 out of the 2620 listings that were taken down by Airbnb in August 2018 which were active the same year (2018) before their removal. The rest were blocked for reservations all year, and could have stayed that way indefinitely. In order to draw attention to when the regulations were enforced, 629 listings were identified as commercial on the day they were removed. It explains the sharp decrease on the previous graph: It is 22.0% of all commercial listings which were taken out of service by Airbnb at the end of August 2018.
+
+Figure 3.3.1 offers a closer look at the expected number of listings identified as commercial if the regulations would not have taken place. It confirms the hypothesis of a short-term effect of the regulations on commercial operations, and a return to business as usual already in the following summer.
+
+## Comparative analysis: CMA and CoV’s
+
+In 2019 there was an average of 4,420 active daily listings operated by an average of 2,830 hosts. These hosts collectively earned $77.3 million in 2019—an average of $17,500 per daily active listing or $27,300 per active host. Compared to the average host revenue in the City of Vancouver ($TKTK), hosts in the rest of the CMA earn significantly less than in the City of Vancouver.
+
+In terms of active listings growth, the CMA saw a 21.9% increase of active listings between 2018 and 2019. While the City of Vancouver’s daily active listings decreased by TKTK% during the year, the CMA’s STR market has been growing. However, both markets have had declining rates of growth from 2016 onwards, with the exception of a noticeable increase in daily active listings at the end of 2019 and beginning of 2020, which sharply vanished in light of the pandemic.
+
+STR activity in the CMA of Vancouver is mostly concentrated in the census subdivisions (CSD) of Richmond, Burnaby and Surrey. Richmond and Burnaby both represent around 20% of all daily active listings in the CMA, with similar shares of revenues. The growth rate of these two census subdivisions is 29.0% and 22.9%, respectively. While Surrey has less daily active listings than the first two CSDs, its active listings growth is 26.9%, and its revenue growth, 45.0%. This above-average growth in neighbouring regions might be a migration of the growth of STR activity in CSDs that are not subject to regulations.
+
+### Active listings variation
+
+One method of looking at the impact of the regulations on the STR market is to look at the variation in the number of daily active listings in the two geographies. Figure 3.4.1 shows the growth in the number of daily active listings, with the end of August 2018 indexed at 100, date of Airbnb’s massive listing removal. This indexed comparison is useful to compare two markets of different sizes to see the underlying patterns as well as the inherent differences. The regulations had a strong impact on the number of daily active listings within the City of Vancouver, while causing close to no impact on the daily active listings in the CMA. The CMA’s number of daily active listings decreases slightly after the pass of the regulation, but is consistent with the seasonality observable in every STR market. 
+
+### Variation in daily revenue
+
+Figure 3.4.2 is showing the sum of daily revenue, using a rolling window of 7 days. Both groups follow a similar pattern. There is a sharp decrease after the regulation, which can be attributed to seasonality. However, while the City of Vancouver has had a decrease in revenue in the summer following the regulations, the CMA’s revenue grew significantly. In Vancouver, revenue grew by 5.2% in 2019, compared to 2018. In the rest of the CMA, revenue grew by 35.0%. Revenue follows seasonality trends, but the CMA’s revenue growth is constantly higher than the City of Vancouver starting the following summer after the regulations, which had not been the case prior to the regulation. On the other hand, however, the City of Vancouver has never reached daily revenue levels from before the regulation. Regulation could have ultimately inhibited revenue growth inside the City of Vancouver?
+
+### Commercial listings variation
+
+We can analyze whether the regulations have caused commercial listings to decline within the City of Vancouver, and if a growth in the rest of the CMA occurred to replace it. The following graph shows the variation in commercial listings (combining both FREH and multilistings) for these two geographies. The number of commercial listings in the CMA has decreased in a seasonal manner after the regulations, while the numbers in the City of Vancouver substantially decreased due to Airbnb’s mass removal, which lead to the discrepancy between both lines. A year later, the city’s number came back to before the regulations’ number, while the CMA’s numbers increased significantly. More growth in commercial operations occurred outside of the City, while the City has only reached but not surpassed the previous peaks.
+
+## Comparative analysis: Buffer on the eastern limit of the City of Vancouver
+
+We also conducted a comparative analysis between two sets of homogeneous listings: the first is a 1-kilometer buffer on the eastern side of the City of Vancouver, and the second is a 1-kilometer buffer on the western side of Burnaby. The following section will summarize the conclusions of this analysis in order to inform on the impact of STR regulations for STR listings. 
+
+### Active listings variation
+
+Figure 3.5.1 highlights that, despite being two fairly homogenous geographies, the Burnaby buffer has been experiencing greater growth in its number of active listings in 2019 and faced virtually no seasonal decrease, while the City of Vancouver faced one. In the long run, a significant share of the new growth has been occurring outside city boundaries, which is consistent with a regulation causing STR operations to refrain from partaking in STR activities inside the City, and rather operate in Burnaby. The number of active daily listings constantly grew in Burnaby even before regulations, compared to the City of Vancouver where it remained more stable.
+
+### Variation in daily revenues and reservations
+
+However, more active daily listings does not mean more reservations. More people could make them available, without any new demand occurring. One way to determine this is to look at total daily revenue. While there are relatively greater numbers in the number of active daily listings in the Burnaby buffer, both sides of the border faced the same variation in total daily revenue with a few exceptions only. The growth in active listings in the Burnaby buffer did not lead to a relatively significant increase in the total revenue. The following figures TKTK and TKTK show the total daily revenue and the available and reserved listings for the Vancouver and the Burnaby buffers, indexed.
+
+Number of available daily listings grew substantially stronger in Burnaby’s than in the City’s buffer, but reservations numbers are very similar. Most likely to avoid regulations, new STR operations have moved to the outskirts of the city, while the demand has not changed in any way on both sides of the border. This has led to an increase in the supply of listings outside the City of Vancouver, without a subsequent increase in demand (illustrated by the similar levels of daily revenues and reserved listings). 
+
+### Variation in average nightly price
+
+Now that we know revenues have remained steady and that there has been a relative decrease but an absolute increase in the number of active listings, what were both relative and absolute impacts of the regulations on the prices of STR in the City of Vancouver? As the following graph indicates, relative variation in prices is quite similar. The summer of 2019, a year following the regulations, the average nightly prices in the City of Vancouver were quite higher than a year before (from around the index of 100 to 125). It highlights a price increase which could be a result of the regulations: the burden of the new tax could have been partly transferred to consumers, who are faced with elastic demand, as evidenced by the steady demand indicated above. However, when in relation to the Burnaby side of the border, there was a similar increase in average nightly prices in the summer of 2019. 
+
+The restrictions in Vancouver might have motivated STR hosts outside the city borders to start operating STRs commercially. When comparing properties on both sides of the border, we can see that there has been more growth in commercial listings in Burnaby (with unprecedented peaks in the summer and winter of 2019), but that commercial properties on the Vancouver side have also increased. 
+
+
+
+
