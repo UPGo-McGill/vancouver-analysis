@@ -37,7 +37,7 @@ key_date_regulations <- as.Date("2018-08-23")
 LTM_start_date <- as.Date("2019-01-01")
 LTM_end_date <- as.Date("2019-12-31")
 col_palette <- 
-  c("#990033", "#99CC66", "#FF9999", "#333366", "#346900", "#C9C9FF")
+  c("#990033", "#99CC66", "#FF9999", "#333366", "#346900", "#C9C9FF", "#C90A4A")
 
 
 # Optionally install and activate fonts -----------------------------------
