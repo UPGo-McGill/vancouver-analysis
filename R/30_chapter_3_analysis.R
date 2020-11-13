@@ -20,7 +20,7 @@ source("R/01_startup.R")
 qload("output/str_processed.qs", nthreads = availableCores())
 load("output/geometry.Rdata")
 qload("output/cmhc.qs", nthreads = availableCores())
-qload("output/rent_increases.qs", nthreads = availableCores())
+qload("output/rent_increases.qsm", nthreads = availableCores())
 # load("output/condo_analysis.Rdata")
 
 
@@ -157,7 +157,8 @@ daily %>%
 {{{FREH %>% filter(date == "2019-12-01") %>% pull(FREH_3)} +
     {GH %>% filter(date == LTM_end_date) %>% pull(housing_units) %>% sum()}} /
   sum(LA$dwellings)} %>% 
-  round(3)
+  round(3) %>% 
+  scales::percent(0.1)
 
 #' [2] Housing loss in Downtown, Riley Park, and Shaughnessy
 LA %>% 
@@ -338,7 +339,8 @@ city_avg_rent %>%
          extra_rent = (cumulative_increase - 1) * avg_rent * 12) %>% 
   pull(extra_rent) %>% 
   sum() %>% 
-  round(-1)
+  round(-1) %>% 
+  scales::dollar()
 
 #' Table 3.2
 strs_by_zone <- 
@@ -373,7 +375,7 @@ annual_avg_rent %>%
   select(-zone, -n) %>% 
   add_row(
     tibble_row(
-      zone_name = "City of Montreal",
+      zone_name = "City of Vancouver",
       active_strs = nrow(
         filter(daily, housing, status != "B", date >= LTM_start_date, 
                date <= LTM_end_date)) / 365,

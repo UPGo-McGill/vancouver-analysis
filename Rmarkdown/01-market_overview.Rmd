@@ -784,7 +784,7 @@ figure_1_3_fun <- function(regular = "", condensed = "") {
                          labels = scales::percent)  +
     guides(fill = guide_colourbar(title = "STRs/\ndwelling",
                                   title.vjust = 1)) + 
-    gg_bbox(active_area) +
+    gg_bbox(active_DA) +
     theme_void() +
     theme(text = element_text(family = regular, face = "plain"),
           legend.title = element_text(family = regular, face = "bold",

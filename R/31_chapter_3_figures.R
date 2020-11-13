@@ -247,15 +247,6 @@ extrafont::embed_fonts("output/figures/figure_3_3.pdf")
 # Figure 3.4 Changes in housing supply ------------------------------------
 
 renter_zone <- 
-  # DA_probabilities_2019 %>% 
-  # mutate(across(c(p_condo, p_renter), ~{.x * dwellings})) %>% 
-  # mutate(across(where(is.numeric), ~if_else(is.na(.x), 0, as.numeric(.x)))) %>% 
-  # select(dwellings, p_condo, p_renter, geometry) %>% 
-  # st_interpolate_aw(cmhc, extensive = TRUE) %>% 
-  # st_drop_geometry() %>% 
-  # select(-Group.1) %>% 
-  # rename(n_condo = p_condo, n_renter = p_renter) %>% 
-  # cbind(cmhc, .) %>% 
   cmhc %>% 
   as_tibble() %>% 
   select(-geometry) %>% 
@@ -292,7 +283,7 @@ unit_change <-
   annual_units %>% 
   filter(dwelling_type == "Total", bedroom == "Total") %>% 
   arrange(desc(date)) %>% 
-  distinct(date, zone_name, .keep_all =T) %>% 
+  distinct(date, zone_name, .keep_all = TRUE) %>% 
   inner_join(daily_cmhc) %>% 
   left_join(renter_zone) %>%
   mutate(housing_loss = housing_loss * p_renter) %>%

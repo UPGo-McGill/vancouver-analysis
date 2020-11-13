@@ -80,6 +80,30 @@ LA <-
   arrange(area)
 
 
+# Streets -----------------------------------------------------------------
+
+streets <- 
+  (getbb("Vancouver") * c(1.01, 0.99, 0.99, 1.01)) %>% 
+  opq(timeout = 200) %>% 
+  add_osm_feature(key = "highway") %>% 
+  osmdata_sf()
+
+streets <-
+  rbind(
+    streets$osm_polygons %>% st_set_agr("constant") %>% st_cast("LINESTRING"), 
+    streets$osm_lines) %>% 
+  as_tibble() %>% 
+  st_as_sf() %>% 
+  st_transform(32610) %>%
+  st_set_agr("constant") %>%
+  st_intersection(city)
+
+streets <- 
+  streets %>% 
+  filter(highway %in% c("primary", "secondary")) %>% 
+  select(osm_id, name, highway, geometry)
+
+
 # Import of Skytrain shapefile --------------------------------------------
 
 skytrain <- 
@@ -142,5 +166,5 @@ BL_expanded <-
 
 # Save output -------------------------------------------------------------
 
-qsavem(province, CMA, DA, city, LA, BL, BL_expanded, skytrain, 
+qsavem(province, CMA, DA, city, LA, streets, BL, BL_expanded, skytrain, 
        file = "output/geometry.qsm", nthreads = availableCores())
