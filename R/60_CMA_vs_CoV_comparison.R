@@ -885,7 +885,7 @@ extrafont::embed_fonts("output/figures/figure_3_5_2.pdf")
 
 active_listings <- 
   daily_buffer %>% 
-  filter(housing, status != "B") %>% 
+  filter(housing, status == c("R","A")) %>% 
   count(date, group, status) %>% 
   group_by(group, status) %>% 
   mutate(n = slide_dbl(n, mean, .before = 13, .complete = TRUE)) %>% 
@@ -908,17 +908,17 @@ figure_3_5_3 <-
            y = 140, yend = 145, curvature = .2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
   annotate("text", x = as.Date("2020-8-16"), y = 135,
-           label = "COVID-19 \nAirbnb's response") + #, family = "Futura Condensed"
+           label = "COVID-19 \nAirbnb's response", family = "Futura Condensed") + 
   annotate("segment", x = key_date_regulations, xend = key_date_regulations,
            y = -Inf, yend = Inf, alpha = 0.3) +
   annotate("curve", x = as.Date("2018-12-01"), xend = key_date_regulations + days(10),
            y = 130, yend = 125, curvature = .2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
   annotate("text", x = as.Date("2018-12-01"), y = 127,
-           label = "Regulations")+  #, family = "Futura Condensed"
+           label = "Regulations", family = "Futura Condensed")+
   facet_wrap(~status)+
   geom_line(lwd = 1)+
-  scale_colour_manual(name = NULL, values = col_palette[c(3, 2)])+
+  scale_colour_manual(name = NULL, values = col_palette[c(5, 1)])+
   scale_y_continuous(name = NULL) +
   scale_x_date(name = NULL)+
   theme_minimal() +
