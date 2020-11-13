@@ -16,7 +16,7 @@
 source("R/01_startup.R")
 
 qload("output/str_processed.qs", nthreads = availableCores())
-qload("output/FREH_model.qs", nthreads = availableCores())
+qload("output/FREH_model.qsm", nthreads = availableCores())
 qload("output/str_bc_processed.qs", nthreads = availableCores())
 qload("output/geometry.qs", nthreads = availableCores())
 
@@ -162,6 +162,228 @@ commercial_listings_bc_indexed <-
 commercial_listings_both <- 
   rbind(commercial_listings_indexed, commercial_listings_bc_indexed)
 
+
+# YOY listings, revenue and reservation growth ------------------------------------------------
+
+#' [1] YOY listing growth, COV 2018-2019
+daily %>% 
+  filter(housing, status != "B", date >= LTM_start_date - years(1),
+         date <= LTM_end_date) %>% 
+  group_by(year_2019 = date >= LTM_start_date) %>% 
+  summarize(n = n() / 365) %>% 
+  summarize(change = (n[2] - n[1]) / n[1])
+
+#' [2] YOY listing growth, CMA 2018-2019
+daily_bc %>% 
+  filter(housing, status != "B", date >= LTM_start_date - years(1),
+         date <= LTM_end_date) %>% 
+  group_by(year_2019 = date >= LTM_start_date) %>% 
+  summarize(n = n() / 365) %>% 
+  summarize(change = (n[2] - n[1]) / n[1])
+
+#' [3] YOY reservation change, COV 2018-2019
+daily %>% 
+  filter(housing, status == "R", date >= LTM_start_date - years(1),
+         date <= LTM_end_date) %>% 
+  group_by(year_2019 = date >= LTM_start_date) %>% 
+  summarize(n = n()) %>% 
+  summarize(change = (n[2] - n[1]) / n[1])
+
+#' [4] YOY revenue change, COV 2018-2019
+daily %>% 
+  filter(housing, status == "R", date >= LTM_start_date - years(1),
+         date <= LTM_end_date) %>% 
+  group_by(year_2019 = date >= LTM_start_date) %>% 
+  summarize(revenue = sum(price)) %>% 
+  summarize(change = (revenue[2] - revenue[1]) / revenue[1])
+
+#' [5] YOY reservation change, CMA 2018-2019
+daily_bc %>% 
+  filter(housing, status == "R", date >= LTM_start_date - years(1),
+         date <= LTM_end_date) %>% 
+  group_by(year_2019 = date >= LTM_start_date) %>% 
+  summarize(n = n()) %>% 
+  summarize(change = (n[2] - n[1]) / n[1])
+
+#' [6] YOY revenue change, CMA 2018-2019
+daily_bc %>% 
+  filter(housing, status == "R", date >= LTM_start_date - years(1),
+         date <= LTM_end_date) %>% 
+  group_by(year_2019 = date >= LTM_start_date) %>% 
+  summarize(revenue = sum(price)) %>% 
+  summarize(change = (revenue[2] - revenue[1]) / revenue[1])
+
+# Regulatory impacts: displayed listings ------------------------------------------------------
+
+displayed_listings <- 
+  daily %>% 
+  filter(housing) %>% 
+  count(date, listing_type) %>% 
+  group_by(listing_type) %>% 
+  mutate(n = slide_dbl(n, mean, .before = 6, .complete = TRUE)) %>% 
+  ungroup()
+
+displayed_listings <- 
+  daily %>% 
+  filter(housing) %>% 
+  count(date) %>% 
+  mutate(n = slide_dbl(n, mean, .before = 6, .complete = TRUE),
+         listing_type = "All listings") %>% 
+  bind_rows(displayed_listings) %>% 
+  arrange(date, listing_type)
+
+figure_3_2_1 <- 
+  displayed_listings %>% 
+  ggplot(aes(date, n, colour = listing_type, size = listing_type)) +
+  annotate("segment", x = key_date_covid, xend = key_date_covid,
+           y = -Inf, yend = Inf, alpha = 0.3) +
+  annotate("segment", x = key_date_regulations, xend = key_date_regulations,
+           y = -Inf, yend = Inf, alpha = 0.3) +
+  geom_line() +
+  scale_y_continuous(name = NULL, label = scales::comma) +
+  scale_x_date(name = NULL, limits = c(as.Date("2016-01-01"), NA)) +
+  scale_colour_manual(name = NULL, values = col_palette[c(5, 1:3)],
+                      guide = guide_legend(
+                        override.aes = list(size = c(1.5, 0.75, 0.75, 0.75)))) +
+  scale_size_manual(values = c("All listings" = 1.5, "Entire home/apt" = 0.75,
+                               "Private room" = 0.75, "Shared room" = 0.75),
+                    guide = "none") +
+  theme_minimal() +
+  theme(legend.position = "bottom", panel.grid.minor.x = element_blank(),
+        text = element_text(family = "Futura"))
+
+ggsave("output/figures/figure_3_2_1.pdf", plot = figure_3_2_1, width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_3_2_1.pdf")
+
+# Actual and expected number of active listings after regulations -----------------------------
+
+figure_3_2_2 <- 
+  
+ggsave("output/figures/figure_3_2_2.pdf", plot = figure_3_2_2, width = 8, 
+         height = 5, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_3_2_2.pdf")
+
+# Regulations’ impact on commercialization ----------------------------------------------------
+
+#' [1] Number of listings removed in August 2018 that were active during the year before
+daily %>% 
+  filter(housing, status != "B", date >= LTM_start_date - years(1),
+         date <= LTM_end_date) %>% 
+  group_by(year_2019 = date >= LTM_start_date) %>% 
+  summarize(n = n() / 365) %>% 
+  summarize(change = (n[2] - n[1]) / n[1])
+
+#' [2] Number of listings removed in August 2018 
+daily %>% 
+  filter(housing, status != "B", date >= LTM_start_date - years(1),
+         date <= LTM_end_date) %>% 
+  group_by(year_2019 = date >= LTM_start_date) %>% 
+  summarize(n = n() / 365) %>% 
+  summarize(change = (n[2] - n[1]) / n[1])
+
+#' [3] Number of listings considered as commercial the day they were removed
+
+
+#' [4] Percentage of listings considered as commercial the day they were removed
+
+
+figure_3_3_1 <- 
+
+# Comparative analysis: CMA and CoV’s ---------------------------------------------------------
+
+active_bc_2019 <- 
+  daily_bc %>%
+  filter(housing, status %in% c("R", "A"), date <= LTM_end_date, 
+         date >= LTM_start_date) %>%
+  pull(property_ID) %>% 
+  unique()
+
+revenue_bc_2019 <-
+  daily_bc %>%
+  filter(housing, status == "R", date <= LTM_end_date, 
+         date >= LTM_start_date) %>%
+  group_by(property_ID) %>%
+  summarize(revenue_LTM = sum(price)) %>% 
+  inner_join(property_bc, .)
+
+revenue_2019 <-
+  daily %>%
+  filter(housing, status == "R", date <= LTM_end_date, 
+         date >= LTM_start_date) %>%
+  group_by(property_ID) %>%
+  summarize(revenue_LTM = sum(price)) %>% 
+  inner_join(property, .)
+
+#' [1] Average active and blocked daily listings in 2019 CMA
+daily_bc %>% 
+  filter(housing, date >= LTM_start_date, date <= LTM_end_date) %>% 
+  count(date, B = status == "B") %>% 
+  group_by(B) %>% 
+  summarize(round(mean(n), digit = -1))
+
+#' [2] Average number of hosts (taking out blocked 365 days) CMA
+daily_bc %>% 
+  filter(housing, status != "B", date >= LTM_start_date, 
+         date <= LTM_end_date) %>%
+  count(date, host_ID) %>% 
+  count(date) %>% 
+  summarize(hosts = round(mean(n), digit = -1))
+
+#' [3] Total annual revenue CMA
+prettyNum(round(sum(revenue_bc_2019$revenue_LTM), digit = -5), ",")
+
+#' [4] Average revenue per active listing CMA
+(sum(revenue_bc_2019$revenue_LTM) /
+    daily_bc %>% 
+    filter(housing, status != "B", date >= LTM_start_date, 
+           date <= LTM_end_date) %>% 
+    count(date) %>% 
+    summarize(avg_rev_per_active = round(mean(n)))) %>% 
+  round(digit = -2) %>% 
+  prettyNum(",")
+
+#' [5] Average revenue per active host CMA
+(sum(revenue_bc_2019$revenue_LTM) /
+    daily_bc %>% 
+    filter(housing, status != "B", date >= LTM_start_date, 
+           date <= LTM_end_date) %>%
+    group_by(date) %>% 
+    summarize(n_hosts = length(unique(host_ID))) %>% 
+    summarize(avg_n_hosts = round(mean(n_hosts)))) %>% 
+  round(digit = -2) %>% 
+  prettyNum(",")
+
+#' [6] Average revenue per active host COV
+(sum(revenue_2019$revenue_LTM) /
+    daily %>% 
+    filter(housing, status != "B", date >= LTM_start_date, 
+           date <= LTM_end_date) %>%
+    group_by(date) %>% 
+    summarize(n_hosts = length(unique(host_ID))) %>% 
+    summarize(avg_n_hosts = round(mean(n_hosts)))) %>% 
+  round(digit = -2) %>% 
+  prettyNum(",")
+
+#' [7] Active listings growth 2018-2019 CMA
+daily_bc %>% 
+  filter(housing, status != "B", date >= LTM_start_date - years(1),
+         date <= LTM_end_date) %>% 
+  group_by(year_2019 = date >= LTM_start_date) %>% 
+  summarize(n = n() / 365) %>% 
+  summarize(change = (n[2] - n[1]) / n[1])
+
+#' [8] Active listings growth 2018-2019 COV
+daily %>% 
+  filter(housing, status != "B", date >= LTM_start_date - years(1),
+         date <= LTM_end_date) %>% 
+  group_by(year_2019 = date >= LTM_start_date) %>% 
+  summarize(n = n() / 365) %>% 
+  summarize(change = (n[2] - n[1]) / n[1])
+
+#' [9] Active listings growth 2018-2019 COV
 
 # Active daily listings Cov vs CMA, indexed ---------------------------------------------------
 
@@ -513,140 +735,5 @@ avg_price_indexed %>%
   scale_x_date(name = NULL)+
   theme_minimal() +
   theme(legend.position = "bottom", panel.grid.minor.x = element_blank())
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-#
-## closest station to the boundaries of Vancouver City ####################
-# 
-# stations_CMA <- 
-# skytrain  %>% 
-#   # mutate(in_city = ifelse(station %in% st_intersection(skytrain, city)$station, T, F)) %>% 
-#   st_intersection(filter(CMA, name == "Burnaby (CY)")) %>% 
-#   mutate(distance = st_distance(geometry, st_cast(city, "MULTILINESTRING"))) %>%
-#   # group_by(in_city) %>% 
-#   arrange(distance) %>%
-#   slice(1:4) %>% 
-#   transmute(station)
-# 
-# near_burnaby <- 
-# skytrain %>% 
-#   st_intersection(city) %>% 
-#   mutate(distance = st_distance(geometry, st_cast(filter(CMA, name == "Burnaby (CY)"), "MULTILINESTRING"))) %>%
-#   arrange(distance) %>%
-#   slice(1:4) %>% 
-#   select(-distance, -dwellings, -GeoUID)
-# 
-# # near_richmond <- 
-# # skytrain %>% 
-# #   st_intersection(city) %>% 
-# #   mutate(distance = st_distance(geometry, st_cast(filter(CMA, CSD == "Richmond (CY)"), "MULTILINESTRING"))) %>%
-# #   arrange(distance) %>%
-# #   slice(1:4) %>% 
-# #   select(-distance, -dwellings)
-#   
-# stations_city <- near_burnaby
-# # rbind(near_burnaby, near_richmond)
-# 
-# # Get the properties inside 500m of the metro stations closest to CoV boundaries
-# stations_buffer <- 
-#   stations_city %>% 
-#   rbind(stations_CMA) %>% 
-#   mutate(in_city = ifelse(station %in% st_intersection(skytrain, city)$station, T, F)) %>% 
-#   st_buffer(., 500)
-# 
-# 
-# property_buffer <- 
-# st_intersection(stations_buffer, rbind(select(property, property_ID), select(property_bc, property_ID)))
-# 
-# 
-# stations_buffer %>%
-#   st_join(property) %>% 
-#   count(in_city) %>% 
-#   ggplot()+geom_sf(data= city)+geom_sf(aes(color=in_city))
-# 
-# # Active listings 
-# 
-# daily_buffer <- 
-#   rbind(select(daily,
-#                property_ID, date, status, price, listing_type, housing), 
-#         select(daily_bc,
-#                property_ID, date, status, price, listing_type, housing)) %>% 
-#   inner_join(st_drop_geometry(property_buffer))
-# 
-# 
-# 
-# stations_buffer %>%
-#   st_join(property) %>% 
-#   count(in_city) %>% 
-#   ggplot()+geom_sf()
-# 
-# active_listings <- 
-#   daily_buffer %>% 
-#   filter(housing, status != "B") %>% 
-#   count(date, in_city) %>% 
-#   group_by(in_city) %>% 
-#   mutate(n = slide_dbl(n, mean, .before = 6, .complete = TRUE)) %>% 
-#   ungroup()
-# 
-# active_listings_indexed <- 
-#   active_listings %>%
-#   filter(date >= key_date_regulations - years(1)) %>%
-#   group_by(in_city) %>% 
-#   mutate(index = 100*n/n[date == key_date_regulations])
-# 
-# 
-# active_listings_indexed %>% 
-#   ggplot(aes(date, index, colour = in_city)) +
-#   annotate("segment", x = key_date_covid, xend = key_date_covid,
-#            y = -Inf, yend = Inf, alpha = 0.3) +
-#   annotate("curve", x = as.Date("2020-07-01"), xend = key_date_covid + days(10),
-#            y = 135, yend = 150, curvature = .2, lwd = 0.25,
-#            arrow = arrow(length = unit(0.05, "inches"))) +
-#   annotate("text", x = as.Date("2020-06-16"), y = 130,
-#            label = "COVID-19 \nAirbnb's response", family = "Futura Condensed") +
-#   annotate("segment", x = key_date_regulations, xend = key_date_regulations,
-#            y = -Inf, yend = Inf, alpha = 0.3) +
-#   annotate("curve", x = as.Date("2018-12-01"), xend = key_date_regulations + days(10),
-#            y = 130, yend = 150, curvature = .2, lwd = 0.25,
-#            arrow = arrow(length = unit(0.05, "inches"))) +
-#   annotate("text", x = as.Date("2018-12-01"), y = 127,
-#            label = "Regulations", family = "Futura Condensed")+
-#   geom_line()+
-#   ggtitle("Daily active listings variation")
-# 
-# # Revenue 
-# 
-# revenue <-
-#   daily_buffer %>%
-#   filter(housing, status == "R") %>%
-#   group_by(date, in_city) %>% 
-#   summarize(revenue = sum(price)) %>% 
-#   group_by(in_city) %>% 
-#   mutate(revenue = slide_dbl(revenue, mean, .before = 6, .complete = TRUE))
-# 
-# revenue_indexed <- 
-#   revenue %>%
-#   filter(date >= key_date_regulations - years(1)) %>%
-#   group_by(in_city) %>% 
-#   mutate(index = 100*revenue/revenue[date == key_date_regulations])
-# 
-# 
-# revenue_indexed %>% 
-#   ggplot(aes(date, index, colour = in_city)) +
-#   annotate("segment", x = key_date_covid, xend = key_date_covid,
-#            y = -Inf, yend = Inf, alpha = 0.3) +
-#   annotate("segment", x = key_date_regulations, xend = key_date_regulations,
-#            y = -Inf, yend = Inf, alpha = 0.3) +
-#   geom_line() +
-#   ggtitle("Revenue")
-# 
-# 
 
                 
