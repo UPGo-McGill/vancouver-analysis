@@ -779,7 +779,8 @@ figure_1_3_fun <- function(regular = "", condensed = "") {
     ggplot() +
     geom_sf(data = province, colour = "transparent", fill = "grey93") +
     geom_sf(aes(fill = percentage), colour = "white") +
-    scale_fill_gradientn(colors = col_palette[c(5, 3, 1)], na.value = "grey80",
+    scale_fill_gradientn(colors = col_palette[c(5, 2, 3, 7, 4)], 
+                         na.value = "grey80",
                          limits = c(0, 0.05), oob = scales::squish, 
                          labels = scales::percent)  +
     guides(fill = guide_colourbar(title = "STRs/\ndwelling",
@@ -798,7 +799,8 @@ figure_1_3_fun <- function(regular = "", condensed = "") {
     ggplot() +
     geom_sf(data = province, colour = "transparent", fill = "grey93") +
     geom_sf(aes(fill = percentage), colour = "transparent") +
-    scale_fill_gradientn(colors = col_palette[c(5, 3, 1)], na.value = "grey80",
+    scale_fill_gradientn(colors = col_palette[c(5, 2, 3, 7, 4)], 
+                         na.value = "grey80",
                          limits = c(0, 0.05), oob = scales::squish, 
                          labels = scales::percent)  +
     guides(fill = guide_colourbar(title = "STRs/\ndwelling",

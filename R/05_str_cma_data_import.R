@@ -4,7 +4,7 @@
 #' data needs to be rebuilt from scratch.
 #' 
 #' Output:
-#' - `cma_comparison.qs`
+#' - `cma_comparison.qsm`
 #' 
 #' Script dependencies:
 #' - None
@@ -14,6 +14,8 @@
 
 source("R/01_startup.R")
 library(cancensus)
+
+upgo_connect()
 
 
 # Get Montreal and Toronto CMAs -------------------------------------------
@@ -51,7 +53,7 @@ property_toronto <-
   property_toronto %>% 
   mutate(central = as.logical(st_intersects(
     geometry, 
-    CMA_toronto[CMA_toronto$name == "Toronto (CY)",]$geometry))) %>% 
+    CMA_toronto[CMA_toronto$name == "Toronto (C)",]$geometry))) %>% 
   mutate(central = if_else(is.na(central), FALSE, central))
 
 daily_montreal <- 
@@ -78,8 +80,31 @@ daily_toronto <-
   select(property_ID, central) %>% 
   left_join(daily_toronto, .)
 
+host_montreal <- 
+  host_remote %>% 
+  filter(host_ID %in% !!property_montreal$host_ID) %>% 
+  collect() %>% 
+  strr_expand()
+
+host_toronto <- 
+  host_remote %>% 
+  filter(host_ID %in% !!property_toronto$host_ID) %>% 
+  collect() %>% 
+  strr_expand()
+
+daily_montreal <- 
+  daily_montreal %>% 
+  strr_multi(host_montreal)
+
+daily_toronto <- 
+  daily_toronto %>% 
+  strr_multi(host_toronto)
+
+upgo_disconnect()
+
 
 # Save output -------------------------------------------------------------
 
 qsavem(property_montreal, property_toronto, daily_montreal, daily_toronto,
-       file = "output/cma_comparison.qsm", nthreads = availableCores())
+       host_montreal, host_toronto, file = "output/cma_comparison.qsm", 
+       nthreads = availableCores())

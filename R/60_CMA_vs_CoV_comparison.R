@@ -14,6 +14,7 @@
 #' - None
 
 source("R/01_startup.R")
+library(caret)
 
 qload("output/str_processed.qsm", nthreads = availableCores())
 qload("output/FREH_model.qsm", nthreads = availableCores())
@@ -144,26 +145,23 @@ daily_bc %>%
 
 # Regulatory impacts: displayed listings ------------------------------------------------------
 
-displayed_listings <- 
+displayed_listings <-
   daily %>% 
   filter(housing) %>% 
-  count(date, listing_type) %>% 
-  group_by(listing_type) %>% 
+  count(date, blocked = status == "B") %>% 
+  group_by(blocked) %>% 
   mutate(n = slide_dbl(n, mean, .before = 6, .complete = TRUE)) %>% 
-  ungroup()
-
-displayed_listings <- 
-  daily %>% 
-  filter(housing) %>% 
-  count(date) %>% 
-  mutate(n = slide_dbl(n, mean, .before = 6, .complete = TRUE),
-         listing_type = "All listings") %>% 
-  bind_rows(displayed_listings) %>% 
-  arrange(date, listing_type)
-
-figure_3_2_1 <- 
+  ungroup() %>% 
+  drop_na() %>% 
+  group_by(date) %>% 
+  mutate(n = if_else(blocked == TRUE, sum(n), n)) %>% 
+  ungroup() %>% 
+  mutate(blocked = if_else(blocked == TRUE, "Total listings", 
+                           "Active listings"))
+  
+# figure_3_2_1 <- 
   displayed_listings %>% 
-  ggplot(aes(date, n, colour = listing_type, size = listing_type)) +
+  ggplot(aes(date, n, colour = blocked)) +
   annotate("segment", x = key_date_covid, xend = key_date_covid,
            y = -Inf, yend = Inf, alpha = 0.3) +
   annotate("segment", x = key_date_regulations, xend = key_date_regulations,
@@ -171,12 +169,7 @@ figure_3_2_1 <-
   geom_line() +
   scale_y_continuous(name = NULL, label = scales::comma) +
   scale_x_date(name = NULL, limits = c(as.Date("2016-01-01"), NA)) +
-  scale_colour_manual(name = NULL, values = col_palette[c(5, 1:3)],
-                      guide = guide_legend(
-                        override.aes = list(size = c(1.5, 0.75, 0.75, 0.75)))) +
-  scale_size_manual(values = c("All listings" = 1.5, "Entire home/apt" = 0.75,
-                               "Private room" = 0.75, "Shared room" = 0.75),
-                    guide = "none") +
+  scale_colour_manual(name = NULL, values = col_palette[c(5, 1:3)]) +
   theme_minimal() +
   theme(legend.position = "bottom", panel.grid.minor.x = element_blank(),
         text = element_text(family = "Futura"))
@@ -213,8 +206,8 @@ active_listings_trend <-
   filter(listing_type == "All listings") %>% 
   tsibble::as_tsibble() %>% 
   tsibble::index_by(yearmon = tsibble::yearmonth(date)) %>% 
-  summarize(n = sum(n, na.rm = T)) %>% 
-  filter(yearmon <= tsibble::yearmonth("2020-02")) %>% 
+  summarize(n = sum(n, na.rm = TRUE)) %>% 
+  filter(yearmon <= tsibble::yearmonth("2018-07")) %>% 
   model(x11 = feasts:::X11(n, type = "additive")) %>% 
   components()
 
@@ -230,16 +223,16 @@ jul_trend <-
   slice(46) %>% 
   pull(trend)
 
-# Apply March-Sep seasonal component to Feb trend
+# Apply Aug-Jul seasonal component to July trend
 trends <-
   tibble(
-    date = as.Date(c("2018-08-31", "2018-09-16", "2018-10-16", "2018-11-16",
+    date = as.Date(c("2018-08-23", "2018-09-16", "2018-10-16", "2018-11-16",
                      "2018-12-16", "2019-01-16", "2019-02-16", "2019-03-16",
-                     "2019-04-16", "2019-05-16", "2019-06-16", "2019-07-16")),
-    trend = (jul_trend + aug_jul_seasonal) / c(31, 30, 31, 30, 31, 31, 28, 31, 30, 31, 30, 31))
+                     "2019-04-16", "2019-05-16", "2019-06-16", "2019-07-16",
+                     "2019-08-16", "2019-09-16")),
+    trend = (jul_trend + aug_jul_seasonal) / 
+      c(31, 30, 31, 30, 31, 31, 28, 31, 30, 31, 30, 31, 31, 30))
 
-# Set August 31 value to average of August and September
-# trends[7,]$trend <- mean(trends[6:7,]$trend)
 active_listings_trend <- 
   active_listings %>% 
   filter(listing_type == "All listings") %>% 
@@ -248,7 +241,7 @@ active_listings_trend <-
   left_join(trends) %>% 
   select(-listing_type) %>% 
   mutate(trend = if_else(date == "2018-08-01", n, trend)) %>%
-  filter(date >= "2018-08-31", date <= "2019-07-16") %>%
+  filter(date >= "2018-08-23", date <= "2019-09-16") %>%
   mutate(trend = zoo::na.approx(trend))
 
 active_listings_trend <- 
@@ -269,17 +262,18 @@ figure_3_2_2 <-
   annotate("curve", x = as.Date("2019-04-01"), xend = as.Date("2018-08-31") + days(10),
            y = 4850, yend = 4700, curvature = -.2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
-  annotate("text", x = as.Date("2019-05-01"), y = 5000,
-           label = "Regulations", family = "Futura Condensed")+
-  geom_ribbon(aes(x = date, ymin = n, ymax = trend, group = 1),
-              data = filter(active_listings_trend, !is.na(trend)), fill = col_palette[6], 
-              alpha = 0.3) +
+  # annotate("text", x = as.Date("2019-05-01"), y = 5000,
+           # label = "Regulations", family = "Futura Condensed")+
+  # geom_ribbon(aes(x = date, ymin = n, ymax = projected, group = 1),
+              # data = filter(active_listings_trend, !is.na(projected)), fill = col_palette[6], 
+              # alpha = 0.3) +
   geom_line(aes(date, value, color = name), lwd = 1.5) +
   scale_x_date(name = NULL) +
   scale_y_continuous(name = NULL) +
   scale_color_manual(name = NULL, 
-                     labels = c("Actual active listings", "Expected active listings"), 
-                     values = col_palette[c(5, 4)]) +
+                     labels = c("Actual active listings", "Expected with previous growth trend",
+                                "Expected with no growth"), 
+                     values = col_palette[c(5, 4, 3)]) +
   theme_minimal() +
   theme(legend.position = "bottom", 
         panel.grid.minor.x = element_blank(),
@@ -336,7 +330,7 @@ daily %>%
 # Figure 3_3_1
 commercial_listings <- 
   daily %>% 
-  filter(status != "B", date >= "2016-01-01") %>% 
+  filter(status != "B", date >= "2015-07-01") %>% 
   mutate(commercial = if_else(FREH_3 < 0.5 & !multi, FALSE, TRUE)) %>% 
   count(date, commercial)
 
@@ -347,49 +341,48 @@ commercial_operations <-
   tsibble::as_tsibble() %>% 
   tsibble::index_by(yearmon = tsibble::yearmonth(date)) %>% 
   summarize(n = sum(n)) %>% 
-  filter(yearmon <= tsibble::yearmonth("2020-02")) %>% 
+  filter(yearmon <= tsibble::yearmonth("2018-07")) %>% 
   model(x11 = feasts:::X11(n, type = "additive")) %>% 
   components()
 
 # Get August 2017 - July 2018 seasonal
-aug_jul_seasonal <- 
+com_aug_jul_seasonal <- 
   commercial_operations %>%
-  slice(20:34) %>% 
+  slice(26:37) %>% 
   pull(seasonal)
 
 # Get July trend
-jul_trend <- 
+com_jul_trend <- 
   commercial_operations %>% 
-  slice(31) %>% 
+  slice(37) %>% 
   pull(trend)
 
-# Apply March-Sep seasonal component to Feb trend
-trends <-
+# Apply Aug-Jul seasonal component to July trend
+com_trends <-
   tibble(
     date = as.Date(c("2018-08-23", "2018-09-16", "2018-10-16", "2018-11-16",
                      "2018-12-16", "2019-01-16", "2019-02-16", "2019-03-16",
                      "2019-04-16", "2019-05-16", "2019-06-16", "2019-07-16",
-                     "2019-08-16", "2019-09-16", "2019-10-16")),
-    trend = (jul_trend + aug_jul_seasonal) / c(31, 30, 31, 30, 31, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31))
+                     "2019-08-16", "2019-09-16")),
+    trend = (com_jul_trend + com_aug_jul_seasonal) / 
+      c(31, 30, 31, 30, 31, 31, 28, 31, 30, 31, 30, 31, 31, 30))
 
-# Set August 31 value to average of August and September
-# trends[7,]$trend <- mean(trends[6:7,]$trend)
 commercial_operations <- 
   commercial_listings %>% 
   filter(commercial) %>% 
   mutate(n = slide_dbl(n, mean, .before = 6)) %>% 
   filter(date >= "2016-01-01") %>% 
-  left_join(trends) %>% 
+  left_join(com_trends) %>% 
   select(-commercial) %>% 
   mutate(trend = if_else(date == "2018-08-01", n, trend)) %>%
-  filter(date >= "2018-08-23", date <= "2019-10-16") %>%
+  filter(date >= "2018-08-23", date <= "2019-09-16") %>%
   mutate(trend = zoo::na.approx(trend))
 
 commercial_operations <- 
   commercial_listings %>% 
   filter(commercial) %>% 
   mutate(n = slide_dbl(n, mean, .before = 6)) %>% 
-  filter(date >= "2016-01-01", date <= "2019-10-31") %>% 
+  filter(date >= "2016-01-01", date <= "2019-09-30") %>% 
   select(-commercial) %>% 
   bind_rows(commercial_operations) 
 
