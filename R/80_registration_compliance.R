@@ -20,8 +20,17 @@ qload("output/geometry.qsm", nthreads = availableCores())
 load("output/registration.Rdata")
 
 
-### Daily counts of displayed listings and licences ----------------------------
+### 4.1  ----------------------
 
+# how many listings removed by Airbnb in August 2018
+property %>%  
+  filter(scraped >= key_date_regulations, scraped <= "2018-09-01") %>% 
+  nrow() %>% 
+  round(digits = -1)
+# We did not use that number because it does not take in account the natural
+# turnover of airbnb listings. instead we used the number given by Airbnb
+
+# Daily counts of displayed listings and licences
 active_listings <- 
   daily %>% 
   data.table::setDT() %>% 
@@ -62,16 +71,16 @@ licences_listings %>%
 
 
 # New licences in fall/winter 2019
-pull(active_licences[date == "2019-12-31"])-
-  pull(active_licences[date == "2019-10-01"])
+pull(filter(active_licences, date == "2019-12-31"))-
+  pull(filter(active_licences, date == "2019-10-01"))
 
 # Decrease of displyaed listings in fall/winter 2019
-pull(active_listings[date == "2019-12-31"])-
-  pull(active_listings[date == "2019-10-01"])
+pull(filter(active_listings, date == "2019-12-31"))-
+  pull(filter(active_listings, date == "2019-10-01"))
 
 # New licences after COVID
-pull(active_licences[date == max(date)])-
-  pull(active_licences[date == key_date_covid])
+pull(filter(active_licences, date == max(date)))-
+  pull(filter(active_licences, date == key_date_covid))
 
 
 ### Class by conformity --------------------------------------------------------
@@ -115,44 +124,48 @@ conformity_status %>%
   filter(registration_analyzed != "Inactive listing",
          active >= max(active, na.rm = T) - days(30)) %>% 
   count(registration_analyzed) %>% 
-  mutate(per = n/sum(n))
+  mutate(per = str_glue("{round(n/sum(n), digits = 3)*100}%"))
 
 # How many of the conform listings use a licence used by multiple listings
-conformity_status %>% 
-  st_drop_geometry() %>% 
-  filter(registration_analyzed == "Conform",
-         active >= max(active, na.rm = T) - days(30)) %>% 
-  filter(listing_type == "Entire home/apt") %>% 
-  count(registration) %>% 
-  arrange(desc(n)) %>% 
-  filter(n>1) %>% 
-  summarize(sum(n)) %>% pull() /
+(
   conformity_status %>% 
-  st_drop_geometry() %>% 
-  filter(registration_analyzed == "Conform",
-         active >= max(active, na.rm = T) - days(30)) %>% 
-  filter(listing_type == "Entire home/apt") %>% 
-  nrow()
+    st_drop_geometry() %>% 
+    filter(registration_analyzed == "Conform",
+           active >= max(active, na.rm = T) - days(30)) %>% 
+    filter(listing_type == "Entire home/apt") %>% 
+    count(registration) %>% 
+    arrange(desc(n)) %>% 
+    filter(n>1) %>% 
+    summarize(sum(n)) %>% pull() /
+    conformity_status %>% 
+    st_drop_geometry() %>% 
+    filter(registration_analyzed == "Conform",
+           active >= max(active, na.rm = T) - days(30)) %>% 
+    filter(listing_type == "Entire home/apt") %>% 
+    nrow()
+) %>%
+  round(digits = 3)
 
 
-# Graphing the conformity status of displayed listings
-conformity_status %>% 
-  filter(registration_analyzed != "Inactive listing") %>%
-  ggplot()+
-  geom_histogram(stat = "count", aes(registration_analyzed, fill = registration_analyzed))+
-  xlab("")+
-  ylab("Number of listings")+
-  guides(x = guide_axis(angle = 10))+
-  # scale_fill_manual(name = "Registration conformity", values = col_palette[c(4, 1, 2, 3, 6)])+
-  theme_minimal()
-
-
-# percentage of all conformity status category for displayed listings
-conformity_status %>% 
-  st_drop_geometry() %>% 
-  filter(registration_analyzed != "Inactive listing") %>% 
-  count(registration_analyzed) %>% 
-  mutate(per = n/sum(n))
+# ## Unsure if relevant
+# # Graphing the conformity status of displayed listings
+# conformity_status %>%
+#   filter(registration_analyzed != "Inactive listing") %>%
+#   ggplot()+
+#   geom_histogram(stat = "count", aes(registration_analyzed, fill = registration_analyzed))+
+#   xlab("")+
+#   ylab("Number of listings")+
+#   guides(x = guide_axis(angle = 10))+
+#   # scale_fill_manual(name = "Registration conformity", values = col_palette[c(4, 1, 2, 3, 6)])+
+#   theme_minimal()
+# 
+# 
+# # percentage of all conformity status category for displayed listings
+# conformity_status %>%
+#   st_drop_geometry() %>%
+#   filter(registration_analyzed != "Inactive listing") %>%
+#   count(registration_analyzed) %>%
+#   mutate(per = n/sum(n))
 
 
 ### Geography of conformity status -------------------------------------------
@@ -189,7 +202,9 @@ LA %>%
   count(area.x, registration_analyzed) %>% 
   group_by(area.x) %>% 
   mutate(non_conform_per = n/sum(n)) %>% 
-  arrange(desc(non_conform_per))
+  arrange(desc(non_conform_per)) %>% 
+  ungroup() %>% 
+  slice(1:3)
 
 
 
@@ -303,7 +318,8 @@ commercial_2020 <-
 conformity_status %>% 
   filter(property_ID %in% commercial_2020, 
          active >= max(active, na.rm = T) - days(30),
-         registration_analyzed != "Inactive listing") %>% nrow()
+         registration_analyzed != "Inactive listing") %>% 
+  nrow()
 
 conformity_status %>% 
   filter(property_ID %in% commercial_2020, 
@@ -319,7 +335,7 @@ conformity_status %>%
          active >= max(active, na.rm = T) - days(30),
          registration_analyzed != "Inactive listing") %>% 
   count(registration_analyzed) %>% 
-  mutate(per = n/sum(n))
+  mutate(per = str_glue("{round(n/sum(n), digits = 3)*100}%"))
 
 conformity_status %>% 
   st_drop_geometry() %>% 

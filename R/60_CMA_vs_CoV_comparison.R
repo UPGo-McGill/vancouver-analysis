@@ -18,8 +18,8 @@ library(caret)
 
 qload("output/str_processed.qsm", nthreads = availableCores())
 qload("output/FREH_model.qsm", nthreads = availableCores())
-qload("output/str_bc_processed.qs", nthreads = availableCores())
-qload("output/geometry.qs", nthreads = availableCores())
+qload("output/str_bc_processed.qsm", nthreads = availableCores())
+qload("output/geometry.qsm", nthreads = availableCores())
 
 
 # Prepare new objects -----------------------------------------------------
@@ -761,7 +761,7 @@ extrafont::embed_fonts("output/figures/figure_3_4_3.pdf")
 buffer_all_CoV <- st_buffer(st_cast(city,"MULTILINESTRING"),
                             1000, joinStyle = "MITRE", mitreLimit = 3)
 
-buffer_VoC_Burnaby <- 
+buffer_CoV_Burnaby <- 
   st_intersection(select(st_cast(city,"MULTILINESTRING"), -everything()), 
                   select(filter(st_cast(CMA,"MULTILINESTRING"), name == "Burnaby (CY)"), -everything())) %>% 
   st_cast("LINESTRING") %>%
@@ -773,7 +773,7 @@ property_buffer <-
   mutate(group = "CoV") %>% 
   select(property_ID, group) %>% 
   rbind(select(mutate(property_bc, group = "Burnaby"), property_ID, group)) %>%
-  st_intersection(select(buffer_VoC_Burnaby, -everything()))
+  st_intersection(select(buffer_CoV_Burnaby, -everything()))
 
 # Active listings within the buffer
 daily_buffer <- 
@@ -1043,3 +1043,25 @@ extrafont::embed_fonts("output/figures/figure_3_5_5.pdf")
 #  scale_x_date(name = NULL)+
 #  theme_minimal() +
 #  theme(legend.position = "bottom", panel.grid.minor.x = element_blank())
+
+
+
+
+burnaby <-
+  CMA %>%
+  filter(name =="Burnaby (CY)")
+
+buffer <- st_intersection(buffer_CoV_Burnaby, st_union(city, burnaby))
+
+ggplot()+
+  geom_sf(data = mutate(city, City = "Vancouver"), aes(fill = City))+
+  geom_sf(data = mutate(burnaby, City = "Burnaby"), aes(fill  = City))+
+  geom_sf(data = buffer, alpha = 0.7)+
+  geom_sf(data = property_buffer, size = 1)+
+  coord_sf(
+    xlim = c(st_bbox(buffer)["xmin"]-2000, st_bbox(buffer)["xmax"]+2000),
+    ylim = c(st_bbox(buffer)["ymin"]-1000, st_bbox(buffer)["ymax"]+1000))+
+  scale_fill_manual(values = c("Burnaby" = col_palette[c(1)], "Vancouver" = col_palette[c(5)]))+
+  theme_void()
+  
+  
