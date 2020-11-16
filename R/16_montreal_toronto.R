@@ -65,8 +65,18 @@ daily_montreal <-
   mutate(year = year(date),
          month = month(date))
 
+daily_montreal_other <- 
+  daily_montreal_other %>% 
+  mutate(year = year(date),
+         month = month(date))
+
 daily_toronto <- 
   daily_toronto %>% 
+  mutate(year = year(date),
+         month = month(date))
+
+daily_toronto_other <- 
+  daily_toronto_other %>% 
   mutate(year = year(date),
          month = month(date))
 
@@ -78,8 +88,18 @@ FREH_montreal <-
   strr_FREH() %>% 
   filter(FREH)
 
+FREH_montreal_other <- 
+  daily_montreal_other %>% 
+  strr_FREH() %>% 
+  filter(FREH)
+
 FREH_toronto <- 
   daily_toronto %>% 
+  strr_FREH() %>% 
+  filter(FREH)
+
+FREH_toronto_other <- 
+  daily_toronto_other %>% 
   strr_FREH() %>% 
   filter(FREH)
 
@@ -110,6 +130,28 @@ monthly_montreal <-
             FREH = as.logical(ceiling(mean(FREH))),
             .groups = "drop")
 
+monthly_montreal_other <-
+  daily_montreal_other %>% 
+  filter(listing_type == "Entire home/apt") %>% 
+  left_join(FREH_montreal_other, by = c("property_ID", "date")) %>% 
+  mutate(FREH = if_else(is.na(FREH), FALSE, FREH)) %>% 
+  left_join(select(property_montreal_other, property_ID, created),
+            by = "property_ID") %>% 
+  mutate(created = if_else(substr(created, 9, 10) == "01", created,
+                           floor_date(created, "month") %m+% months(1))) %>% 
+  filter(date >= created) %>% 
+  mutate(created_year = year(created),
+         created_month = month(created),
+         month_since_created = (year - created_year) * 12 + 
+           (month - created_month)) %>% 
+  group_by(property_ID, year, month) %>% 
+  summarize(month_since_created = first(month_since_created),
+            R = sum(status == "R"),
+            A = sum(status == "A"),
+            B = sum(status == "B"),
+            FREH = as.logical(ceiling(mean(FREH))),
+            .groups = "drop")
+
 monthly_toronto <-
   daily_toronto %>% 
   filter(listing_type == "Entire home/apt") %>% 
@@ -117,8 +159,28 @@ monthly_toronto <-
   mutate(FREH = if_else(is.na(FREH), FALSE, FREH)) %>% 
   left_join(select(property_toronto, property_ID, created),
             by = "property_ID") %>% 
-  # Trim listings to the start of the month--can later test if the extra
-  # complexity produces meaningful model improvement
+  mutate(created = if_else(substr(created, 9, 10) == "01", created,
+                           floor_date(created, "month") %m+% months(1))) %>% 
+  filter(date >= created) %>% 
+  mutate(created_year = year(created),
+         created_month = month(created),
+         month_since_created = (year - created_year) * 12 + 
+           (month - created_month)) %>% 
+  group_by(property_ID, year, month) %>% 
+  summarize(month_since_created = first(month_since_created),
+            R = sum(status == "R"),
+            A = sum(status == "A"),
+            B = sum(status == "B"),
+            FREH = as.logical(ceiling(mean(FREH))),
+            .groups = "drop")
+
+monthly_toronto_other <-
+  daily_toronto_other %>% 
+  filter(listing_type == "Entire home/apt") %>% 
+  left_join(FREH_toronto_other, by = c("property_ID", "date")) %>% 
+  mutate(FREH = if_else(is.na(FREH), FALSE, FREH)) %>% 
+  left_join(select(property_toronto_other, property_ID, created),
+            by = "property_ID") %>% 
   mutate(created = if_else(substr(created, 9, 10) == "01", created,
                            floor_date(created, "month") %m+% months(1))) %>% 
   filter(date >= created) %>% 
@@ -153,8 +215,40 @@ first_year_montreal <-
   ungroup() %>% 
   select(-cum_A)
 
+first_year_montreal_other <-
+  monthly_montreal_other %>% 
+  filter(year <= 2017 | (year == 2018 & month <= 7)) %>% 
+  group_by(property_ID) %>% 
+  filter(n() >= 12) %>% 
+  ungroup() %>% 
+  filter(month_since_created <= 11) %>% 
+  group_by(property_ID) %>% 
+  mutate(FREH = as.logical(ceiling(mean(FREH))),
+         month = month.name[.data$month],
+         cum_R = cumsum(R),
+         cum_A = cumsum(A),
+         cum_AR = cum_A + cum_R) %>% 
+  ungroup() %>% 
+  select(-cum_A)
+
 first_year_toronto <-
   monthly_toronto %>% 
+  filter(year <= 2017 | (year == 2018 & month <= 7)) %>% 
+  group_by(property_ID) %>% 
+  filter(n() >= 12) %>% 
+  ungroup() %>% 
+  filter(month_since_created <= 11) %>% 
+  group_by(property_ID) %>% 
+  mutate(FREH = as.logical(ceiling(mean(FREH))),
+         month = month.name[.data$month],
+         cum_R = cumsum(R),
+         cum_A = cumsum(A),
+         cum_AR = cum_A + cum_R) %>% 
+  ungroup() %>% 
+  select(-cum_A)
+
+first_year_toronto_other <-
+  monthly_toronto_other %>% 
   filter(year <= 2017 | (year == 2018 & month <= 7)) %>% 
   group_by(property_ID) %>% 
   filter(n() >= 12) %>% 
@@ -257,8 +351,30 @@ after_one_year_montreal <-
   ungroup() %>% 
   filter(!is.na(R_3), !is.na(AR_3), month_since_created >= 12)
 
+after_one_year_montreal_other <- 
+  monthly_montreal_other %>% 
+  filter(year <= 2017 | (year == 2018 & month <= 7)) %>% 
+  mutate(month = month.name[.data$month],
+         AR = A + R) %>% 
+  group_by(property_ID) %>% 
+  mutate(R_3 = slide_int(R, sum, .before = 2, .complete = TRUE),
+         AR_3 = slide_int(AR, sum, .before = 2, .complete = TRUE)) %>% 
+  ungroup() %>% 
+  filter(!is.na(R_3), !is.na(AR_3), month_since_created >= 12)
+
 after_one_year_toronto <- 
   monthly_toronto %>% 
+  filter(year <= 2017 | (year == 2018 & month <= 7)) %>% 
+  mutate(month = month.name[.data$month],
+         AR = A + R) %>% 
+  group_by(property_ID) %>% 
+  mutate(R_3 = slide_int(R, sum, .before = 2, .complete = TRUE),
+         AR_3 = slide_int(AR, sum, .before = 2, .complete = TRUE)) %>% 
+  ungroup() %>% 
+  filter(!is.na(R_3), !is.na(AR_3), month_since_created >= 12)
+
+after_one_year_toronto_other <- 
+  monthly_toronto_other %>% 
   filter(year <= 2017 | (year == 2018 & month <= 7)) %>% 
   mutate(month = month.name[.data$month],
          AR = A + R) %>% 
@@ -293,8 +409,40 @@ model_3_results_montreal <-
   mutate(month = which(month.name == month)) %>% 
   ungroup()
 
+model_3_results_montreal_other <- 
+  monthly_montreal_other %>% 
+  mutate(month = month.name[.data$month],
+         AR = A + R) %>% 
+  group_by(property_ID) %>% 
+  mutate(R_3 = slide_int(R, sum, .before = 2, .complete = TRUE),
+         AR_3 = slide_int(AR, sum, .before = 2, .complete = TRUE)) %>% 
+  ungroup() %>% 
+  filter(!is.na(R_3), !is.na(AR_3)) %>% 
+  modelr::add_predictions(model_3_montreal, type = "response") %>% 
+  mutate(FREH_3 = pred) %>% 
+  select(-pred) %>% 
+  rowwise() %>% 
+  mutate(month = which(month.name == month)) %>% 
+  ungroup()
+
 model_3_results_toronto <- 
   monthly_toronto %>% 
+  mutate(month = month.name[.data$month],
+         AR = A + R) %>% 
+  group_by(property_ID) %>% 
+  mutate(R_3 = slide_int(R, sum, .before = 2, .complete = TRUE),
+         AR_3 = slide_int(AR, sum, .before = 2, .complete = TRUE)) %>% 
+  ungroup() %>% 
+  filter(!is.na(R_3), !is.na(AR_3)) %>% 
+  modelr::add_predictions(model_3_toronto, type = "response") %>% 
+  mutate(FREH_3 = pred) %>% 
+  select(-pred) %>% 
+  rowwise() %>% 
+  mutate(month = which(month.name == month)) %>% 
+  ungroup()
+
+model_3_results_toronto_other <- 
+  monthly_toronto_other %>% 
   mutate(month = month.name[.data$month],
          AR = A + R) %>% 
   group_by(property_ID) %>% 
@@ -317,6 +465,14 @@ daily_montreal <-
 
 daily_montreal <- daily_montreal %>% select(-year, -month)
 
+daily_montreal_other <- 
+  daily_montreal_other %>% 
+  left_join(select(model_3_results_montreal_other, property_ID, year, month, 
+                   FREH_3), by = c("property_ID", "year", "month")) %>% 
+  mutate(FREH_3 = if_else(is.na(FREH_3), 0, FREH_3))
+
+daily_montreal_other <- daily_montreal_other %>% select(-year, -month)
+
 daily_toronto <-
   daily_toronto %>% 
   left_join(select(model_3_results_toronto, property_ID, year, month, FREH_3),
@@ -324,6 +480,14 @@ daily_toronto <-
   mutate(FREH_3 = if_else(is.na(FREH_3), 0, FREH_3))
 
 daily_toronto <- daily_toronto %>% select(-year, -month)
+
+daily_toronto_other <-
+  daily_toronto_other %>% 
+  left_join(select(model_3_results_toronto_other, property_ID, year, month, 
+                   FREH_3), by = c("property_ID", "year", "month")) %>% 
+  mutate(FREH_3 = if_else(is.na(FREH_3), 0, FREH_3))
+
+daily_toronto_other <- daily_toronto_other %>% select(-year, -month)
 
 
 # Save output -------------------------------------------------------------
