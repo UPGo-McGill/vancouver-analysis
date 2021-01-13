@@ -314,8 +314,6 @@ rm(property, daily, GH)
 
 ```
 
-Active daily listings are listings which were displayed on Airbnb or VRBO on a given day, and were either reserved or available for a reservation. It is the most reliable means of determining the overall size of the STR market in a location, particularly with respect to change over time. In 2019 there was an average of `r avg_listings_active` active daily listings (Figure \@ref(fig:fig-1-1)) operated by an average of `r avg_hosts` hosts. These hosts collectively earned `r annual_rev`—an average of `r avg_rev_per_listing` per daily active listing or `r avg_rev_per_host` per active host.
-
 ``` {r make_fig_1_1}
 
 figure_1_1_fun <- function(regular = "", condensed = "") {
@@ -361,6 +359,7 @@ if (build_figures) {
 
 ```
 
+Active daily listings are listings which were displayed on Airbnb or VRBO on a given day, and were either reserved or available for a reservation. It is the most reliable means of determining the overall size of the STR market in a location, particularly with respect to change over time. In 2019 there was an average of `r avg_listings_active` active daily listings (Figure \@ref(fig:fig-1-1)) operated by an average of `r avg_hosts` hosts. These hosts collectively earned `r annual_rev`—an average of `r avg_rev_per_listing` per daily active listing or `r avg_rev_per_host` per active host.
 
 ``` {r fig-1-1, include = TRUE, fig.cap = '(ref:fig-1-1)', fig.align = "center"}
 
