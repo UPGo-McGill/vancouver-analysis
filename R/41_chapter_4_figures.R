@@ -71,10 +71,10 @@ reservations <-
   model(x11 = feasts:::X11(n, type = "additive")) %>% 
   components()
 
-# Get March-September seasonal
-mar_sep_seasonal <- 
+# Get March-Oct seasonal
+mar_oct_seasonal <- 
   reservations %>% 
-  slice(39:45) %>% 
+  slice(39:46) %>% 
   pull(seasonal)
 
 # Get Feb trend
@@ -83,15 +83,15 @@ feb_trend <-
   slice(50) %>% 
   pull(trend)
 
-# Apply March-Sep seasonal component to Feb trend
+# Apply March-Oct seasonal component to Feb trend
 trends <-
   tibble(
     date = as.Date(c("2020-03-16", "2020-04-16", "2020-05-16", "2020-06-16",
-                     "2020-07-16", "2020-07-31", "2020-08-31")),
-    trend = (feb_trend + mar_sep_seasonal) / c(31, 30, 31, 30, 31, 31, 31))
+                     "2020-07-16", "2020-08-16", "2020-09-16", "2020-09-30")),
+    trend = (feb_trend + mar_oct_seasonal) / c(31, 30, 31, 30, 31, 31, 30, 30))
 
-# Set August 31 value to average of August and September
-trends[7,]$trend <- mean(trends[6:7,]$trend)
+# Set Seo 30 value to average of September and October
+trends[8,]$trend <- mean(trends[7:8,]$trend)
 
 reservations <- 
   active_by_status %>% 
@@ -121,17 +121,17 @@ figure_4_2 <-
               data = reservations, fill = col_palette[3], 
               alpha = 0.3) +
   geom_line(aes(date, value, color = name), lwd = 1) +
-  geom_text(aes(x = as.Date("2020-08-31"), 
-                y = mean(value[date == as.Date("2020-08-31")]),
+  geom_text(aes(x = as.Date("2020-09-30"), 
+                y = mean(value[date == as.Date("2020-09-30")]),
                 label = paste(
                   prettyNum(round(abs(diff(
-                    value[date == as.Date("2020-08-31")])), -1), ","),
+                    value[date == as.Date("2020-09-30")])), -1), ","),
                   "fewer", "reservations", "than", "expected", sep = "\n")), 
             inherit.aes = FALSE, hjust = 1, #family = "Futura Condensed", 
             nudge_x = -4) +
-  geom_segment(aes(x = as.Date("2020-08-31"), xend = as.Date("2020-08-31"),
-                   y = min(value[date == as.Date("2020-08-31")]),
-                   yend = max(value[date == as.Date("2020-08-31")])),
+  geom_segment(aes(x = as.Date("2020-09-30"), xend = as.Date("2020-09-30"),
+                   y = min(value[date == as.Date("2020-09-30")]),
+                   yend = max(value[date == as.Date("2020-09-30")])),
                colour = col_palette[3],
                arrow = arrow(length = unit(0.1, "cm"), ends = "both",
                              type = "open")) +
@@ -294,10 +294,10 @@ deactivated_2020 <-
     variable = "deactivated",
     value = c({
       FREH_2020 %>% 
-        summarize(total = sum(scraped <= "2020-08-31")) %>% 
+        summarize(total = sum(scraped <= "2020-09-30")) %>% 
         pull(total)}, {
           non_FREH_2020 %>% 
-            summarize(total = sum(scraped <= "2020-08-31")) %>% 
+            summarize(total = sum(scraped <= "2020-09-30")) %>% 
             pull(total)})
   )
 
@@ -308,16 +308,16 @@ deactivated_2019 <-
     variable = "deactivated",
     value = c({
       FREH_2019 %>% 
-        summarize(total = sum(scraped <= "2019-08-31")) %>% 
+        summarize(total = sum(scraped <= "2019-09-30")) %>% 
         pull(total)}, {
           non_FREH_2019 %>% 
-            summarize(total = sum(scraped <= "2019-08-31")) %>% 
+            summarize(total = sum(scraped <= "2019-09-30")) %>% 
             pull(total)})
   )
 
 blocked_PIDs_2020 <- 
   daily %>% 
-  filter(housing, date >= "2020-08-01", date <= "2020-08-31") %>% 
+  filter(housing, date >= "2020-09-01", date <= "2020-09-30") %>% 
   group_by(property_ID) %>% 
   filter(mean(status == "B") == 1) %>% 
   pull(property_ID) %>% 
@@ -325,7 +325,7 @@ blocked_PIDs_2020 <-
 
 blocked_PIDs_2019 <- 
   daily %>% 
-  filter(housing, date >= "2019-08-01", date <= "2019-08-31") %>% 
+  filter(housing, date >= "2019-09-01", date <= "2019-09-30") %>% 
   group_by(property_ID) %>% 
   filter(mean(status == "B") == 1) %>% 
   pull(property_ID) %>% 
@@ -442,13 +442,13 @@ fig_labels <-
   mutate(label = case_when(
     variable == "total listings" ~ paste0(label, " ", variable, "\nin Jan/Feb"),
     variable == "active" ~ paste0(label, " (", 
-                                  round(label/sum(label) * 100, 1), "%) ", 
-                                  variable, "\nin August"),
-    TRUE ~ paste0(label, " (", round(label/sum(label) * 100, 1), "%) ",
+                                  round(label/sum(label) * 200, 1), "%) ", 
+                                  variable, "\nin September"),
+    TRUE ~ paste0(label, " (", round(label/sum(label) * 200, 1), "%) ",
                   variable))) %>% 
   ungroup()
 
-figure_4_4 <- 
+# figure_4_4 <- 
   fig_polys %>% 
   ggplot() +
   geom_ribbon(aes(x = x, ymin = ymin, ymax = ymax, fill = variable)) +

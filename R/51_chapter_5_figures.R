@@ -22,10 +22,10 @@
 source("R/01_startup.R")
 library(imager)
 
-qload("output/str_processed.qs", nthreads = availableCores())
-qload("output/geometry.Rdata", nthreads = availableCores())
+qload("output/str_processed.qsm", nthreads = availableCores())
+qload("output/geometry.qsm", nthreads = availableCores())
 ltr <- qread("output/ltr_processed.qs", nthreads = availableCores())
-qload("output/matches_raw.Rdata", nthreads = availableCores())
+qload("output/matches_raw.qsm", nthreads = availableCores())
 
 
 # Prepare new objects -----------------------------------------------------
@@ -53,17 +53,14 @@ ltr_unique_property_ID <-
 # Figure 5.1 Airbnb/Kijiji image comparison -------------------------------
 
 first_photo_pair <- 
-  kj_matches %>% 
-  mutate(across(c(x_name, y_name), str_replace, "mtl", "montreal")) %>% 
-  slice(1:100) %>% 
+  cl_matches %>% 
   filter(confirmation == "match") %>% 
-  slice(4)
+  filter(x_name == "/Volumes/Data 2/Scrape photos/vancouver/ab/ab-18753643.jpg")
 
 second_photo_pair <- 
   cl_matches %>% 
-  mutate(across(c(x_name, y_name), str_replace, "mtl", "montreal")) %>% 
   filter(confirmation == "match") %>% 
-  slice(2633)
+  filter(x_name == "/Volumes/Data 2/Scrape photos/vancouver/ab/ab-10972081.jpg")
 
 titles <- list(
   
@@ -73,15 +70,15 @@ titles <- list(
     pull(listing_title),
   
   first_photo_pair$y_name %>% 
-    str_extract('kj-.*(?=-[:digit:]\\.jpg)') %>% 
+    str_extract('cl-.*(?=-[:digit:]\\.jpg)') %>% 
     {filter(ltr, id == .)} %>% 
     slice(1) %>% 
     pull(title) %>% 
     str_remove(' \\|.*'),
   
-  property %>% 
-    filter(map_lgl(all_PIDs, ~{
-      str_extract(second_photo_pair$x_name, 'ab-.*(?=\\.jpg)') %in% .x})) %>% 
+  second_photo_pair$x_name %>% 
+    str_extract('ab-.*(?=\\.jpg)') %>% 
+    {filter(property, property_ID == .)} %>% 
     pull(listing_title),
   
   second_photo_pair$y_name %>% 
@@ -118,10 +115,10 @@ photos <-
 
 figure_5_1 <- wrap_plots(photos)
 
-ggsave("output/figures/figure_5_1.pdf", plot = figure_5_1, width = 8, 
+ggsave("output/figures/figure_6_1.pdf", plot = figure_5_1, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
 
-extrafont::embed_fonts("output/figures/figure_5_1.pdf")
+extrafont::embed_fonts("output/figures/figure_6_1.pdf")
 
 
 # Figure 5.2 Date of first LTR listing ------------------------------------
@@ -143,13 +140,6 @@ figure_5_2 <-
   filter(created >= "2020-03-01", created <= "2020-09-30") %>% 
   ggplot(aes(created, n, fill = kj)) +
   geom_col(lwd = 0) +
-  annotate("segment", x = key_date_covid, xend = key_date_covid,
-           y = -Inf, yend = Inf, alpha = 0.3) +
-  annotate("curve", x = as.Date("2020-05-31"), xend = key_date_covid + days(5),
-           y = 35, yend = 32, curvature = .2, lwd = 0.25,
-           arrow = arrow(length = unit(0.05, "inches"))) +
-  annotate("text", x = as.Date("2020-06-15"), y = 35,
-           label = "COVID-19 \nAirbnb's response") + #, family = "Futura Condensed"
   scale_x_date(name = NULL) +
   scale_y_continuous(name = NULL, label = scales::comma) +
   scale_fill_manual(name = NULL, labels = c("Craigslist", "Kijiji"), 

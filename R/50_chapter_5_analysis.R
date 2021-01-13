@@ -66,7 +66,7 @@ ltr_PR <-
 #' market to the LTR market due to the COVID-19 pandemic.
 
 #' [1] Unique STR matches
-property %>% filter(!is.na(ltr_ID)) %>% nrow()
+property %>% filter(!is.na(ltr_ID)) %>% nrow() %>% prettyNum(",")
 
 #' [2] Unique LTR matches
 ltr %>% 
@@ -77,7 +77,8 @@ ltr %>%
   group_by(id) %>% 
   slice(1) %>% 
   ungroup() %>% 
-  nrow()
+  nrow() %>% 
+  prettyNum(",")
 
 #' [3] KJ/CL split
 ltr %>% 
@@ -139,9 +140,22 @@ ltr %>%
   filter(!is.na(property_ID)) %>% 
   arrange(created) %>% 
   distinct(property_ID, .keep_all = TRUE) %>% 
-  count(created, kj, sort = TRUE) %>%
-  View()
-  slice(1)
+  count(created, sort = TRUE) %>%
+  slice(1) %>% 
+  pull(n) %>% 
+  prettyNum(",")
+
+ltr %>% 
+  st_drop_geometry() %>% 
+  unnest(property_ID) %>% 
+  filter(!is.na(property_ID)) %>% 
+  arrange(created) %>% 
+  distinct(property_ID, .keep_all = TRUE) %>% 
+  filter(created >= "2020-03-22", created <= "2020-03-31") %>% 
+  count(created, sort = TRUE) %>% 
+  slice(1) %>% 
+  pull(n) %>% 
+  prettyNum(",")
 
 #' [2] Average daily listings transfer, May - August
 ltr %>% 
@@ -151,7 +165,7 @@ ltr %>%
   arrange(created) %>% 
   distinct(property_ID, .keep_all = TRUE) %>% 
   count(created, kj) %>% 
-  filter(created >= "2020-05-01", created <= "2020-08-31") %>% 
+  filter(created >= "2020-05-01", created <= "2020-09-30") %>% 
   summarize(avg = round(mean(n), 1))
   
 
@@ -191,7 +205,7 @@ property %>%
       filter(housing, area == "Downtown", status != "B", 
              date == "2020-03-01") %>% 
       nrow}} %>% 
-  round(3)
+  scales::percent(0.1)
 
 #' [4] Downtown active 2020 percentage
 {{property %>% 
@@ -207,7 +221,7 @@ property %>%
       pull(property_ID) %>% 
       unique() %>% 
       length()}} %>% 
-  round(3)
+  scales::percent(0.1)
 
 
 # Asking rents ------------------------------------------------------------
@@ -271,14 +285,19 @@ asking_rents <-
 
 #' [1] Peak difference between matched and city-wide
 asking_rents %>% 
-  filter(geography == "City of Vancouver", created >= "2020-03-13") %>% 
+  filter(geography == "City of Vancouver", created >= "2020-03-13",
+         created <= "2020-04-30") %>% 
   group_by(created) %>% 
   summarize(city = avg_price[status == "All listings"],
             match = avg_price[status == "Matched to STR"],
             dif = avg_price[status == "Matched to STR"] - 
               avg_price[status == "All listings"],
-            dif_pct = match / city - 1) %>% 
+            dif_pct = match / city - 1, .groups = "drop") %>% 
   filter(dif == max(dif)) 
+
+# July 31 values
+asking_rents %>% 
+  filter(geography == "City of Vancouver", created == "2020-07-31")
 
 #' [2] April-July averages
 asking_rents %>% 
@@ -288,14 +307,7 @@ asking_rents %>%
   summarize(avg_price = mean(avg_price)) %>% 
   mutate(pct_higher = avg_price / min(avg_price) - 1)
 
-#' [2] August-mid-October averages
-asking_rents %>% 
-  filter(geography == "City of Vancouver", created >= "2020-08-01",
-         created <= "2020-10-06") %>% 
-  group_by(status) %>% 
-  summarize(avg_price = mean(avg_price)) %>% 
-  mutate(pct_higher = avg_price / min(avg_price) - 1)
-  
+
 #' Even in the Downtown area, LTR listings matched to Airbnb have been on 
 #' average 7.6% [1] higher than listings not matched, with a pattern of
 #' increasing rents until the end of June, yielding to lower (although still high)
@@ -303,11 +315,13 @@ asking_rents %>%
 
 #' [1] Downtown overall average rent differences
 asking_rents %>% 
-  filter(geography == "Downtown", created >= "2020-03-13",
-         status != "All listings") %>% 
+  filter(geography == "Downtown", created >= "2020-03-13", 
+         created <= "2020-07-31", status != "All listings") %>% 
   group_by(status) %>% 
   summarize(avg_price = mean(avg_price)) %>% 
-  summarize(max(avg_price) / min(avg_price) - 1)
+  summarize(dif = max(avg_price) / min(avg_price) - 1) %>% 
+  pull(dif) %>% 
+  scales::percent(0.1)
 
 #' The average city-wide asking rent on Craigslist and Kijiji has remained 
 #' between $1,527 [1] and $2,451 [1] throughout the March-mid-October period we tracked 
@@ -318,6 +332,31 @@ asking_rents %>%
   filter(created >= "2020-03-13", created <= "2020-10-06", 
          status == "All listings", geography == "City of Vancouver") %>% 
   summarize(min = min(avg_price), max = max(avg_price))
+
+# Rent decrease
+asking_rents %>% 
+  filter(geography == "City of Vancouver" & status == "All listings" &
+           ((created >= "2020-03-25" & created <= "2020-03-31") | 
+           (created >= "2020-07-25" & created <= "2020-07-31"))) %>% 
+  group_by(july = created >= "2020-07-25") %>% 
+  summarize(avg = mean(avg_price)) %>% 
+  summarize(dif = avg[1]/avg[2] - 1) %>% 
+  pull(dif) %>% 
+  scales::percent(0.1)
+
+asking_rents %>% 
+  filter(geography == "City of Vancouver", created >= "2020-03-25", 
+         created <= "2020-03-31", status == "All listings") %>% 
+  summarize(avg = mean(avg_price)) %>% 
+  pull(avg) %>% 
+  scales::dollar(1)
+
+asking_rents %>% 
+  filter(geography == "City of Vancouver", created >= "2020-07-25", 
+         created <= "2020-07-31", status == "All listings") %>% 
+  summarize(avg = mean(avg_price)) %>% 
+  pull(avg) %>% 
+  scales::dollar(1)
 
 #' [2] Downtown March/September rent differences
 asking_rents %>% 
@@ -649,7 +688,9 @@ property %>%
   filter(!is.na(ltr_ID), !is.na(host_ID)) %>% 
   count(host_ID, sort = TRUE) %>% 
   filter(n > 1) %>%
-  summarize(total = n(), top = max(n))
+  summarize(total = n()) %>% 
+  pull(total) %>% 
+  prettyNum(",")
 
 #' [4] Percentage of hosts' properties which made the switch from STR to LTR
 {nrow(ltr_unique_property_ID) / 
@@ -658,7 +699,7 @@ property %>%
     filter(host_ID %in% (filter(property, !is.na(ltr_ID)))$host_ID, 
            scraped >= "2020-01-01") %>% 
     nrow()} %>% 
-  round(3)
+  scales::percent(0.1)
 
 #' The median STR host revenue was $8,700 [1] in the entire City of Vancouver in 
 #' 2019. The annual median revenue of hosts who transferred listings to the LTR 
@@ -688,7 +729,10 @@ quarter_mil_ltr <-
   filter(host_rev > 250000)
 
 #' [1] Median revenue
-round(median(revenue_2019$revenue_LTM), -2)
+revenue_2019$revenue_LTM %>% 
+  median() %>% 
+  round(-2) %>% 
+  scales::dollar()
 
 #' [2] Median host revenue by host match status
 revenue_2019 %>% 
@@ -696,9 +740,9 @@ revenue_2019 %>%
                                              !is.na(ltr_ID)))$host_ID,
            host_ID) %>%
   summarize(host_rev = sum(revenue_LTM)) %>% 
-  summarize("median_rev" = round(median(host_rev), -2))
+  summarize("median_rev" = scales::dollar(round(median(host_rev), -2)))
 
-#' [3] Hosts that matched and made more than 500k
+#' [3] Hosts that matched and made more than 250k
 quarter_mil_ltr %>% 
   summarize(
     total = n(),
@@ -711,8 +755,8 @@ property %>%
   st_drop_geometry() %>% 
   filter(!is.na(ltr_ID)) %>%
   count(host_ID) %>% 
-  group_by(host_match = host_ID %in% half_mil_ltr$host_ID) %>% 
-  summarize(round(mean(n), 1))
+  group_by(host_match = host_ID %in% quarter_mil_ltr$host_ID) %>% 
+  summarize(avg = round(mean(n), 1))
 
 #' Out of all hosts with active STR listings in 2020 that shifted their listings 
 #' to the LTR market in Vancouver, XX.X% [1] had Superhost status. This is almost 
@@ -741,7 +785,7 @@ property %>%
 #' [1] length of availability on LTR platforms
 ltr_unique %>% 
   group_by(matched = !is.na(property_ID)) %>% 
-  summarize(round(mean(scraped - created, na.rm = TRUE), 1))
+  summarize(time =round(mean(scraped - created, na.rm = TRUE), 1))
 
 #' Out of the total 1,380 [1] Airbnb listings which we identified on LTR 
 #' platforms, 1,475 [2] (58.4% [2]) were still present on Airbnb at the
@@ -763,8 +807,8 @@ property %>%
   filter(scraped >= "2020-01-01") %>% 
   summarize(total = n(),
             total_pct = total / nrow(filter(property, !is.na(ltr_ID))),
-            n_scraped = sum(scraped >= "2020-08-31"),
-            pct_scraped = mean(scraped >= "2020-08-31"),
+            n_scraped = sum(scraped >= "2020-09-30"),
+            pct_scraped = mean(scraped >= "2020-09-30"),
             not_scraped = total - n_scraped,
             pct_not_scraped = 1 - pct_scraped,
             n_gone = pct_not_scraped * nrow(filter(property, !is.na(ltr_ID))),
@@ -774,21 +818,22 @@ property %>%
 property %>% 
   st_drop_geometry() %>% 
   filter( !is.na(ltr_ID)) %>% 
-  filter(scraped >= "2020-01-01", scraped < "2020-08-31") %>% 
+  filter(scraped >= "2020-01-01", scraped < "2020-09-30") %>% 
   left_join(select(ltr_unique_property_ID, property_ID, furnished)) %>% 
   filter(!is.na(furnished)) %>% 
-  summarize(furnished = round(mean(furnished), 3))
+  summarize(furnished = scales::percent(mean(furnished), 0.1)) %>% 
+  pull(furnished)
 
 #'  Of the 916 [1] matched listings which were present on Airbnb at the 
 #'  beginning of 2020 and still present by the end of July, 393 [1] (42.9% [1]) 
 #'  were blocked for the entirety of the month of July.
 
-#' [1] Inactive in August
+#' [1] Inactive in September
 property %>% 
   st_drop_geometry() %>% 
-  filter(!is.na(ltr_ID), scraped >= "2020-08-31") %>% 
+  filter(!is.na(ltr_ID), scraped >= "2020-09-30") %>% 
   summarize(total = n(),
-            n_inactive = total - sum(active >= "2020-08-01", na.rm = TRUE) +
+            n_inactive = total - sum(active >= "2020-09-01", na.rm = TRUE) +
               sum(is.na(active)),
             pct_inactive = n_inactive / total)
   
@@ -807,7 +852,7 @@ deactivated_pct <-
   st_drop_geometry() %>% 
   filter(!is.na(ltr_ID)) %>% 
   filter(scraped >= "2020-01-01") %>% 
-  summarize(pct_not_scraped = 1 - mean(scraped >= "2020-07-31")) %>% 
+  summarize(pct_not_scraped = 1 - mean(scraped >= "2020-09-01")) %>% 
   pull(pct_not_scraped)
 
 blocked_pct <-
@@ -815,12 +860,13 @@ blocked_pct <-
   st_drop_geometry() %>% 
   filter(!is.na(ltr_ID)) %>% 
   filter(scraped >= "2020-01-01") %>% 
-  summarize(pct_blocked = (sum(active < "2020-09-01" & scraped >= "2020-08-31", 
+  summarize(pct_blocked = (sum(active < "2020-09-01" & scraped >= "2020-09-01", 
                                na.rm = TRUE) + sum(is.na(active) & scraped >= 
-                                                     "2020-07-31")) / n()) %>% 
+                                                     "2020-09-01")) / n()) %>% 
   pull(pct_blocked)
 
-property %>% 
+total_table <- 
+  property %>% 
   st_drop_geometry() %>% 
   filter(!is.na(ltr_ID)) %>% 
   summarize(total = n(),

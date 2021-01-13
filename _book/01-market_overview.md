@@ -22,10 +22,9 @@
 
 
 
+
+
 Active daily listings are listings which were displayed on Airbnb or VRBO on a given day, and were either reserved or available for a reservation. It is the most reliable means of determining the overall size of the STR market in a location, particularly with respect to change over time. In 2019 there was an average of 3,890 active daily listings (Figure \@ref(fig:fig-1-1)) operated by an average of 2,550 hosts. These hosts collectively earned $151.4 million—an average of $38,900 per daily active listing or $59,500 per active host.
-
-
-
 
 \begin{figure}
 

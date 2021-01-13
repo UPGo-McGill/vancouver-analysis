@@ -31,21 +31,27 @@
 
 **SHORT-TERM RENTALS IN VANCOUVER: REGULATORY COMPLIANCE**
 
-(To come)
+- Throughout 2019, the percentage of STR listings operating with valid STR licenses increased consistently, from 30.7% at the  beginning of the year to 77.0% at the end.
+- Among listings active in mid-October 2020, 29.0% were operating with a valid license, 32.2% with an expired license, and 33.7% with an invalid or fake license, or with no license at all.
+- FREH listings had the highest rate of valid licenses (56.9%) among listing categories, although all commercial listings are per se in violation of the City's principal residence requirement.
+- 10.6% of active entire-home listings displayed a license number used by at least one other active entire-home listing, suggesting that license numbers are being shared in violation of the regulations.
+- Non-conforming listings are concentrated in and around Downtown Vancouver; the West End is the area with the highest percentage of non-conforming listings (79.4%).
+- Entire-home listings with license numbers are booked more frequently and earn more revenue than listings without licenses, but there is no substantial difference between listings with valid or non-conforming license numbers, suggesting that STR guests are reluctant to book reservations in listings without a license number.
 
 **COVID-19: THE IMPACT OF THE PANDEMIC ON THE STR MARKET**
 
 - STR activity in Vancouver has suffered an unprecedented collapse during the COVID-19 pandemic.
-- Reservations from March to August 2020 are down 55.4% over 2019.
-- Prices for reservations which did occur are down 34.0% from their previous trend.
-- In total, the pandemic has reduced STR host revenue in Vancouver by $109.9 million from March to August. The number of frequently-rented entire home listings dropped from 2,600 in January 2020 to just 790 in July 2020.
-- 34.4% of FREH listings were permanently deactivated and 48.3% were temporarily blocked.
+- Reservations from March to September 2020 are down 57.6% over 2019. 
+- Prices for reservations which did occur are down 33.0% from their previous trend.
+- In total, the pandemic has reduced STR host revenue in Vancouver by $130.7 million from March to September.
+- The number of frequently-rented entire home listings dropped from 2,680 in January 2020 to just 940 in August 2020.
+- 39.2% of FREH listings were permanently deactivated and 22.9% were temporarily blocked.
 
 **COVID-19: STRS RETURNING TO THE LONG-TERM MARKET**
 
-- Using image recognition techniques, we identified 1,290 unique Airbnb listings which were posted as long-term rentals (LTRs) on Craigslist or Kijiji between March and mid-October 2020.
-- These former STRs have asking rents on average 30.6% higher than other LTR listings, but are correlated with a 20% decrease in overall asking rents in Vancouver.
+- *Using image recognition techniques, we identified 1,339 unique Airbnb listings which were posted as long-term rentals (LTRs) on Craigslist or Kijiji between March and September 2020.
+- These former STRs have asking rents on average 25.6% higher than other LTR listings, but are correlated with a 13.5% decrease in overall asking rents in Vancouver.
 - The evidence suggests that the overwhelming majority of STR listings transferred to LTR platforms are commercial operations.
-- We estimate that 27.0% have fully transitioned back to the long-term market, 66.2% have been temporarily blocked on Airbnb and may return to being STRs in the future, and 6.8% failed to be rented on LTR platforms and instead remain active on Airbnb.
+- We estimate that 30.6% have fully transitioned back to the long-term market, 35.3% have been temporarily blocked on Airbnb and may return to being STRs in the future, and 34.1% failed to be rented on LTR platforms and instead remain active on Airbnb.
 
 \newpage
