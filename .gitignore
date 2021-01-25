@@ -54,3 +54,4 @@ output/re*
 output/str*
 data/ltr*
 data/shapefiles/lhy*
+layout/*
