@@ -65,7 +65,106 @@ rm(ltr, DA, BL, BL_expanded, skytrain)
 
 ```
 
-**Using image recognition techniques, we identified 1,339 unique Airbnb listings which were posted as long-term rentals (LTRs) on Craigslist or Kijiji between March and September 2020. These former STRs have asking rents on average 25.6% higher than other LTR listings, but are correlated with a 13.5% decrease in overall asking rents in Vancouver. The evidence suggests that the overwhelming majority of STR listings transferred to LTR platforms are commercial operations. We estimate that 30.6% have fully transitioned back to the long-term market, 35.3% have been temporarily blocked on Airbnb and may return to being STRs in the future, and 34.1% failed to be rented on LTR platforms and instead remain active on Airbnb.**
+**Due to the combination of the City of Vancouver's ongoing STR regulations and the collapse in tourism demand during the COVID-19 pandemic, the number of STRs operating in a fashion consistent with being dedicated, full-time operations in Vancouver is the lowest it has been since at least 2016. Because of the collapse of STR demand during the COVID-19 pandemic, the number of housing units being operated as dedicated STRs in Vancouver dropped from 2,680 in January 2020 to just 940 in August 2020. Using image recognition techniques, we identified 1,339 unique Airbnb listings which were posted as long-term rentals (LTRs) on Craigslist or Kijiji between March and September 2020. These former STRs have asking rents on average 25.6% higher than other LTR listings, but are correlated with a 13.5% decrease in overall asking rents in Vancouver. The evidence suggests that the overwhelming majority of STR listings transferred to LTR platforms are commercial operations. We estimate that 30.6% have fully transitioned back to the long-term market, 35.3% have been temporarily blocked on Airbnb and may return to being STRs in the future, and 34.1% failed to be rented on LTR platforms and instead remain active on Airbnb.**
+
+## The dramatic decrease in full-time STRs during the pandemic
+
+```{r new_objects2, cache = TRUE, cache.lazy = FALSE, cache.extra = mtime(here("output", "str_processed.qsm"))}
+
+qload(here("output", "str_processed.qsm"), nthreads = availableCores())
+
+FREH <- 
+  daily %>% 
+  filter(date >= "2016-01-01") %>% 
+  group_by(date) %>% 
+  summarize(across(c(FREH, FREH_3), sum)) %>%
+  filter(substr(date, 9, 10) == "01")
+
+FREH_total <- 
+  daily %>% 
+  filter(date >= "2016-01-01") %>% 
+  group_by(date) %>% 
+  summarize(across(c(FREH, FREH_3), sum)) %>%
+  filter(substr(date, 9, 10) == "01")
+
+GH_total <-
+  GH %>%
+  st_drop_geometry() %>%
+  filter(status != "B") %>% 
+  group_by(date) %>%
+  summarize(GH = sum(housing_units)) %>%
+  mutate(GH = slide_dbl(GH, mean, .before = 29))
+
+housing_loss <-
+  FREH_total %>%
+  select(date, FREH_3) %>% 
+  left_join(GH_total, by = "date") %>%
+  rename(`Entire home/apt` = FREH_3, `Private room` = GH) %>%
+  pivot_longer(c(`Entire home/apt`, `Private room`), 
+               names_to = "Listing type",
+               values_to = "Housing units") %>% 
+  mutate(`Listing type` = factor(`Listing type`, 
+                                 levels = c("Private room", "Entire home/apt")))  
+
+rm(property, daily, GH)
+
+```
+
+``` {r make_fig_6_1b}
+
+figure_6_1b_fun <- function(regular = "", condensed = "") {
+  
+  housing_loss %>% 
+    ggplot(aes(date, `Housing units`, fill = `Listing type`)) +
+    geom_col(lwd = 0) +
+    annotate("segment", x = key_date_covid, xend = key_date_covid,
+             y = 0, yend = Inf, alpha = 0.3) +
+    annotate("curve", x = as.Date("2019-08-01"), 
+             xend = key_date_covid - days(10),
+             y = 3000, yend = 2700, curvature = -.2, lwd = 0.25,
+             arrow = arrow(length = unit(0.05, "inches"))) +
+    annotate("text", x = as.Date("2019-05-01"), y = 3000,
+           label = "COVID-19 \nAirbnb's response", family = condensed) +
+    annotate("segment", x = key_date_regulations, xend = key_date_regulations,
+             y = 0, yend = Inf, alpha = 0.3) +
+    annotate("curve", x = as.Date("2018-06-01"), 
+             xend = key_date_regulations - days(10),
+             y = 3200, yend = 3100, curvature = -.2, lwd = 0.25,
+             arrow = arrow(length = unit(0.05, "inches"))) +
+    annotate("text", x = as.Date("2018-02-01"), y = 3200,
+             label = "Regulations", family = condensed) +
+    scale_fill_manual(values = col_palette[c(2, 3)]) +
+    scale_x_date(name = NULL, limits = c(as.Date("2016-10-01"), NA)) +
+    scale_y_continuous(name = NULL, label = scales::comma) +
+    theme_minimal() +
+    theme(legend.position = "bottom", 
+          panel.grid.minor.x = element_blank(),
+          text = element_text(face = "plain", family = regular),
+          legend.title = element_text(face = "bold", family = regular, 
+                                      size = 10),
+          legend.text = element_text( size = 10, family = regular))
+  
+}
+
+if (build_figures) {
+  ggsave(here("output", "figures", "figure_6_1b.pdf"), 
+         plot = figure_6_1b_fun("Futura", "Futura Condensed"), 
+         width = 8, height = 5, units = "in", useDingbats = FALSE)
+  
+  extrafont::embed_fonts(here("output", "figures", "figure_6_1b.pdf"))
+}
+
+```
+
+As the previous chapter discussed, by the end of 2019 Vancouver's STR regulations had probably reduced the number of housing units converted to dedicated STRs by 810. The onset of the COVID-19 pandemic has reduced the number of dedicated STRs even further. Figure \@ref(fig:fig-6-1b) shows that, as of the summer of 2020 there were fewer STRs operating year-round than at any point since at least 2016. The number of housing units being operated as dedicated STRs in Vancouver dropped from 2,680 in January 2020 to just 940 in August 2020. Some of this decline has come through listings remaining active but operating at dramatically lower capacity because of the collapse in tourism demand, and some is a result of listings permanently exiting the STR market. The COVID-19 pandemic has caused an unprecedented decline in STR activity in Vancouver. Under these circumstances, it would be reasonable to imagine that some STR hosts—particularly commercial operators who had come to expect large income streams from their properties—may have decided to return their listings to the long-term housing market, either temporarily or permanently. In what follows we analyze this possibility.
+
+``` {r fig-6-1b, include = TRUE, fig.cap = '(ref:fig-6-1b)', fig.align = "center"}
+
+figure_6_1b_fun()
+
+```
+
+(ref:fig-6-1b) _Housing units converted to dedicated STRs in the City of Vancouver (monthly average)_
 
 ## How many STR listings have returned to the long-term market?
 
@@ -156,7 +255,7 @@ if (build_figures) {
 
 ```
 
-As demonstrated in section 5, the COVID-19 pandemic has caused an unprecedented decline in STR activity in Vancouver. Under these circumstances, it would be reasonable to imagine that some STR hosts—particularly commercial operators who had come to expect large income streams from their properties—may have decided to return their listings to the long-term housing market, either temporarily or permanently. To investigate this possibility, we collected listing images from all properties posted to Craigslist and Kijiji in Vancouver between March and September 2020, and used image recognition analysis to match STR listings on Airbnb and Vrbo to long-term rental (LTR) listings on Craigslist and Kijiji. These latter two platforms represent only a portion of the LTR market, but provide useful insight into how STR hosts have responded to the collapse in accommodation demand during the COVID-19 pandemic. If the exact same photo of an apartment’s living room was uploaded to Airbnb in August 2019 and then to Craigslist in April 2020, this provides proof that the property in question has moved from the STR market to the LTR market. The image recognition software we developed is able to identify matches between images which are identical, but also images which the host has modified slightly, and thus allows us to reliably identify every match which exists between STR and LTR platforms (Figure \@ref(fig:fig-6-1)).
+We collected listing images from all properties posted to Craigslist and Kijiji in Vancouver between March and September 2020, and used image recognition analysis to match STR listings on Airbnb and Vrbo to long-term rental (LTR) listings on Craigslist and Kijiji. These latter two platforms represent only a portion of the LTR market, but provide useful insight into how STR hosts have responded to the collapse in accommodation demand during the COVID-19 pandemic. If the exact same photo of an apartment’s living room was uploaded to Airbnb in August 2019 and then to Craigslist in April 2020, this provides proof that the property in question has moved from the STR market to the LTR market. The image recognition software we developed is able to identify matches between images which are identical, but also images which the host has modified slightly, and thus allows us to reliably identify every match which exists between STR and LTR platforms (Figure \@ref(fig:fig-6-1)).
 
 ``` {r fig-6-1, include = TRUE, fig.cap = '(ref:fig-6-1)', fig.align = "center"}
 
@@ -500,6 +599,30 @@ rm(property, daily, GH, ltr)
 
 ```
 
+```{r bc_water, cache = TRUE, cache.lazy = FALSE}
+
+ocean <- 
+  read_sf(here("data", "shapefiles", "lhy_000h16a_e.shp")) %>% 
+  st_transform(32610)
+
+ocean <- 
+  ocean %>% 
+  st_filter(rbind(select(CMA, -everything()), select(city, -everything())))
+
+river <- 
+  read_sf(here("data", "shapefiles", "lhy_000c16a_e.shp")) %>% 
+  st_transform(32610)
+
+river <- 
+  river %>% 
+  st_filter(rbind(select(CMA, -everything()), select(city, -everything())))
+
+water <- rbind(select(river, -everything()), select(ocean, -everything()))
+
+rm(ocean, river)
+
+```
+
 ``` {r make_fig_6_3}
 
 figure_6_3_fun <- function(regular = "", condensed = "") {
@@ -512,6 +635,7 @@ figure_6_3_fun <- function(regular = "", condensed = "") {
     ggplot() +
     geom_sf(data = province, colour = "transparent", fill = "grey93") +
     geom_sf(aes(fill = n), colour = "white") +
+    geom_sf(data = water, fill = "white", colour = "transparent") +
     scale_fill_gradientn(colors = col_palette[c(3, 4)],
                          limits = c(0, 650),
                          breaks = c(0, 300, 600, 900, 1200, 1500),
@@ -533,6 +657,7 @@ figure_6_3_fun <- function(regular = "", condensed = "") {
     ggplot() +
     geom_sf(data = province, colour = "transparent", fill = "grey93") +
     geom_sf(aes(fill = pct), colour = "white") +
+    geom_sf(data = water, fill = "white", colour = "transparent") +
     scale_fill_gradientn(colors = col_palette[c(2, 5)], 
                          na.value = "grey80",
                          limits = c(0.05, .55),
@@ -772,7 +897,7 @@ if (build_figures) {
 
 ```
 
-The left panel of Figure \@ref(fig:fig-6-4) shows the average asking rents of listings posted to Craigslist and Kijiji between March and July 2020. (We do not have complete asking rent data for August and September, so those months are excluded.) The asking rents have remained dramatically higher than non-matched LTR listings. On March 13, when the average asking rent on LTR platforms in the City of Vancouver was `r asking_rent_mar_13`, the average asking rent among listings which we matched to Airbnb was `r asking_rent_mar_13_match`— `r asking_rent_mar_13_match_dif_pct` higher. Over the course of March, average asking rents for LTR listings matched to Airbnb declined sharply, before increasing gradually for the next few months. At the end of July, the average asking rent was `r asking_rent_jul_31` for all Craigslist and Kijiji listings and `r asking_rent_jul_31_match` for the matches. Overall, from April to July, asking rents for properties matched to STR listings were `r rent_dif_apr_jul` higher than the city-wide average.
+The left panel of Figure \@ref(fig:fig-6-4) shows the average asking rents of listings posted to Craigslist and Kijiji between March and July 2020. (We do not have complete asking rent data for August and September, so those months are excluded.) The asking rents have remained dramatically higher than non-matched LTR listings. On March 13, when the average asking rent on LTR platforms in the City of Vancouver was `r asking_rent_mar_13`, the average asking rent among listings which we matched to Airbnb was `r asking_rent_mar_13_match`—`r asking_rent_mar_13_match_dif_pct` higher. Over the course of March, average asking rents for LTR listings matched to Airbnb declined sharply, before increasing gradually for the next few months. At the end of July, the average asking rent was `r asking_rent_jul_31` for all Craigslist and Kijiji listings and `r asking_rent_jul_31_match` for the matches. Overall, from April to July, asking rents for properties matched to STR listings were `r rent_dif_apr_jul` higher than the city-wide average.
 
 ``` {r fig-6-4, include = TRUE, fig.cap = '(ref:fig-6-4)', fig.align = "center"}
 
@@ -782,188 +907,8 @@ figure_6_4_fun()
 
 (ref:fig-6-4) _Average asking rents on Craigslist and Kijiji in the City of Vancouver (L) and Downtown (R) (7-day average)_
 
-The right panel of Figure \@ref(fig:fig-6-4) shows asking rents only in Downtown. A large portion of the divergence in asking rents between LTR listings matched to Airbnb and listings not matched is a compositional effect of the much greater frequency of a Downtown location (which commands higher prices than the rest of the city) among matched listings. Even in Downtown, however, LTR listings matched to Airbnb have been on average `r rent_dif_apr_jul_downtown` higher than listings not matched. Overall STRs returning to the long-term market are correlated with a significant decline in asking rents. The average city-wide asking rent on Craigslist and Kijiji declined `r rent_decline_pct` from `r asking_rent_mar` in late March 2020 to `r asking_rent_july` in late July 2020.
+The right panel of Figure \@ref(fig:fig-6-4) shows asking rents only in Downtown. A large portion of the divergence in asking rents between LTR listings matched to Airbnb and listings not matched is a compositional effect of the much greater frequency of a Downtown location (which commands higher prices than the rest of the city) among matched listings. Even in Downtown, however, LTR listings matched to Airbnb have been on average `r rent_dif_apr_jul_downtown` higher than listings not matched. Overall STRs returning to the long-term market are correlated with a significant decline in asking rents. It is not feasible to disentangle the causal impact of a shrinking STR market on housing prices from the broader housing-market impacts of the COVID-19 pandemic, but the average city-wide asking rent on Craigslist and Kijiji declined a startling `r rent_decline_pct` from `r asking_rent_mar` in late March 2020 to `r asking_rent_july` in late July 2020.
 
-## Listing amenities
-
-```{r bedrooms, cache = TRUE, cache.lazy = FALSE, cache.extra = mtime(here("output", "ltr_processed.qsm"))}
-
-qload(here("output", "str_processed.qsm"), nthreads = availableCores())
-ltr <- qread("output/ltr_processed.qs", nthreads = availableCores())
-qload("output/cmhc.qsm", nthreads = availableCores())
-
-#' Table 5.1 
-bedroom_match_table <-
-  city_units %>% 
-  filter(date == 2019) %>% 
-  slice(1:4) %>% 
-  mutate(pct = round(units / sum(units), 3)) %>% 
-  mutate(bedrooms = c("Studio", "1-bedroom", "2-bedroom", "3+-bedroom")) %>% 
-  select(bedrooms, pct) %>% 
-  mutate(Category = "City of Vancouver rental stock", .before = bedrooms)
-
-bedroom_match_table <-
-  property %>% 
-  st_drop_geometry() %>% 
-  filter(housing, active >= "2019-01-01", created <= "2019-12-31") %>% 
-  count(bedrooms) %>% 
-  filter(!is.na(bedrooms)) %>% 
-  rowwise() %>% 
-  mutate(group = min(bedrooms, 3, na.rm = TRUE)) %>% 
-  group_by(group) %>% 
-  summarize(pct = sum(n)) %>% 
-  rename(bedrooms = group) %>% 
-  mutate(pct = round(pct / sum(pct), 3)) %>% 
-  mutate(bedrooms = c("Studio", "1-bedroom", "2-bedroom", "3+-bedroom")) %>% 
-  mutate(Category = "STR market (2019)", .before = bedrooms) %>% 
-  bind_rows(bedroom_match_table, .)
-
-bedroom_match_table <-
-  ltr_unique_property_ID %>% 
-  count(bedrooms) %>% 
-  filter(!is.na(bedrooms)) %>% 
-  rowwise() %>% 
-  mutate(group = min(bedrooms, 3, na.rm = TRUE)) %>% 
-  group_by(group) %>% 
-  summarize(pct = sum(n)) %>% 
-  rename(bedrooms = group) %>% 
-  mutate(pct = round(pct / sum(pct), 3)) %>% 
-  mutate(bedrooms = c("Studio", "1-bedroom", "2-bedroom", "3+-bedroom")) %>% 
-  mutate(Category = "LTRs matched to STR", .before = bedrooms) %>% 
-  bind_rows(bedroom_match_table, .)
-
-bedroom_match_table <-
-  ltr %>% 
-  st_drop_geometry() %>% 
-  filter(is.na(property_ID)) %>% 
-  group_by(id) %>% 
-  slice(1) %>% 
-  ungroup() %>% 
-  count(bedrooms) %>% 
-  filter(!is.na(bedrooms)) %>% 
-  rowwise() %>% 
-  mutate(group = min(bedrooms, 3, na.rm = TRUE)) %>% 
-  group_by(group) %>% 
-  summarize(pct = sum(n)) %>% 
-  rename(bedrooms = group) %>% 
-  mutate(pct = round(pct / sum(pct), 3)) %>% 
-  mutate(bedrooms = c("Studio", "1-bedroom", "2-bedroom", "3+-bedroom")) %>% 
-  mutate(Category = "LTRs not matched", .before = bedrooms) %>% 
-  bind_rows(bedroom_match_table, .)
-
-bedroom_match_table <- 
-  bedroom_match_table %>% 
-  pivot_wider(values_from = pct, names_from = bedrooms)
-
-match_2br_pct <- 
-  bedroom_match_table %>% 
-  filter(Category == "LTRs matched to STR") %>% 
-  pull(`2-bedroom`) %>% 
-  scales::percent(0.1)
-
-nonmatch_2br_pct <- 
-  bedroom_match_table %>% 
-  filter(Category == "LTRs not matched") %>% 
-  pull(`2-bedroom`) %>% 
-  scales::percent(0.1)
-
-str_2br_pct <- 
-  bedroom_match_table %>% 
-  filter(Category == "STR market (2019)") %>% 
-  pull(`2-bedroom`) %>% 
-  scales::percent(0.1)
-
-city_2br_pct <- 
-  bedroom_match_table %>% 
-  filter(Category == "City of Vancouver rental stock") %>% 
-  pull(`2-bedroom`) %>% 
-  scales::percent(0.1)
-
-match_studio_pct <- 
-  bedroom_match_table %>% 
-  filter(Category == "LTRs matched to STR") %>% 
-  pull(Studio) %>% 
-  scales::percent(0.1)
-
-nonmatch_studio_pct <- 
-  bedroom_match_table %>% 
-  filter(Category == "LTRs not matched") %>% 
-  pull(Studio) %>% 
-  scales::percent(0.1)
-
-str_studio_pct <- 
-  str_2br_pct <- 
-  bedroom_match_table %>% 
-  filter(Category == "STR market (2019)") %>% 
-  pull(Studio) %>% 
-  scales::percent(0.1)
-
-city_studio_pct <- 
-  bedroom_match_table %>% 
-  filter(Category == "City of Vancouver rental stock") %>% 
-  pull(Studio) %>% 
-  scales::percent(0.1)
-
-
-rm(property, daily, GH, ltr)
-
-```
-
-_Size:_ Table \@ref(tab:tab-bedrooms) shows the distribution of units by number of bedrooms for entire-home STRs, as well as all the units that were posted for rent on LTR platforms (both the ones that matched with an STR listing and the ones that did not match), and for the City of Vancouver’s overall primary (i.e. apartment and townhouse) rental housing stock. Two-bedrooms were overrepresented in both the matches (`r match_2br_pct`) and the non-matches (`r nonmatch_2br_pct`) compared to the STR market (`r str_2br_pct`) and the City (`r city_2br_pct`). Studios were overrepresented among LTR listings which matched to Airbnb or Vrbo (`r match_studio_pct`) compared with LTR listings which did not match (`r nonmatch_studio_pct`) and STR listings (`r str_studio_pct`), but were underrepresented when compared to Vancouver’s rental stock of studios (`r city_studio_pct`. Units with three bedrooms or more were far more common on STR and LTR platforms than their prevalence in the city would predict, while one-bedroom units were significantly less common on STR platforms than on LTR platforms or among all city apartments. The implication is that two-bedrooms and studios apartments were disproportionately likely to be moved from STR platforms to the long-term rental market, while one-bedroom apartments were disproportionately likely not to have been moved.
-
-``` {r tab-bedrooms, include = TRUE}
-
-library(kableExtra)
-
-bedroom_match_table %>% 
-  mutate(across(where(is.numeric), scales::percent, 0.1)) %>%  
-  kbl(caption = "STR and LTR listings by bedroom count", align = "lrrrr") %>% 
-  kable_styling()
-
-```
-
-```{r furnished, cache = TRUE, cache.lazy = FALSE}
-
-total_ltr_listings <- 
-  ltr_unique %>% 
-  nrow() %>% 
-  prettyNum(",")
-
-furnished_pct <- 
-  ltr_unique %>% 
-  count(furnished) %>% 
-  mutate(pct = n / sum(n)) %>% 
-  filter(furnished) %>% 
-  pull(pct) %>% 
-  scales::percent(0.1)
-
-unfurnished_pct <- 
-  ltr_unique %>% 
-  count(furnished) %>% 
-  mutate(pct = n / sum(n)) %>% 
-  filter(!furnished) %>% 
-  pull(pct) %>% 
-  scales::percent(0.1)
-
-furnished_match_pct <- 
-  ltr_unique_property_ID %>% 
-  count(furnished) %>% 
-  mutate(pct = n / sum(n)) %>% 
-  filter(furnished) %>% 
-  pull(pct) %>% 
-  scales::percent(0.1)
-
-unfurnished_match_pct <- 
-  ltr_unique_property_ID %>% 
-  count(furnished) %>% 
-  mutate(pct = n / sum(n)) %>% 
-  filter(!furnished) %>% 
-  pull(pct) %>% 
-  scales::percent(0.1)
-
-```
-
-_Furnished vs. unfurnished:_ To accommodate temporary guests, STR properties are overwhelmingly furnished. Unsurprisingly, properties that have moved from the STR to LTR market during the pandemic are listed as furnished at much higher rates than other listings on Craigslist and Kijiji. Of the `r total_ltr_listings` LTR listings we analyzed, `r furnished_pct` were listed as furnished and `r unfurnished_pct` as unfurnished (The remainder did not provide this information.) Listings which matched with STRs had a significantly higher proportion classified as furnished: `r furnished_match_pct` furnished and `r unfurnished_match_pct` unfurnished. These proportions suggest that, in approximately three quarters of the cases of STR operators listing their units on LTR platforms, the operators may intend to return their units to the STR market when demand returns, while in a quarter of cases the move to the LTR market appears to be reasonably permanent, since the host has gone through the effort of emptying the unit of furniture.
 
 ## Are matched listings commercial operations?
 
@@ -1025,7 +970,7 @@ match_eh_FREH_pct <-
   pull(FREH_pct) %>% 
   scales::percent(0.1)
 
-r_match_eh_multi_pct <- 
+match_eh_multi_pct <- 
   commercial_match_status %>% 
   pull(ML_pct) %>% 
   scales::percent(0.1)
@@ -1094,11 +1039,9 @@ rm(property, daily, GH, ltr)
 
 Nearly all of the STR listings which we matched to LTR listings on Craigslist or Kijiji are likely to have been dedicated, commercial STRs. This is because it is highly unlikely that a casual home sharer operating a STR out of their principal residence would decide to vacate their home, list it on Craigslist or Kijiji, and reuse the photo they had used to advertise the short-term rental. It is therefore also likely that the STR listings found on LTR platform were non-compliant with the City's STR regulations, since the fact that they were commercial operators makes it extremely difficult to also have the listing be operated out of a principal residence. We can test this intuition by examining the characteristics of the STR listings which we matched to an LTR platform.
 
-Of the `r unique_str_matches` unique STR listings that matched with the LTR market, `r match_eh` (`r match_eh_pct`) are entire-home listings and `r match_pr` (`r match_pr_pct`) are private-room listings. Examining the entire-home listings, `r match_eh_FREH_pct` of them were identified as frequently rented entire-home (FREH) listings at some point, which means they were almost certainly operated commercially. Moreover, `r_match_eh_multi_pct` of entire-home STR listings which matched to LTR listings were multilistings at some point, which means they were operated by hosts controlling multiple listings simultaneously. In total, two thirds (`r match_eh_commercial_pct`) of entire-home listings had one of these two strong indicators of commercial activity.
+Of the `r unique_str_matches` unique STR listings that matched with the LTR market, `r match_eh` (`r match_eh_pct`) are entire-home listings and `r match_pr` (`r match_pr_pct`) are private-room listings. Examining the entire-home listings, `r match_eh_FREH_pct` of them were identified as frequently rented entire-home (FREH) listings at some point, which means they were almost certainly operated commercially. Moreover, `r match_eh_multi_pct` of entire-home STR listings which matched to LTR listings were multilistings at some point, which means they were operated by hosts controlling multiple listings simultaneously. In total, two thirds (`r match_eh_commercial_pct`) of matched entire-home listings had one of these two strong indicators of commercial activity.
 
-The `r match_pr` private-room listings require some further analysis, because each of these listings matched to a Craigslist or Kijiji listing advertised as an entire housing unit. Our analysis suggests that these listings break down into three categories. The first is miscategorizations. `r ltr_pr_wrong` (`r ltr_pr_wrong_pct`) of the LTR listings that matched to STR private-room listings had titles such as “1 fully furnished bedroom” or “swap”. This suggests either that these listings were rooms located in the host’s principal residence incorrectly listed as entire homes, or that images of the Airbnb private room listing were reused to conduct an exchange of leases between tenants. These STR listings are not commercial listings and their appearance on LTR platforms likewise does not constitute housing being returned to the market.
-
-The second category of private-room Airbnb listings matched to entire-home LTR listings is ghost hostels—clusters of private-room listings which may appear as a series of “spare bedrooms” on Airbnb or Vrbo but are in fact one or more housing units converted to a dedicated STR. `r match_pr_gh` (`r match_pr_gh_pct`) of the `r match_pr` private-room listings which matched to Craigslist or Kijiji belong to ghost hostels in Vancouver. The remaining `r match_pr_leftover` private-room Airbnb listings which matched to Craigslist or Kijiji are likely to be ghost hostels which our algorithms failed to identify, or smaller housing units similarly subdivided into private rooms. (Our procedure for identifying ghost hostels only considers clusters of three or more private rooms, but two-bedrooms apartments can also be listed as pairs of private rooms.) On balance, the likelihood is that these listings also represent commercial STRs returning to the long-term market.
+The `r match_pr` private-room listings require some further analysis, because each of these listings matched to a Craigslist or Kijiji listing advertised as an entire housing unit. Some are simply miscategorizations; `r ltr_pr_wrong` (`r ltr_pr_wrong_pct`) of the LTR listings that matched to STR private-room listings had titles such as “1 fully furnished bedroom”, which suggests that these listings were rooms located in the host’s principal residence, and that their appearance on LTR platforms does not constitute entire housing units being returned to the market. The second category of private-room Airbnb listings matched to entire-home LTR listings is clusters of private-room listings which may appear as a series of “spare bedrooms” on Airbnb or Vrbo but are in fact one or more housing units converted to a dedicated STR. `r match_pr_gh` (`r match_pr_gh_pct`) of the `r match_pr` private-room listings which matched to Craigslist or Kijiji belong to these clusters in Vancouver. The remaining `r match_pr_leftover` private-room Airbnb listings which matched to Craigslist or Kijiji are likely to be clusters of private-room listings which our algorithms failed to identify, or smaller housing units similarly subdivided into private rooms. (Our procedure for identifying entire-unit clusters of private-room listings only considers clusters of three or more private rooms, but two-bedrooms apartments can also be listed as pairs of private rooms.) On balance, the likelihood is that these listings also represent commercial STRs returning to the long-term market.
 
 Focusing on the unambiguous case of the entire-home listings which matched between STR and LTR platforms, `r match_eh_commercial_2020_transfer_pct` of the commercial listings active at any point in 2020 have been transferred to Craigslist or Kijiji since March. But, given the rapidity with which individual listings are posted and removed, this significantly understates the scope of listings moving from Airbnb to the long-term market. Expressed as a percentage of the commercial listings active on March 1, 2020, at the onset of the pandemic, the matches represent `r match_eh_commercial_march_transfer_pct` of these listings. In other words, something between a quarter and a half of Vancouver’s commercial short-term rentals may have shifted to the long-term rental market between March and September.
 
@@ -1319,7 +1262,7 @@ if (build_figures) {
 
 ```
 
-STR hosts which transferred listings to the long-term rental market had substantially higher STR revenue in 2019 than hosts who did not transfer listings. The median listing revenue was `r median_listing_rev` in the entire City of Vancouver in 2019. The annual median revenue of hosts who transferred listings to the LTR market was `r median_host_rev_match`, while the median revenue of hosts who did not transfer listings was somewhat less at `r median_host_rev_no_match`. Moreover, many of Vancouver’s highest earning STR hosts turned to LTR platforms during the COVID-19 pandemic. For example, `r host_250k_match` of the `r host_250k` hosts that made more than $250,000 in the past year listed at least one of their STR units on an LTR platform. On average these top earning hosts listed `r host_250k_match_n_units` units on LTR platforms, compared to `r host_all_match_n_units` units for all other hosts. Figure \@ref(fig:fig-6-6) compares the 2019 annual revenue distribution of STR hosts that shifted listings to the long-term market and hosts that did not. Hosts whose STR listings matched to LTR listings have a revenue distribution shifted substantially to the right, indicating that they earned more money.
+STR hosts that transferred listings to the long-term rental market had substantially higher STR revenue in 2019 than hosts that did not transfer listings. The median listing revenue was `r median_listing_rev` in the entire City of Vancouver in 2019. The annual median revenue of hosts who transferred listings to the LTR market was `r median_host_rev_match`, while the median revenue of hosts who did not transfer listings was somewhat less at `r median_host_rev_no_match`. Moreover, many of Vancouver’s highest earning STR hosts turned to LTR platforms during the COVID-19 pandemic. For example, `r host_250k_match` of the `r host_250k` hosts that made more than $250,000 in the past year listed at least one of their STR units on an LTR platform. On average these top earning hosts listed `r host_250k_match_n_units` units on LTR platforms, compared to `r host_all_match_n_units` units for all other hosts. Figure \@ref(fig:fig-6-6) compares the 2019 annual revenue distribution of STR hosts that shifted listings to the long-term market and hosts that did not. Hosts whose STR listings matched to LTR listings have a revenue distribution shifted substantially to the right, indicating that they earned more money.
 
 ``` {r fig-6-6, include = TRUE, fig.cap = '(ref:fig-6-6)', fig.align = "center"}
 
@@ -1508,6 +1451,47 @@ rm(property, daily, GH, ltr)
 
 The mere presence of current or former Airbnb listings on LTR platforms is no guarantee that the actual housing units have shifted back onto the long-term market. In particular, these listings might have been posted but not successfully rented. It is not possible to determine with certainty whether a given listing was rented and therefore permanently transferred from the short-term to the long-term market, but we can use two indicators to estimate this: the length of time the listing was posted on an LTR platform, and the current activity status of the listing on the STR market.
 
+```{r furnished, cache = TRUE, cache.lazy = FALSE}
+
+total_ltr_listings <- 
+  ltr_unique %>% 
+  nrow() %>% 
+  prettyNum(",")
+
+furnished_pct <- 
+  ltr_unique %>% 
+  count(furnished) %>% 
+  mutate(pct = n / sum(n)) %>% 
+  filter(furnished) %>% 
+  pull(pct) %>% 
+  scales::percent(0.1)
+
+unfurnished_pct <- 
+  ltr_unique %>% 
+  count(furnished) %>% 
+  mutate(pct = n / sum(n)) %>% 
+  filter(!furnished) %>% 
+  pull(pct) %>% 
+  scales::percent(0.1)
+
+furnished_match_pct <- 
+  ltr_unique_property_ID %>% 
+  count(furnished) %>% 
+  mutate(pct = n / sum(n)) %>% 
+  filter(furnished) %>% 
+  pull(pct) %>% 
+  scales::percent(0.1)
+
+unfurnished_match_pct <- 
+  ltr_unique_property_ID %>% 
+  count(furnished) %>% 
+  mutate(pct = n / sum(n)) %>% 
+  filter(!furnished) %>% 
+  pull(pct) %>% 
+  scales::percent(0.1)
+
+```
+
 ``` {r make_fig_6_7}
 
 figure_6_7_fun <- function(regular = "", condensed = "") {
@@ -1542,7 +1526,7 @@ if (build_figures) {
 
 ```
 
-On average, the STR matches found on LTR platforms stayed longer than the non-matches. STR matches were listed an average of `r listing_length_match` days on LTR platforms, while non-matches were listed only three quarters as long—`r listing_length_non_match` days on average. This simplest plausible explanation for this disparity is the fact that listings coming from the STR market were both significantly more expensive than other listings and much more likely to be furnished, both of which factors may have decreased their viability in the rental market. Figure \@ref(fig:fig-6-7) shows the distribution of the length of stay for both matches and non-matches. The figure reveals quantitatively and qualitatively different patterns among matched and non-matched listings. Most non-matched listings were present for less than a week on Craigslist or Kijiji before being removed (and presumably rented), and the number of listings still present declines relatively smoothly as the length of time increases. By contrast, most matched listings were not rented after a week, and in fact the proportion which took a month or more to be taken down is higher not lower than the proportion which were taken down after several weeks. Our conclusion is that, regardless of their host’s intentions, STR units listed on LTR platforms have been relatively unsuccessful at transitioning back to long-term rentals.
+On average, the STR matches found on LTR platforms stayed longer than the non-matches: `r listing_length_match` days for the latter and `r listing_length_non_match` days for the former. Listings coming from the STR market were both significantly more expensive than other listings and much more likely to be furnished, both of which factors may have decreased their viability in the rental market. (Of the `r total_ltr_listings` LTR listings we analyzed, `r furnished_pct` were listed as furnished, while `r furnished_match_pct` of listings which matched with STRs were furnished.) Figure \@ref(fig:fig-6-7) shows the distribution of the length of stay for both matches and non-matches. The figure reveals quantitatively and qualitatively different patterns among matched and non-matched listings. Most non-matched listings were present for less than a week on Craigslist or Kijiji before being removed (and presumably rented), and the number of listings still present declines relatively smoothly as the length of time increases. By contrast, most matched listings were not rented after a week, and in fact the proportion which took a month or more to be taken down is higher than the proportion which were taken down after several weeks. Our conclusion is that STR units listed on LTR platforms have been relatively unsuccessful at transitioning back to long-term rentals.
 
 ``` {r fig-6-7, include = TRUE, fig.cap = '(ref:fig-6-7)', fig.align = "center"}
 
