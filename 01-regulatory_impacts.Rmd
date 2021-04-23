@@ -45,6 +45,20 @@ displayed_listings <-
   mutate(blocked = if_else(blocked == TRUE, "Displayed listings", 
                            "Active listings"))
 
+displayed_listings_all <-
+  daily_all %>% 
+  filter(housing) %>% 
+  count(date, min_30 = minimum_stay >= 30, blocked = status == "B") %>% 
+  group_by(min_30, blocked) %>% 
+  mutate(n = slide_dbl(n, mean, .before = 6, .complete = TRUE)) %>% 
+  ungroup() %>% 
+  drop_na() %>% 
+  group_by(date, min_30) %>% 
+  mutate(n = if_else(blocked == TRUE, sum(n), n)) %>% 
+  ungroup() %>% 
+  mutate(blocked = if_else(blocked == TRUE, "Displayed listings", 
+                           "Active listings"))
+
 active_listings <- 
   daily %>% 
   filter(housing, status != "B") %>% 
@@ -60,6 +74,23 @@ active_listings <-
   mutate(n = slide_dbl(n, mean, .before = 6, .complete = TRUE),
          listing_type = "All listings") %>% 
   bind_rows(active_listings) %>% 
+  arrange(date, listing_type)
+
+active_listings_all <- 
+  daily_all %>% 
+  filter(housing, status != "B") %>% 
+  count(date, listing_type) %>% 
+  group_by(listing_type) %>% 
+  mutate(n = slide_dbl(n, mean, .before = 6, .complete = TRUE)) %>% 
+  ungroup()
+
+active_listings_all <- 
+  daily_all %>% 
+  filter(housing, status != "B") %>% 
+  count(date) %>% 
+  mutate(n = slide_dbl(n, mean, .before = 6, .complete = TRUE),
+         listing_type = "All listings") %>% 
+  bind_rows(active_listings_all) %>% 
   arrange(date, listing_type)
 
 rm(property, daily, GH, DA, BL, BL_expanded, skytrain)
@@ -203,7 +234,7 @@ library(fabletools)
 
 start_proj <- as.Date("2018-04-01")
 n_months <- 21
-data_start <- as.Date(start_proj) - years(3)
+data_start <- as.Date(start_proj) - months(40)
   
 # Get seasonal trend components
 active_components <- 
@@ -215,7 +246,7 @@ active_components <-
   summarize(n = sum(n, na.rm = TRUE)) %>% 
   filter(yearmon >= tsibble::yearmonth(data_start)) %>%
   filter(yearmon <= tsibble::yearmonth(start_proj - months(1))) %>%
-  model(x11 = feasts:::X11(n, type = "additive")) %>% 
+  model(X_13ARIMA_SEATS(n)) %>% 
   components()
 
 # Get linear trend from last two years
@@ -245,7 +276,7 @@ active_components_to <-
   summarize(n = sum(n, na.rm = TRUE)) %>% 
   filter(yearmon >= tsibble::yearmonth("2016-11-01")) %>%
   filter(yearmon <= tsibble::yearmonth(as.Date("2020-02-01"))) %>%
-  model(x11 = feasts:::X11(n, type = "additive")) %>% 
+  model(X_13ARIMA_SEATS(n)) %>% 
   components()
 
 # Get Toronto linear trend post-regulation
@@ -405,7 +436,7 @@ multi_components <-
   summarize(n = sum(n, na.rm = TRUE)) %>% 
   filter(yearmon >= tsibble::yearmonth(data_start - months(2))) %>%
   filter(yearmon <= tsibble::yearmonth(start_proj - months(1))) %>%
-  model(x11 = feasts:::X11(n, type = "additive")) %>% 
+  model(X_13ARIMA_SEATS(n)) %>% 
   components()
 
 # Get linear trend from last two years
@@ -435,7 +466,7 @@ multi_components_to <-
   summarize(n = sum(n, na.rm = TRUE)) %>% 
   filter(yearmon >= tsibble::yearmonth("2016-11-01")) %>%
   filter(yearmon <= tsibble::yearmonth(as.Date("2020-02-01"))) %>%
-  model(x11 = feasts:::X11(n, type = "additive")) %>% 
+  model(X_13ARIMA_SEATS(n)) %>% 
   components()
 
 # Get Toronto linear trend post-regulation
@@ -760,7 +791,7 @@ rm(property_montreal, property_toronto, property, daily, daily_montreal,
 
 ```
 
-```{r montreal_toronto, cache = TRUE, cache.lazy = FALSE, cache.extra = mtime(here("output", "cma_comparison.qsm"))}
+```{r montreal_toronto, cache = TRUE, cache.lazy = FALSE, cache.extra = mtime(here("output", "str_processed.qsm"))}
 
 qload(here("output", "str_processed.qsm"), nthreads = availableCores())
 qload(here("output", "cma_comparison.qsm"), nthreads = availableCores())
@@ -864,7 +895,7 @@ rm(property_montreal, property_toronto, property, daily, daily_montreal,
 
 ## The City of Vancouver's STR regulations
 
-In April 2018, the City of Vancouver enacted regulations on the operations of short-term rentals in the City, defined as rentals offered for thirty or fewer consecutive days (City of Vancouver, 2020a). Under these regulations, each STR operator is required to obtain a license for their rental unit; these licenses are only issued for STRs operated out of a host’s principal residence, and are valid for a single calendar year. Licensed listings can either be the entire principal residence or individual rooms within the residence. Although the regulations apply to STRs listed on any platform, Airbnb is the only STR platform that agreed to require hosts in Vancouver to fill out a license field in their online listing, to engage in data sharing, and to undertake operator education (City of Vancouver, 2020b). In August 2018, shortly before the City's announced start date for enforcement of the registration system, Airbnb removed approximately 2,400 listings which had not received licenses.
+In April 2018, the City of Vancouver enacted regulations on the operations of short-term rentals in the City, defined as rentals offered for fewer than thirty consecutive days (City of Vancouver, 2020a). Under these regulations, each STR operator is required to obtain a license for their rental unit; these licenses are only issued for STRs operated out of a host’s principal residence, and are valid for a single calendar year. Licensed listings can either be the entire principal residence or individual rooms within the residence. Although the regulations apply to STRs listed on any platform, Airbnb is the only STR platform that agreed to require hosts in Vancouver to fill out a license field in their online listing, to engage in data sharing, and to undertake operator education (City of Vancouver, 2020b). In August 2018, shortly before the City's announced start date for enforcement of the registration system, Airbnb removed approximately 2,400 listings which had not received licenses.
 
 In what follows we assemble evidence about the of the City's regulations on the STR market. Given the significant restraints which the regulations impose on the market, their impacts should be highly visible if the regulations have been effective. If, by contrast, few impacts can be discerned, that implies that the regulations have not been effective. We carry out this task by analyzing the trajectory of STR activity in the City of Vancouver over time, and by comparing the City with a set of peer jurisdictions. This analysis collectively demonstrates that the City’s STR regulations have been effective at reducing STR activity and growth in Vancouver, and have accomplished that reduction in part by driving incoming visits to other municipalities within Metro Vancouver.
 
@@ -874,14 +905,15 @@ In what follows we assemble evidence about the of the City's regulations on the 
 
 figure_3_1_fun <- function(regular = "", condensed = "") {
   
-  displayed_listings %>% 
-    ggplot(aes(date, n, colour = blocked)) +
+  displayed_listings_all %>% 
+    ggplot(aes(date, n, colour = blocked, linetype = min_30)) +
     annotate("segment", x = key_date_covid, xend = key_date_covid,
              y = -Inf, yend = Inf, alpha = 0.3) +
     annotate("segment", x = key_date_regulations, xend = key_date_regulations,
              y = -Inf, yend = Inf, alpha = 0.3) +
     geom_line(lwd = 1.5) +
     scale_y_continuous(name = NULL, label = scales::comma) +
+    scale_linetype_discrete(name = NULL, labels = c("STR", "LTR")) +
     scale_x_date(name = NULL, limits = c(as.Date("2016-01-01"), NA)) +
     scale_colour_manual(name = NULL, values = col_palette[c(5, 1:3)]) +
     theme_minimal() +
@@ -900,7 +932,9 @@ if (build_figures) {
 
 ```
 
-The impact of the City's regulations can be directly measured in two ways: changes in the total number of listings on STR platforms in Vancouver, and changes in commercial listings which are highly likely to be non-compliant. Because all Vancouver STR listings are required to be licensed whether or not they are active, in Figure \@ref(fig:fig-3-1) we show the total number of listings displayed each day alongside our standard metric of active daily listings. Displayed listings comprise active listings (i.e. listings which are either reserved or available for reservation) and inactive (blocked) listings which are visible on Airbnb or VRBO. Both indicators show a sharp drop following Airbnb's mass removal of non-licensed listings in August 2018, but the decline is proportionally twice as large for displayed listings, which decreased `r displayed_drop` (`r displayed_drop_pct`) from August 20 to September 7, as it is for active listings, which decreased `r active_drop` (`r active_drop_pct`) over the same date range. Furthermore, displayed listings have never come close to regaining their pre-regulation numbers in Vancouver, while active listings had mostly recovered by the summer of 2019, a year after Airbnb's mass removal. Put differently, a disproportionate share of the large decline in STRs which followed Airbnb's mass removal was listings which were not actually in use on the platform anymore.
+The impact of the City's regulations can be directly measured in two ways: changes in the total number of listings on STR platforms in Vancouver, and changes in commercial listings which are highly likely to be non-compliant. Because all Vancouver STR listings are required to be licensed whether or not they are active, in Figure \@ref(fig:fig-3-1) we show the total number of listings displayed each day on Airbnb and Vrbo alongside our standard metric of active daily listings. In both cases we distinguish between short-term rental ("STR") listings (which have minimum reservations of 29 days or fewer, and are subject to the City's STR regulations) and long-term rental ("LTR") listings (which have minimum reservations of 30 days or more, and are not subject to the City's STR regulations). Displayed listings comprise active listings (i.e. listings which are either reserved or available for reservation) and inactive (blocked) listings which are visible on Airbnb or VRBO.
+
+Two patterns are clear from Figure \@ref(fig:fig-3-1). First, the number of LTR listings on Airbnb and Vrbo (the dashed lines in Figure \@ref(fig:fig-3-1)) increased significantly in the run-up to the implementation of the City's STR regulations, presumably reflecting hosts converting possibly non-compliant STRs into LTR listings which are not subject to the regulations. Since mid-2019, there have consistently been just under 2,000 LTR listings displayed on Airbnb and Vrbo. In all the analysis which follows, these LTR listings are excluded, since they do not meet the City's definition of short-term rentals. Second, among STR listings (the solid lines in Figure \@ref(fig:fig-3-1)), both indicators show a sharp drop following Airbnb's mass removal of non-licensed listings in August 2018, but the decline is proportionally twice as large for displayed listings, which decreased `r displayed_drop` (`r displayed_drop_pct`) from August 20 to September 7, as it is for active listings, which decreased `r active_drop` (`r active_drop_pct`) over the same date range. Furthermore, displayed listings have never come close to regaining their pre-regulation numbers in Vancouver, while active listings had mostly recovered by the summer of 2019, a year after Airbnb's mass removal. Put differently, a disproportionate share of the large decline in STRs which followed Airbnb's mass removal was listings which were not actually in use on the platform anymore.
 
 ``` {r fig-3-1, include = TRUE, fig.cap = '(ref:fig-3-1)', fig.align = "center"}
 
@@ -1153,7 +1187,7 @@ The preceding analysis varies significantly with the underlying assumptions bein
 
 There is no way to determine with certainty which of these scenarios would have occurred, but a promising strategy is to compare Vancouver with a set of similar jurisdictions which did not regulate their STR markets in mid-2018. Above we included Toronto's STR activity as an additional point of comparison for Vancouver, and in what follows we do this more systematically and at multiple spatial scales. We begin with the other two largest STR markets in the country: Toronto and Montreal. The City of Toronto has recently implemented mandatory host registration and a principal-residence requirement which are very similar to Vancouver's rules, but these were not active during the study period. The City of Montreal has rules which vary across the city, but in the key central-city boroughs commercial short-term rentals are largely forbidden. However, with no registration system in place during the study period, it has been widely understood that Montreal's enforcement mechanisms have not been sufficiently strong to significantly affect the operation of commercial STRs. Toronto and Montreal thus represent zero- or low-regulation cases with which to compare Vancouver.
 
-```{r montreal_toronto_comparisons, cache = TRUE, cache.lazy = FALSE}
+```{r montreal_toronto_comparisons, cache = TRUE, cache.lazy = FALSE, cache.extra = mtime(here("output", "str_processed.qsm"))}
 
 van_mtl_active_dif_2017 <- 
   bind_rows(active_montreal, active_vancouver) %>% 
@@ -1763,7 +1797,7 @@ tibble(
 
 ```
 
-```{r central_comparisons, cache = TRUE, cache.lazy = FALSE, cache.extra = mtime(here("output", "cma_comparison.qsm"))}
+```{r central_comparisons, cache = TRUE, cache.lazy = FALSE, cache.extra = mtime(here("output", "str_processed.qsm"))}
 
 qload(here("output", "str_processed.qsm"), nthreads = availableCores())
 qload(here("output", "str_bc_processed.qsm"), nthreads = availableCores())
@@ -1928,7 +1962,7 @@ The fact that more STR activity is located in outer municipalities of the Vancou
 
 ## The eastern edge of the City of Vancouver in comparison with the western edge of the City of Burnaby
 
-```{r burnaby, cache = TRUE, cache.lazy = FALSE, cache.extra = mtime(here("output", "str_bc_processed.qsm"))}
+```{r burnaby, cache = TRUE, cache.lazy = FALSE, cache.extra = mtime(here("output", "str_processed.qsm"))}
 
 qload(here("output", "str_processed.qsm"), nthreads = availableCores())
 qload(here("output", "str_bc_processed.qsm"), nthreads = availableCores())
